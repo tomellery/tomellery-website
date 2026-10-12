@@ -2,20 +2,22 @@
 //   1 = "String Lights"  a strand of twinkling bulbs across the top of the page
 //   2 = "Snowcapped"     fresh snow piled on the TE badge, menu button and each link
 //   3 = "Candy Cane"     striped accent bar, ornament on the TE badge, holiday NOW line
+//   halloween            bold: jack-o'-lantern badge, webs, dangling spider, bats, glowing name, fog
 //
-// Preview any look with ?holiday=1, ?holiday=2 or ?holiday=3 (e.g. tomellery.com/?holiday=1).
+// Preview any look with ?holiday=1, ?holiday=2, ?holiday=3 or ?holiday=halloween (e.g. tomellery.com/?holiday=halloween).
 // To turn one on for everyone during the season, set ACTIVE below (and the dates it runs).
 (function () {
   const ACTIVE = { look: 0, from: "12-01", to: "01-02" }; // look 0 = off. Dates are MM-DD.
 
-  const param = (location.search.match(/[?&]holiday=(\d)/) || [])[1];
-  let look = param ? +param : 0;
+  const param = (location.search.match(/[?&]holiday=(\w+)/) || [])[1];
+  let look = param ? (isNaN(param) ? param.toLowerCase() : +param) : 0;
   if (!look && ACTIVE.look) {
     const d = new Date(), md = String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     const inSeason = ACTIVE.from <= ACTIVE.to ? md >= ACTIVE.from && md <= ACTIVE.to : md >= ACTIVE.from || md <= ACTIVE.to;
     if (inSeason) look = ACTIVE.look;
   }
-  if (![1, 2, 3].includes(look)) return;
+  const LOOKS = { 1: () => stringLights(), 2: () => snowcapped(), 3: () => candyCane(), halloween: () => halloween() };
+  if (!LOOKS[look]) return;
   const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function css(text) { const s = document.createElement("style"); s.textContent = text; document.head.appendChild(s); }
@@ -104,7 +106,88 @@
     if (now) now.textContent = "Happy holidays from Salt Lake City";
   }
 
-  function start() { [, stringLights, snowcapped, candyCane][look](); }
+  // ---------- Halloween (bold) ----------
+  function halloween() {
+    css(`
+      /* Jack-o'-lantern badge */
+      #avatar { position: relative; background: radial-gradient(circle at 50% 60%, #ffb347, #ff7a00 55%, #c24e00) !important; color: #1a0d00 !important;
+        border-radius: 46% 46% 42% 42% / 52% 52% 48% 48%; box-shadow: 0 0 18px rgba(255, 122, 0, .55); ${calm ? "" : "animation: teCandle 2.4s ease-in-out infinite;"} }
+      #avatar::before { content: ""; position: absolute; top: -8px; left: 50%; width: 6px; height: 10px; margin-left: -3px;
+        background: #3f7d20; border-radius: 3px 3px 1px 1px; transform: rotate(8deg); }
+      @keyframes teCandle { 0%, 100% { box-shadow: 0 0 14px rgba(255, 122, 0, .45); } 45% { box-shadow: 0 0 26px rgba(255, 150, 0, .8); } 60% { box-shadow: 0 0 10px rgba(255, 122, 0, .35); } }
+
+      /* Glowing, flickering name */
+      h1 .ellery { -webkit-text-stroke-color: #ff7a00 !important; text-shadow: 0 0 10px rgba(255, 122, 0, .55), 0 0 2px rgba(255, 160, 60, .8); ${calm ? "" : "animation: draw 1s cubic-bezier(.2,.8,.2,1) .55s forwards, teFlicker 4s linear 1.6s infinite !important;"} }
+      @keyframes teFlicker { 0%, 100% { opacity: 1; } 3% { opacity: .55; } 6% { opacity: 1; } 42% { opacity: 1; } 44% { opacity: .7; } 46% { opacity: 1; } }
+      .rule { background: linear-gradient(90deg, #ff7a00, #8b5cf6) !important; }
+      .now b::before { background: #8b5cf6 !important; }
+
+      /* Corner webs, spider, bats, fog */
+      .te-web { position: absolute; top: 0; width: 120px; height: 120px; pointer-events: none; z-index: 30; opacity: .55; }
+      .te-web.left { left: 0; } .te-web.right { right: 0; transform: scaleX(-1); }
+      .te-spider { position: absolute; top: 0; right: 64px; width: 24px; pointer-events: none; z-index: 31; transform-origin: top center;
+        ${calm ? "height: 120px;" : "height: 90px; animation: teDangle 7s ease-in-out infinite;"} }
+      .te-spider svg { position: absolute; bottom: 0; left: 0; width: 24px; height: 24px; }
+      .te-spider::before { content: ""; position: absolute; top: 0; bottom: 18px; left: 11.5px; width: 1px; background: rgba(242, 239, 230, .5); }
+      @keyframes teDangle { 0%, 100% { height: 90px; } 20% { height: 104px; } 45% { height: 210px; } 55% { height: 200px; } 75% { height: 120px; } }
+      .te-bat { position: fixed; z-index: 35; pointer-events: none; width: 34px; height: 16px; left: -60px; }
+      .te-bat svg { width: 100%; height: 100%; animation: teFlap .22s ease-in-out infinite alternate; transform-origin: center; }
+      @keyframes teFlap { to { transform: scaleY(.35); } }
+      .te-fog { position: fixed; left: 0; right: 0; bottom: 0; height: 120px; pointer-events: none; z-index: 34; opacity: .55;
+        background: radial-gradient(60% 100% at 20% 100%, rgba(139, 92, 246, .35), transparent 70%),
+                    radial-gradient(50% 90% at 80% 100%, rgba(255, 122, 0, .18), transparent 70%);
+        ${calm ? "" : "animation: teFog 9s ease-in-out infinite alternate;"} }
+      @keyframes teFog { to { transform: translateX(-6%); opacity: .8; } }
+    `);
+
+    const now = document.getElementById("now");
+    if (now) now.textContent = "Happy Halloween · Trick or treat";
+
+    const web = `<svg viewBox="0 0 120 120" fill="none" stroke="#f2efe6" stroke-width=".8">
+      <path d="M0 0 L120 120 M0 0 L60 120 M0 0 L120 60 M0 0 L0 120 M0 0 L120 0 M0 0 L95 120 M0 0 L120 95"/>
+      <path d="M0 22 Q12 18 22 0 M0 44 Q24 38 44 0 M0 68 Q38 58 68 0 M0 92 Q52 80 92 0 M0 116 Q66 102 116 0"/></svg>`;
+    const spider = `<svg viewBox="0 0 24 24"><g stroke="#0a0a0a" stroke-width="1.4" fill="none">
+      <path d="M12 12 L3 6 M12 12 L2 12 M12 13 L3 18 M12 14 L6 22 M12 12 L21 6 M12 12 L22 12 M12 13 L21 18 M12 14 L18 22"/></g>
+      <ellipse cx="12" cy="13" rx="4" ry="5" fill="#0a0a0a" stroke="#ff7a00" stroke-width=".6"/>
+      <circle cx="10.5" cy="11" r=".9" fill="#ff7a00"/><circle cx="13.5" cy="11" r=".9" fill="#ff7a00"/></svg>`;
+    const bat = `<svg viewBox="0 0 34 16"><path fill="#0a0a0a" stroke="#8b5cf6" stroke-width=".5"
+      d="M17 5 C15 2 13 2 12 4 C9 1 5 1 0 6 C4 5 7 7 8 11 C10 9 12 9 13 12 C14 10 16 10 17 13 C18 10 20 10 21 12 C22 9 24 9 26 11 C27 7 30 5 34 6 C29 1 25 1 22 4 C21 2 19 2 17 5Z"/></svg>`;
+
+    ["left", "right"].forEach(side => {
+      const w = document.createElement("div");
+      w.className = "te-web " + side; w.setAttribute("aria-hidden", "true"); w.innerHTML = web;
+      document.body.prepend(w);
+    });
+    const sp = document.createElement("div");
+    sp.className = "te-spider"; sp.setAttribute("aria-hidden", "true"); sp.innerHTML = spider;
+    document.body.prepend(sp);
+    const fog = document.createElement("div");
+    fog.className = "te-fog"; fog.setAttribute("aria-hidden", "true");
+    document.body.appendChild(fog);
+
+    // A few bats fly across every so often
+    if (!calm) {
+      function flyBat() {
+        const b = document.createElement("div");
+        b.className = "te-bat"; b.setAttribute("aria-hidden", "true"); b.innerHTML = bat;
+        const top = 8 + Math.random() * 45, scale = .7 + Math.random() * .8, dur = 5 + Math.random() * 4;
+        const toRight = Math.random() > .4;
+        b.style.top = top + "vh"; b.style.width = 34 * scale + "px"; b.style.height = 16 * scale + "px";
+        document.body.appendChild(b);
+        const W = innerWidth + 120;
+        b.animate([
+          { transform: `translate(${toRight ? 0 : W}px, 0)` },
+          { transform: `translate(${W * .35 + (toRight ? 0 : W * .3)}px, ${-30 - Math.random() * 40}px)` },
+          { transform: `translate(${W * .7 - (toRight ? 0 : W * .4)}px, ${20 + Math.random() * 30}px)` },
+          { transform: `translate(${toRight ? W : 0}px, -20px)` },
+        ], { duration: dur * 1000, easing: "ease-in-out" }).onfinish = () => b.remove();
+      }
+      flyBat(); setTimeout(flyBat, 900);
+      setInterval(() => { flyBat(); if (Math.random() > .5) setTimeout(flyBat, 600); }, 6500);
+    }
+  }
+
+  function start() { LOOKS[look](); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
 })();
