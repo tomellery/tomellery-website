@@ -90,15 +90,15 @@
       .catch(() => { season = MOUNTAINS.map(() => null); onSeason.forEach(fn => fn()); });
   })();
 
-  // Which number the boards show: "day" (big = last 24 hours), "week" (big = last 7 days, "+X TODAY" below)
+  // Which number the boards show (default "day"): "day" (big = last 24 hours), "week" (big = last 7 days, "+X TODAY" below)
   // or "season" (big = estimated season total, "+X 7 DAYS" below).
   // Remembered per visitor; the 24 HR / 7 DAY / SEASON buttons are any element with data-snow-mode.
-  let mode = "week";
-  try { mode = localStorage.getItem("te-snow-mode") || "week"; } catch (e) {}
+  let mode = "day";
+  try { mode = localStorage.getItem("te-snow-mode") || "day"; } catch (e) {}
 
   const reveal = el => el.closest("[data-snow-wrap]")?.removeAttribute("hidden");
 
-  // ===== Secret: faint snow falls across the page when it's snowing at Brighton right now =====
+  // ===== Secret: faint snow falls across the page when it's snowing at Brighton, or it got 1"+ in the last 24 hours =====
   // Only for visitors in dark mode. Preview it any time with ?snow in the address (e.g. tomellery.com/?snow).
   const SNOW_CODES = [71, 73, 75, 77, 85, 86]; // weather codes for snow and snow showers
   const forceSnow = /[?&]snow(=|&|$)/.test(location.search);
@@ -218,9 +218,9 @@
       const all = Array.isArray(list) ? list : [list];
       const data = all.map(summarize);
 
-      // Is it snowing at Brighton (first mountain) right now?
+      // Let it snow on the page while it's snowing at Brighton (first mountain), or after 1"+ in the last 24 hours
       const now = all[0].current;
-      maybeSnow((now.snowfall || 0) > 0 || SNOW_CODES.includes(now.weather_code));
+      maybeSnow((now.snowfall || 0) > 0 || SNOW_CODES.includes(now.weather_code) || data[0].inches >= 1);
 
       // Brighton readouts
       const b = data[0];
