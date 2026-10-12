@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tom Ellery</title>
+  <meta name="description" content="Tom Ellery. SLC. Build · Ride · Repeat.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sky-top: #070b1f;
+      --sky-mid: #1d2152;
+      --sky-low: #5b3f78;
+      --glow: #f0957a;
+      --text: #fbf7f4;
+      --muted: rgba(251, 247, 244, .72);
+      --glass: rgba(255, 255, 255, .08);
+      --glass-hover: rgba(255, 255, 255, .18);
+      --glass-border: rgba(255, 255, 255, .22);
+      --display: "Bricolage Grotesque", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html { background: var(--sky-top); }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 38%, var(--sky-low) 64%, var(--glow) 86%, #f6c39a 100%);
+      background-attachment: fixed;
+    }
+
+    /* ===== Scene ===== */
+    .scene { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+    canvas#sky { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .moon {
+      position: absolute; top: 9%; right: 14%; width: 64px; height: 64px; border-radius: 50%;
+      background: radial-gradient(circle at 38% 38%, #fffaf0, #f1e6d2 60%, #d9cbb3);
+      box-shadow: 0 0 40px 10px rgba(255, 244, 220, .25), 0 0 120px 40px rgba(255, 244, 220, .12);
+    }
+    .layer { position: absolute; left: -5%; right: -5%; bottom: 0; will-change: transform; transition: transform .2s ease-out; }
+    .layer svg { display: block; width: 100%; height: 100%; }
+    .l1 { height: 52vh; }
+    .l2 { height: 40vh; }
+    .l3 { height: 26vh; }
+
+    /* ===== Content ===== */
+    main {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 460px; margin: 0 auto;
+      padding: 56px 16px 120px; text-align: center;
+    }
+    .avatar {
+      width: 92px; height: 92px; margin: 0 auto 18px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-family: var(--display); font-weight: 800; font-size: 30px; letter-spacing: .02em;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 0 0 6px rgba(255, 255, 255, .04), 0 10px 40px rgba(240, 149, 122, .25);
+      cursor: default; user-select: none; -webkit-tap-highlight-color: transparent; transition: transform .1s;
+    }
+    .avatar.tap { transform: scale(.92); }
+    h1 {
+      font-family: var(--display); font-weight: 800;
+      font-size: clamp(44px, 13vw, 64px); line-height: .95; letter-spacing: -.02em;
+      text-shadow: 0 4px 30px rgba(240, 149, 122, .35);
+    }
+    .bio { margin-top: 14px; color: var(--muted); font-size: 16px; letter-spacing: .02em; }
+    .tags { display: flex; justify-content: center; gap: 8px; margin: 18px 0 30px; flex-wrap: wrap; }
+    .tags span {
+      font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+      padding: 6px 12px; border-radius: 99px; border: 1px solid var(--glass-border); background: rgba(255, 255, 255, .05);
+    }
+
+    ul { list-style: none; padding: 0; display: grid; gap: 12px; }
+    li { opacity: 0; transform: translateY(10px); animation: rise .6s cubic-bezier(.2, .8, .2, 1) forwards; }
+    li:nth-child(1) { animation-delay: .2s; } li:nth-child(2) { animation-delay: .3s; }
+    li:nth-child(3) { animation-delay: .4s; } li:nth-child(4) { animation-delay: .5s; }
+    li:nth-child(5) { animation-delay: .6s; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+
+    a.link {
+      display: flex; align-items: center; gap: 14px;
+      padding: 15px 18px; border-radius: 18px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+      color: inherit; text-decoration: none; font-weight: 600; font-size: 16px;
+      transition: background .2s, transform .2s, box-shadow .2s;
+    }
+    a.link:hover, a.link:focus-visible {
+      background: var(--glass-hover); transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .25), 0 0 0 1px rgba(255, 255, 255, .35); outline: none;
+    }
+    a.link svg { width: 22px; height: 22px; fill: currentColor; flex-shrink: 0; }
+    a.link .label { flex: 1; text-align: left; }
+    a.link .handle { color: var(--muted); font-weight: 400; font-size: 13px; }
+
+    footer { margin-top: 36px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+    .egg {
+      position: fixed; inset: 0; z-index: 10; display: none; place-items: center;
+      background: #0b0f0b; color: #39ff7a; text-shadow: 0 0 8px #39ff7a;
+      font-family: "Cascadia Code", Consolas, "Courier New", monospace; font-size: 18px; text-align: center; white-space: pre; padding: 16px;
+    }
+    .egg.on { display: grid; }
+
+    @media (max-width: 560px) {
+      .moon { top: 3%; right: 6%; width: 42px; height: 42px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      li { animation: none; opacity: 1; transform: none; }
+      .layer { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background scene: stars + snow canvas, moon, three ridges, chairlift -->
+  <div class="scene" aria-hidden="true">
+    <canvas id="sky"></canvas>
+    <div class="moon"></div>
+
+    <div class="layer l1" data-depth="6">
+      <svg viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax slice">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a86"/><stop offset="1" stop-color="#4b3666"/></linearGradient>
+        </defs>
+        <path fill="url(#g1)" d="M0 400 L0 250 L120 190 L210 220 L330 110 L420 170 L520 120 L640 40 L720 120 L800 90 L900 160 L1010 70 L1100 140 L1200 100 L1300 170 L1440 130 L1440 400 Z"/>
+        <path fill="#f6d1c4" opacity=".85" d="M640 40 L610 70 L628 72 L645 60 L662 78 L676 74 Z M330 110 L306 134 L322 136 L336 126 L352 140 Z M1010 70 L984 96 L1000 98 L1014 88 L1030 102 Z"/>
+      </svg>
+    </div>
+
+    <div class="layer l2" data-depth="12">
+      <svg viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice">
+        <path fill="#2f2550" d="M0 320 L0 190 L140 120 L260 170 L380 90 L500 150 L620 100 L760 170 L880 110 L1000 160 L1130 80 L1260 150 L1440 110 L1440 320 Z"/>
+        <!-- chairlift: towers, cable, moving chairs -->
+        <g stroke="#1a1533" stroke-width="3" fill="none">
+          <path id="cable" d="M180 250 L1260 100" stroke-width="1.5"/>
+          <line x1="360" y1="225" x2="360" y2="300"/><line x1="720" y1="175" x2="720" y2="260"/><line x1="1080" y1="125" x2="1080" y2="215"/>
+        </g>
+        <g fill="#1a1533">
+          <g><rect x="-7" y="6" width="14" height="9" rx="2"/><line x1="0" y1="0" x2="0" y2="7" stroke="#1a1533" stroke-width="1.5"/>
+            <animateMotion dur="28s" repeatCount="indefinite"><mpath href="#cable"/></animateMotion></g>
+          <g><rect x="-7" y="6" width="14" height="9" rx="2"/><line x1="0" y1="0" x2="0" y2="7" stroke="#1a1533" stroke-width="1.5"/>
+            <animateMotion dur="28s" begin="-7s" repeatCount="indefinite"><mpath href="#cable"/></animateMotion></g>
+          <g><rect x="-7" y="6" width="14" height="9" rx="2"/><line x1="0" y1="0" x2="0" y2="7" stroke="#1a1533" stroke-width="1.5"/>
+            <animateMotion dur="28s" begin="-14s" repeatCount="indefinite"><mpath href="#cable"/></animateMotion></g>
+          <g><rect x="-7" y="6" width="14" height="9" rx="2"/><line x1="0" y1="0" x2="0" y2="7" stroke="#1a1533" stroke-width="1.5"/>
+            <animateMotion dur="28s" begin="-21s" repeatCount="indefinite"><mpath href="#cable"/></animateMotion></g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="layer l3" data-depth="20">
+      <svg viewBox="0 0 1440 220" preserveAspectRatio="xMidYMax slice">
+        <path fill="#141029" d="M0 220 L0 120 L60 110 L90 70 L120 105 L170 95 L210 50 L250 100 L320 120 L420 90 L470 40 L520 95 L600 110 L700 80 L760 30 L810 85 L900 100 L980 70 L1030 25 L1080 80 L1160 100 L1240 60 L1290 20 L1340 75 L1440 90 L1440 220 Z"/>
+      </svg>
+    </div>
+  </div>
+
+  <main>
+    <div class="avatar" id="avatar" aria-hidden="true">TE</div>
+    <h1>Tom<br>Ellery</h1>
+    <p class="bio">SLC 📍 Build · Ride · Repeat</p>
+    <div class="tags"><span>Salt Lake City</span><span>Snowboarder</span><span>Builder</span></div>
+
+    <ul>
+      <li><a class="link" href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1.1.4 2.2.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1.1.4-2.2.4-1.3.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1.1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1.1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.4-.5.2-.9.4-1.3.8-.4.4-.6.8-.8 1.3-.2.4-.3 1-.4 2.1C2.6 9.9 2.6 10.3 2.6 12s0 2.1.1 3.3c.1 1.1.2 1.7.4 2.1.2.5.4.9.8 1.3.4.4.8.6 1.3.8.4.2 1 .3 2.1.4 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.4.5-.2.9-.4 1.3-.8.4-.4.6-.8.8-1.3.2-.4.3-1 .4-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.4-2.1-.2-.5-.4-.9-.8-1.3-.4-.4-.8-.6-1.3-.8-.4-.2-1-.3-2.1-.4C15.5 4 15.1 4 12 4zm0 3.1a4.9 4.9 0 1 1 0 9.8 4.9 4.9 0 0 1 0-9.8zm0 8.1a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zm6.2-8.3a1.1 1.1 0 1 1-2.3 0 1.1 1.1 0 0 1 2.3 0z"/></svg>
+        <span class="label">Instagram</span><span class="handle">@tom.a.ellery</span></a></li>
+      <li><a class="link" href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
+        <span class="label">Facebook</span><span class="handle">/tom.a.ellery</span></a></li>
+      <li><a class="link" href="https://x.com/tomaellery" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 1.2h3.7l-8 9.2L24 22.8h-7.4l-5.8-7.6-6.6 7.6H.5l8.6-9.8L0 1.2h7.6l5.2 6.9 6.1-6.9zm-1.3 19.4h2L6.5 3.3H4.3l13.3 17.3z"/></svg>
+        <span class="label">X</span><span class="handle">@tomaellery</span></a></li>
+      <li><a class="link" href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>
+        <span class="label">LinkedIn</span><span class="handle">/in/thomas-ellery</span></a></li>
+      <li><a class="link" href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 1.5c.8 1.3 1.1 2.6 1.1 4.3 0 5.4-4.6 12.3-8.3 17.2H4.7L1.5 3.3l7.4-.7 1.8 14.3c1.7-2.7 3.7-7 3.7-10 0-1.6-.3-2.7-.7-3.6l6.7-1.8z"/></svg>
+        <span class="label">Venmo</span><span class="handle">@tomellery</span></a></li>
+    </ul>
+
+    <footer>Wasatch Range · Est. <span id="year"></span></footer>
+  </main>
+
+  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // ===== Stars + falling snow =====
+    const canvas = document.getElementById("sky"), ctx = canvas.getContext("2d");
+    let W, H, stars = [], flakes = [];
+    function resize() {
+      const dpr = devicePixelRatio || 1;
+      W = innerWidth; H = innerHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      stars = Array.from({ length: Math.round(W * H / 6000) }, () => ({
+        x: Math.random() * W, y: Math.random() * H * .55, r: Math.random() * 1.2 + .2, t: Math.random() * Math.PI * 2,
+      }));
+      flakes = Array.from({ length: Math.round(W / 9) }, () => newFlake(true));
+    }
+    function newFlake(anywhere) {
+      return { x: Math.random() * W, y: anywhere ? Math.random() * H : -10, r: Math.random() * 2.2 + .6,
+        vy: Math.random() * 30 + 22, drift: Math.random() * 2 * Math.PI, sway: Math.random() * 18 + 6 };
+    }
+    let lastT = performance.now();
+    function frame(now) {
+      const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+      ctx.clearRect(0, 0, W, H);
+      stars.forEach(s => {
+        s.t += dt * 1.5;
+        ctx.globalAlpha = .35 + Math.sin(s.t) * .3;
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+      });
+      ctx.globalAlpha = .85;
+      flakes.forEach((f, i) => {
+        f.y += f.vy * dt; f.drift += dt;
+        const x = f.x + Math.sin(f.drift) * f.sway;
+        ctx.beginPath(); ctx.arc(x, f.y, f.r, 0, 7); ctx.fill();
+        if (f.y > H + 10) flakes[i] = newFlake(false);
+      });
+      ctx.globalAlpha = 1;
+      if (!reduceMotion) requestAnimationFrame(frame);
+    }
+    addEventListener("resize", resize); resize(); requestAnimationFrame(frame);
+
+    // ===== Parallax: mouse on desktop, tilt on phones =====
+    const layers = [...document.querySelectorAll(".layer")];
+    function parallax(nx, ny) {
+      if (reduceMotion) return;
+      layers.forEach(l => { const d = +l.dataset.depth; l.style.transform = `translate(${nx * d}px, ${ny * d * .4}px)`; });
+    }
+    addEventListener("pointermove", e => parallax((e.clientX / W - .5) * 2, (e.clientY / H - .5) * 2));
+    addEventListener("deviceorientation", e => {
+      if (e.gamma == null) return;
+      parallax(Math.max(-1, Math.min(1, e.gamma / 30)), Math.max(-1, Math.min(1, (e.beta - 45) / 30)));
+    });
+
+    // ===== Easter egg: tap TE 5 times, or type "play" =====
+    const GAMES = ["8-terminal-flapper.html"];
+    const gameBase = location.pathname.includes("/options/") ? "" : "options/";
+    function launchEgg() {
+      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
+      if (egg.classList.contains("on")) return;
+      egg.classList.add("on");
+      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
+      let i = 0;
+      (function type() {
+        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
+        else setTimeout(() => { location.href = gameBase + GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
+      })();
+    }
+    const avatar = document.getElementById("avatar");
+    let taps = 0, tapTimer;
+    avatar.addEventListener("click", () => {
+      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
+      taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => taps = 0, 1500);
+      if (taps >= 5) { taps = 0; launchEgg(); }
+    });
+    let typed = "";
+    addEventListener("keydown", e => { typed = (typed + e.key.toLowerCase()).slice(-4); if (typed === "play") launchEgg(); });
+  </script>
+</body>
+</html>
