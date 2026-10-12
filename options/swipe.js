@@ -1,7 +1,7 @@
 // Swipe (phones) or arrow keys (computers) to move between the link page designs.
-// Order: Classic -> Blueprint -> Alpenglow -> back to Classic.
+// Order: Classic -> Blueprint -> Lift Ticket -> back to Classic.
 (function () {
-  const PAGES = ["index.html", "options/design-blueprint.html", "options/design-alpenglow.html"];
+  const PAGES = ["index.html", "options/design-blueprint.html", "options/design-liftticket.html"];
 
   const inOptions = location.pathname.includes("/options/");
   const prefix = inOptions ? "../" : "";
