@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bold Monograms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Black+Ops+One&family=Graduate&family=Roboto+Slab:wght@900&family=Anton&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #f6f5f2; --card: #fff; --text: #1a1a1a; --muted: #6b6b6b; --border: #e4e2dd; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #121212; --card: #1c1c1c; --text: #f2f2f2; --muted: #9a9a9a; --border: #2c2c2c; } }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 32px 16px; }
+  h1 { text-align: center; font-size: 22px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; max-width: 1000px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 16px; text-align: center; }
+  .card h2 { font-size: 18px; margin-top: 14px; }
+  .card p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .label { margin-top: 14px; font-weight: 700; }
+  .label span { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+  .avatar { width: 96px; height: 96px; margin: 0 auto; display: grid; place-items: center; }
+
+  /* F: tall heavy condensed letters in a hard square */
+  .block { background: var(--text); color: var(--bg); font-family: "Bebas Neue", Impact, sans-serif; font-size: 62px; line-height: 1; padding-top: 6px; border-radius: 6px; letter-spacing: 1px; }
+
+  /* G: military stencil on olive */
+  .stencil { background: #3d4a2a; color: #e8e2c8; font-family: "Black Ops One", Impact, sans-serif; font-size: 40px; border-radius: 50%; box-shadow: inset 0 0 0 4px #2b3420, inset 0 0 0 6px #e8e2c844; }
+
+  /* H: varsity / athletic jersey letters */
+  .varsity { background: #7a1020; color: #fff; font-family: "Graduate", Georgia, serif; font-size: 38px; border-radius: 50%;
+    text-shadow: 2px 2px 0 #1a1a1a; box-shadow: inset 0 0 0 4px #fff, inset 0 0 0 8px #7a1020; }
+
+  /* I: rugged slab serif, workwear badge */
+  .badge { background: #1f2a36; color: #d9a441; font-family: "Roboto Slab", Georgia, serif; font-weight: 900; font-size: 40px;
+    clip-path: polygon(50% 0, 100% 18%, 100% 70%, 50% 100%, 0 70%, 0 18%); }
+
+  /* J: heavy steel, dark with brushed metal letters */
+  .steel { background: linear-gradient(145deg, #2a2d31, #0f1113); color: #c9ced4; font-family: "Anton", Impact, sans-serif; font-size: 52px; border-radius: 50%;
+    background-clip: padding-box; border: 3px solid #50565e; }
+  .steel b { background: linear-gradient(180deg, #ffffff, #8b939c 55%, #d6dbe0); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 400; }
+</style></head>
+<body>
+  <h1>Bolder "TE" styles</h1>
+  <div class="grid">
+    <div class="card"><div class="avatar block">TE</div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">F. Heavy Block<span>Tall, thick, condensed. Square edges.</span></div></div>
+    <div class="card"><div class="avatar stencil">TE</div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">G. Stencil<span>Military crate stamp on olive.</span></div></div>
+    <div class="card"><div class="avatar varsity">TE</div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">H. Varsity<span>Athletic jersey lettering, maroon and white.</span></div></div>
+    <div class="card"><div class="avatar badge">TE</div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">I. Workwear Badge<span>Rugged slab letters, navy and gold shield.</span></div></div>
+    <div class="card"><div class="avatar steel"><b>TE</b></div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">J. Steel<span>Brushed-metal letters on dark steel.</span></div></div>
+  </div>
+</body></html>
