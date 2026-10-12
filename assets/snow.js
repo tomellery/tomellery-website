@@ -190,8 +190,9 @@
     const v = season ? season[i] : undefined;   // undefined = still loading, null = no sensor nearby
     // The 7-day number comes from a different source (weather model), so never show a season smaller than it
     const big = v === undefined ? "…" : v === null ? "—" : Math.max(v, m.week) + "″";
+    // Orange = fresh: the season number lights up when the mountain got snow this week
     return `
-    <div class="snow-cell">
+    <div class="snow-cell${m.week > 0 ? " fresh" : ""}">
       <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
       <b>${big}</b>
       <em class="today${m.week > 0 ? " fresh" : ""}">+${m.week}″ 7 DAYS</em>
