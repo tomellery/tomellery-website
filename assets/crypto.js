@@ -1,15 +1,20 @@
-// Crypto ticker ribbon, like a stock ticker. Fills any element with data-crypto-ticker.
-// Prices from CoinGecko (free, no key), refreshed every 2 minutes. If it can't be reached, the ribbon stays hidden.
+// Crypto ticker band, like a stock ticker. Fills any element with data-crypto-ticker.
+// Prices, 24h change and coin logos from CoinGecko (free, no key), refreshed every 2 minutes.
+// If it can't be reached, the band stays hidden; a missed refresh keeps the last good numbers.
 // Swipe or drag it to scroll; let go and it drifts again. Hover (computers) pauses it.
 (function () {
   // To add a coin: [ticker symbol, CoinGecko id]. "TOTAL" = total crypto market cap (from CoinGecko's global stats).
   const COINS = [
     ["BTC", "bitcoin"], ["ETH", "ethereum"], ["SOL", "solana"], ["SUI", "sui"],
-    ["LTC", "litecoin"], ["DOGE", "dogecoin"], ["WIF", "dogwifcoin"], ["TOTAL", "total"],
+    ["LTC", "litecoin"], ["DOGE", "dogecoin"], ["WIF", "dogwifcoin"], ["LINK", "chainlink"], ["TOTAL", "total"],
   ];
-  const url = "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&include_24hr_change=true&ids="
-    + COINS.map(c => c[1]).filter(id => id !== "total").join(",");
+  const ids = COINS.map(c => c[1]).filter(id => id !== "total").join(",");
+  const marketsUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
   const globalUrl = "https://api.coingecko.com/api/v3/global";
+  // Icon for TOTAL (a small stack of coins)
+  const TOTAL_ICON = "data:image/svg+xml;utf8," + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g fill="#ff5a1f" stroke="#0d0d0d" stroke-width=".8">
+      <ellipse cx="8" cy="11.5" rx="6" ry="2.5"/><ellipse cx="8" cy="8" rx="6" ry="2.5"/><ellipse cx="8" cy="4.5" rx="6" ry="2.5"/></g></svg>`);
 
   const price = n => "$" + (n >= 1e12 ? (n / 1e12).toFixed(2) + "T"
     : n >= 1e9 ? (n / 1e9).toFixed(1) + "B"
@@ -18,9 +23,9 @@
 
   function render(el, d) {
     const items = COINS.filter(([, id]) => d[id]).map(([sym, id]) => {
-      const ch = d[id].usd_24h_change || 0;
-      const dir = ch >= 0 ? "up" : "down";
-      return `<div class="coin"><small>${sym}</small><b>${price(d[id].usd)}</b><em class="${dir}">${ch >= 0 ? "▲" : "▼"}${Math.abs(ch).toFixed(1)}%</em></div>`;
+      const c = d[id], ch = c.change || 0, dir = ch >= 0 ? "up" : "down";
+      const logo = c.image ? `<img src="${c.image}" alt="" width="14" height="14" decoding="async">` : "";
+      return `<div class="coin"><small>${logo}${sym}</small><b>${price(c.price)}</b><em class="${dir}">${ch >= 0 ? "▲" : "▼"}${Math.abs(ch).toFixed(1)}%</em></div>`;
     }).join("");
     if (!items) return;
     const keep = el.querySelector(".crypto-track") ? el.scrollLeft : 0;
@@ -70,21 +75,22 @@
   }
 
   // Keep the last good numbers so a missed refresh (e.g. the free service being busy) never blanks a coin
-  let lastPrices = null, lastTotal = null;
+  let lastCoins = null, lastTotal = null, retried = false;
   function update() {
     const getJSON = u => fetch(u).then(r => r.ok ? r.json() : Promise.reject(r.status));
-    Promise.all([getJSON(url).catch(() => null), getJSON(globalUrl).catch(() => null)])
-      .then(([d, g]) => {
-        if (d) lastPrices = d;
-        if (g && g.data) lastTotal = { usd: g.data.total_market_cap.usd, usd_24h_change: g.data.market_cap_change_percentage_24h_usd };
-        if (!lastPrices) return;
-        const all = Object.assign({}, lastPrices, lastTotal ? { total: lastTotal } : {});
+    Promise.all([getJSON(marketsUrl).catch(() => null), getJSON(globalUrl).catch(() => null)])
+      .then(([markets, g]) => {
+        if (Array.isArray(markets) && markets.length) {
+          lastCoins = {};
+          markets.forEach(m => { lastCoins[m.id] = { price: m.current_price, change: m.price_change_percentage_24h, image: m.image }; });
+        }
+        if (g && g.data) lastTotal = { price: g.data.total_market_cap.usd, change: g.data.market_cap_change_percentage_24h_usd, image: TOTAL_ICON };
+        if (!lastCoins) return;
+        const all = Object.assign({}, lastCoins, lastTotal ? { total: lastTotal } : {});
         document.querySelectorAll("[data-crypto-ticker]").forEach(el => render(el, all));
-        if (!lastTotal) setTimeout(retryTotal, 15000); // try TOTAL again soon if it was missed
+        if (!lastTotal && !retried) { retried = true; setTimeout(update, 15000); } // try TOTAL again soon if it was missed
       });
   }
-  let retried = false;
-  function retryTotal() { if (!retried) { retried = true; update(); } }
   update();
   setInterval(update, 120000);
 })();

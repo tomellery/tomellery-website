@@ -152,7 +152,8 @@
     .crypto-ticker.grabbing { cursor: grabbing; user-select: none; }
     .crypto-track { display: flex; width: max-content; }
     .coin { flex: 0 0 108px; padding: 11px 4px 10px; text-align: center; border-right: 1px solid var(--line); }
-    .coin small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .2em; color: var(--dim); }
+    .coin small { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 9px; font-weight: 700; letter-spacing: .2em; color: var(--dim); }
+    .coin small img { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
     .coin b { display: block; font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1.2; color: var(--white); letter-spacing: .01em; }
     .coin em { display: block; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em; }
     .coin em.up { color: #3ddc84; }
@@ -291,7 +292,7 @@
     }));
   </script>
   <script src="assets/snow.js?v=12"></script>
-  <script src="assets/crypto.js?v=4"></script>
+  <script src="assets/crypto.js?v=6"></script>
   <script src="assets/holiday.js?v=3"></script>
   <script src="assets/secrets.js?v=2"></script>
 </body>
