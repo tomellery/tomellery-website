@@ -5,31 +5,34 @@
 //   <span data-snow="short"></span>       -> Brighton, short: "BRIGHTON · 6″ NEW" or "BRIGHTON · 38°F"
 //   <div data-snow-strip></div>           -> every mountain, as a slowly drifting row of stacked cells
 //   <div data-snow-grid></div>            -> every mountain, as a board (add ="local" for Utah only)
+//   <div data-snow-boards></div>          -> swipeable 3x3 boards, one per group (Utah, The OGs, ...)
 //   <div data-snow-ticker></div>          -> every mountain, as a one-line scrolling ticker
 //
 // Anything wrapped in data-snow-wrap stays hidden until the data arrives (and if it never does).
 (function () {
-  // To add a mountain: name, short name (for small spaces), state, latitude, longitude, base elevation in meters.
-  // Brighton (home mountain) goes first.
+  // To add a mountain: board, name, short name (for small spaces), state, latitude, longitude, base elevation in meters.
+  // Each board shows up to 9 (a 3x3). Brighton (home mountain) goes first.
   const MOUNTAINS = [
-    // Utah
-    ["Brighton",          "Brighton",     "UT", 40.598, -111.583, 2669],
-    ["Solitude",          "Solitude",     "UT", 40.620, -111.592, 2442],
-    ["Alta",              "Alta",         "UT", 40.588, -111.638, 2600],
-    ["Snowbird",          "Snowbird",     "UT", 40.581, -111.657, 2365],
-    ["Park City",         "Park City",    "UT", 40.651, -111.508, 2103],
-    ["Deer Valley",       "Deer Valley",  "UT", 40.637, -111.478, 2003],
-    ["Snowbasin",         "Snowbasin",    "UT", 41.216, -111.857, 1951],
-    ["Powder Mountain",   "Powder Mtn",   "UT", 41.379, -111.781, 2100],
-    ["Sundance",          "Sundance",     "UT", 40.393, -111.588, 1859],
-    // The OGs
-    ["Bear Mountain",     "Bear Mtn",     "CA", 34.227, -116.860, 2195],
-    ["Mammoth Mountain",  "Mammoth",      "CA", 37.651, -119.027, 2424],
-    ["Palisades Tahoe",   "Palisades",    "CA", 39.197, -120.235, 1890],
-    ["Big Sky",           "Big Sky",      "MT", 45.286, -111.401, 2286],
-    ["Jackson Hole",      "Jackson Hole", "WY", 43.588, -110.828, 1924],
+    ["Utah",     "Brighton",          "Brighton",     "UT", 40.598, -111.583, 2669],
+    ["Utah",     "Solitude",          "Solitude",     "UT", 40.620, -111.592, 2442],
+    ["Utah",     "Alta",              "Alta",         "UT", 40.588, -111.638, 2600],
+    ["Utah",     "Snowbird",          "Snowbird",     "UT", 40.581, -111.657, 2365],
+    ["Utah",     "Park City",         "Park City",    "UT", 40.651, -111.508, 2103],
+    ["Utah",     "Deer Valley",       "Deer Valley",  "UT", 40.637, -111.478, 2003],
+    ["Utah",     "Snowbasin",         "Snowbasin",    "UT", 41.216, -111.857, 1951],
+    ["Utah",     "Powder Mountain",   "Powder Mtn",   "UT", 41.379, -111.781, 2100],
+    ["Utah",     "Sundance",          "Sundance",     "UT", 40.393, -111.588, 1859],
+    ["The OGs",  "Bear Mountain",     "Bear Mtn",     "CA", 34.227, -116.860, 2195],
+    ["The OGs",  "Mammoth Mountain",  "Mammoth",      "CA", 37.651, -119.027, 2424],
+    ["The OGs",  "Palisades Tahoe",   "Palisades",    "CA", 39.197, -120.235, 1890],
+    ["The OGs",  "Big Sky",           "Big Sky",      "MT", 45.286, -111.401, 2286],
+    ["The OGs",  "Jackson Hole",      "Jackson Hole", "WY", 43.588, -110.828, 1924],
+    ["The OGs",  "Whistler Blackcomb","Whistler",     "BC", 50.115, -122.948, 1100],
+    ["The OGs",  "Vail",              "Vail",         "CO", 39.640, -106.374, 2476],
+    ["The OGs",  "Telluride",         "Telluride",    "CO", 37.937, -107.812, 2659],
+    ["The OGs",  "Mt. Baker",         "Mt. Baker",    "WA", 48.857, -121.665, 1080],
   ];
-  const [NAME, SHORT, STATE, LAT, LON, ELEV] = [0, 1, 2, 3, 4, 5];
+  const [BOARD, NAME, SHORT, STATE, LAT, LON, ELEV] = [0, 1, 2, 3, 4, 5, 6];
   const col = i => MOUNTAINS.map(m => m[i]).join(",");
   const url = "https://api.open-meteo.com/v1/forecast"
     + `?latitude=${col(LAT)}&longitude=${col(LON)}&elevation=${col(ELEV)}`
@@ -120,10 +123,32 @@
         drift(el);
       });
 
+      // Swipeable 3x3 boards, one per group, with dots
+      document.querySelectorAll("[data-snow-boards]").forEach(el => {
+        const groups = [...new Set(MOUNTAINS.map(m => m[BOARD]))];
+        el.innerHTML = `<div class="snow-pages">${groups.map(g => `
+          <section class="snow-page" aria-label="${g}">
+            <h3>${g.toUpperCase()}</h3>
+            <div class="snow-grid">${data.map((m, i) => MOUNTAINS[i][BOARD] === g ? cell(m, i) : "").join("")}</div>
+          </section>`).join("")}</div>
+          <div class="snow-dots">${groups.map((g, i) => `<button type="button" aria-label="Show ${g}"${i ? "" : ' aria-current="true"'}><i></i></button>`).join("")}</div>`;
+        const pages = el.querySelector(".snow-pages"), dots = [...el.querySelectorAll(".snow-dots button")];
+        const mark = n => dots.forEach((d, i) => d.setAttribute("aria-current", i === n ? "true" : "false"));
+        dots.forEach((d, i) => d.addEventListener("click", () => {
+          mark(i);
+          pages.scrollTo({ left: i * pages.clientWidth, behavior: "smooth" });
+        }));
+        const sync = () => mark(Math.round(pages.scrollLeft / pages.clientWidth));
+        let syncTimer;
+        pages.addEventListener("scroll", () => { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 80); }, { passive: true });
+        pages.addEventListener("scrollend", sync);
+        reveal(el);
+      });
+
       // Board
       document.querySelectorAll("[data-snow-grid]").forEach(el => {
         const localOnly = el.dataset.snowGrid === "local";
-        el.innerHTML = data.map((m, i) => (!localOnly || MOUNTAINS[i][STATE] === "UT") ? cell(m, i) : "").join("");
+        el.innerHTML = data.map((m, i) => (!localOnly || MOUNTAINS[i][BOARD] === "Utah") ? cell(m, i) : "").join("");
         reveal(el);
       });
 

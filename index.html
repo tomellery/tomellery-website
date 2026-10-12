@@ -114,17 +114,18 @@
     .snow-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--line);
       font-size: 10px; font-weight: 700; letter-spacing: .22em; color: var(--dim); }
     .snow-head b { color: var(--white); }
-    /* Swipeable row of stacked cells; drifts slowly on its own (see assets/snow.js) */
-    .snow-strip {
-      overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; cursor: grab;
-      border-bottom: 1px solid var(--line); -webkit-overflow-scrolling: touch;
-      mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-      -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-    }
-    .snow-strip::-webkit-scrollbar { display: none; }
-    .snow-strip.grabbing { cursor: grabbing; user-select: none; }
-    .snow-track { display: flex; width: max-content; }
-    .snow-cell { flex: 0 0 104px; padding: 12px 4px 11px; text-align: center; border-right: 1px solid var(--line); }
+    /* Swipeable 3x3 boards (one per group) */
+    .snow-pages { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .snow-pages::-webkit-scrollbar { display: none; }
+    .snow-page { flex: 0 0 100%; scroll-snap-align: start; }
+    .snow-page h3 { font-size: 10px; font-weight: 700; letter-spacing: .3em; color: var(--orange); padding: 12px 0 0; }
+    .snow-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .snow-grid .snow-cell:not(:nth-child(3n)) { border-right: 1px solid var(--line); }
+    .snow-dots { display: flex; justify-content: center; padding-top: 4px; }
+    .snow-dots button { padding: 10px 5px; border: 0; background: none; cursor: pointer; }
+    .snow-dots i { display: block; width: 8px; height: 8px; border-radius: 99px; background: rgba(242, 239, 230, .3); transition: width .3s, background .3s; }
+    .snow-dots button[aria-current="true"] i { width: 22px; background: var(--orange); }
+    .snow-cell { padding: 12px 4px 11px; text-align: center; border-bottom: 1px solid var(--line); }
     .snow-cell small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .14em; color: var(--dim); white-space: nowrap; }
     .snow-cell b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; color: var(--white); }
     .snow-cell span { display: block; font-size: 10px; letter-spacing: .08em; color: var(--dim); }
@@ -204,7 +205,7 @@
     <!-- Local mountains snow report (filled in by assets/snow.js) -->
     <section class="snow-board" id="snow" data-snow-wrap hidden aria-label="Snow report for local mountains">
       <div class="snow-head"><span><b>❄ SNOW REPORT</b> · LAST 24 HRS</span><span>SWIPE ↔</span></div>
-      <div class="snow-strip" data-snow-strip></div>
+      <div data-snow-boards></div>
     </section>
 
     <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
@@ -257,7 +258,7 @@
       document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
     }));
   </script>
-  <script src="assets/snow.js?v=6"></script>
+  <script src="assets/snow.js?v=8"></script>
   <script src="assets/secrets.js?v=2"></script>
 </body>
 </html>
