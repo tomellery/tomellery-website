@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design Gallery</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --card: #171717;
+      --text: #f2efe6;
+      --muted: rgba(242, 239, 230, .55);
+      --line: rgba(242, 239, 230, .12);
+      --orange: #ff5a1f;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: "JetBrains Mono", Consolas, monospace; background: var(--bg); color: var(--text); padding: 28px 16px 60px; }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+    header h1 { font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: clamp(40px, 9vw, 72px); line-height: .9; text-transform: uppercase; }
+    header p { color: var(--muted); font-size: 13px; margin-top: 10px; line-height: 1.6; }
+    header a { color: var(--orange); }
+
+    section { margin-top: 44px; }
+    h2 { display: flex; align-items: baseline; gap: 12px; font-size: 12px; letter-spacing: .25em; text-transform: uppercase; color: var(--muted); padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+    h2 b { font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 26px; letter-spacing: .02em; color: var(--text); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; margin-top: 16px; }
+    @media (min-width: 700px) { .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); } }
+
+    a.card { display: block; color: inherit; text-decoration: none; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; transition: border-color .15s, transform .15s; }
+    a.card:hover, a.card:focus-visible { border-color: var(--orange); transform: translateY(-3px); outline: none; }
+
+    /* Phone-shaped preview: the page renders at phone size, then is shrunk to fit.
+       Previews can't be touched or clicked, so they can't swipe away or start games. */
+    .shot { position: relative; aspect-ratio: 390 / 700; overflow: hidden; background: #000; }
+    .shot iframe {
+      position: absolute; top: 0; left: 0; width: 390px; height: 700px; border: 0;
+      transform-origin: 0 0; pointer-events: none;
+    }
+    .shot .load { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; color: var(--muted); }
+
+    .meta { padding: 10px 12px 12px; }
+    .meta b { display: block; font-size: 13px; }
+    .meta span { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+    .tag { display: inline-block; margin-top: 6px; font-size: 9px; font-weight: 700; letter-spacing: .15em; padding: 2px 6px; border-radius: 3px; background: var(--orange); color: #0d0d0d; }
+
+    .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 16px; }
+    .list a { display: block; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); text-decoration: none; font-size: 13px; }
+    .list a span { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .list a:hover, .list a:focus-visible { border-color: var(--orange); outline: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Design<br>Gallery</h1>
+      <p>Every design for tomellery.com in one place. Tap a card to open the full page.<br>
+        On the live site, swipe left/right (or use ← →) to move between the pages marked <b>IN ROTATION</b>.
+        <a href="../">Go to the live home page →</a></p>
+    </header>
+
+    <section>
+      <h2><b>Link pages</b> in the swipe rotation</h2>
+      <div class="grid">
+        <a class="card" href="../"><div class="shot"><iframe scrolling="no" data-src="../index.html" loading="lazy" title="Lift Ticket preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>1 · Lift Ticket</b><span>Season pass on a swinging wire. Home page.</span><i class="tag">IN ROTATION · HOME</i></div></a>
+        <a class="card" href="../designs/trailsigns.html"><div class="shot"><iframe scrolling="no" data-src="../designs/trailsigns.html" loading="lazy" title="Trail Signs preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>2 · Trail Signs</b><span>Signpost at the top of the lift, runs by difficulty.</span><i class="tag">IN ROTATION</i></div></a>
+        <a class="card" href="../designs/monolith.html"><div class="shot"><iframe scrolling="no" data-src="../designs/monolith.html" loading="lazy" title="Monolith preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>3 · Monolith</b><span>All black, giant type, live SLC clock.</span><i class="tag">IN ROTATION</i></div></a>
+        <a class="card" href="../designs/jobsite.html"><div class="shot"><iframe scrolling="no" data-src="../designs/jobsite.html" loading="lazy" title="Job Site preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>4 · Job Site</b><span>Building permit, hazard tape, inspection sign-off.</span><i class="tag">IN ROTATION</i></div></a>
+        <a class="card" href="../designs/fieldbook.html"><div class="shot"><iframe scrolling="no" data-src="../designs/fieldbook.html" loading="lazy" title="Field Book preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>5 · Field Book</b><span>Surveyor's notebook, grid paper, logbook entries.</span><i class="tag">IN ROTATION</i></div></a>
+        <a class="card" href="../designs/businesscard.html"><div class="shot"><iframe scrolling="no" data-src="../designs/businesscard.html" loading="lazy" title="Business Card preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>6 · Business Card</b><span>Letterpress card that flips, with save-contact.</span><i class="tag">IN ROTATION</i></div></a>
+      </div>
+    </section>
+
+    <section>
+      <h2><b>Saved</b> link pages (not in rotation)</h2>
+      <div class="grid">
+        <a class="card" href="../archive/classic.html"><div class="shot"><iframe scrolling="no" data-src="../archive/classic.html" loading="lazy" title="Classic preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>Classic</b><span>The original clean button list.</span></div></a>
+        <a class="card" href="../archive/blueprint.html"><div class="shot"><iframe scrolling="no" data-src="../archive/blueprint.html" loading="lazy" title="Blueprint preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>Blueprint</b><span>Construction drawing sheet with title block.</span></div></a>
+        <a class="card" href="../archive/alpenglow.html"><div class="shot"><iframe scrolling="no" data-src="../archive/alpenglow.html" loading="lazy" title="Alpenglow preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>Alpenglow</b><span>Wasatch at dusk, snow, chairlift.</span></div></a>
+        <a class="card" href="../archive/classic-extras.html"><div class="shot"><iframe scrolling="no" data-src="../archive/classic-extras.html" loading="lazy" title="Classic plus extras preview" tabindex="-1"></iframe></div>
+          <div class="meta"><b>Classic + extras</b><span>Mountains and a save-contact button.</span></div></a>
+      </div>
+    </section>
+
+    <section>
+      <h2><b>Under construction</b> pages</h2>
+      <div class="grid">
+        <a class="card" href="../archive/construction-0-simple.html"><div class="shot"><iframe scrolling="no" data-src="../archive/construction-0-simple.html" loading="lazy" title="Simple preview" tabindex="-1"></iframe></div><div class="meta"><b>0 · Simple</b><span>Plain and calm.</span></div></a>
+        <a class="card" href="../archive/construction-1-caution-tape.html"><div class="shot"><iframe scrolling="no" data-src="../archive/construction-1-caution-tape.html" loading="lazy" title="Caution Tape preview" tabindex="-1"></iframe></div><div class="meta"><b>1 · Caution Tape</b><span>Scrolling tape, bouncing cone.</span></div></a>
+        <a class="card" href="../archive/construction-2-terminal.html"><div class="shot"><iframe scrolling="no" data-src="../archive/construction-2-terminal.html" loading="lazy" title="Terminal preview" tabindex="-1"></iframe></div><div class="meta"><b>2 · Terminal</b><span>Green text types itself out.</span></div></a>
+        <a class="card" href="../archive/construction-3-gone-fishing.html"><div class="shot"><iframe scrolling="no" data-src="../archive/construction-3-gone-fishing.html" loading="lazy" title="Gone Fishin preview" tabindex="-1"></iframe></div><div class="meta"><b>3 · Gone Fishin'</b><span>Sea scene, links stay clickable.</span></div></a>
+        <a class="card" href="../archive/construction-4-terminal-interactive.html"><div class="shot"><iframe scrolling="no" data-src="../archive/construction-4-terminal-interactive.html" loading="lazy" title="Interactive Terminal preview" tabindex="-1"></iframe></div><div class="meta"><b>4 · Interactive Terminal</b><span>Type commands like help, links.</span></div></a>
+        <a class="card" href="../archive/construction-5-matrix-rain.html"><div class="shot"><iframe scrolling="no" data-src="../archive/construction-5-matrix-rain.html" loading="lazy" title="Matrix Rain preview" tabindex="-1"></iframe></div><div class="meta"><b>5 · Matrix Rain</b><span>Falling green code.</span></div></a>
+        <a class="card" href="../archive/construction-6-retro-crt.html"><div class="shot"><iframe scrolling="no" data-src="../archive/construction-6-retro-crt.html" loading="lazy" title="Retro CRT preview" tabindex="-1"></iframe></div><div class="meta"><b>6 · Retro CRT</b><span>Old-computer boot screen.</span></div></a>
+      </div>
+    </section>
+
+    <section>
+      <h2><b>Secret games</b></h2>
+      <div class="list">
+        <a href="../games/flapper.html">🐦 Terminal Flapper<span>Tap the TE badge 5 times (or type "play")</span></a>
+        <a href="../games/runner.html">🦖 Terminal Runner<span>Press and hold the TE badge</span></a>
+      </div>
+    </section>
+
+    <section>
+      <h2><b>Extras</b></h2>
+      <div class="list">
+        <a href="../archive/monograms.html">TE styles (soft)<span>Serif, terminal, gradient ring, handwritten</span></a>
+        <a href="../archive/monograms-bold.html">TE styles (bold)<span>Block, stencil, varsity, badge, steel</span></a>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Scale each phone-sized preview down to its card, and only load it when it scrolls into view
+    // (so the page isn't running a dozen animated pages at once).
+    const shots = [...document.querySelectorAll(".shot")];
+    function fit() {
+      shots.forEach(s => { const f = s.querySelector("iframe"); f.style.transform = `scale(${s.clientWidth / 390})`; });
+    }
+    addEventListener("resize", fit);
+    fit();
+
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        const f = e.target.querySelector("iframe");
+        // Load previews near the screen; unload ones that scroll away to keep things smooth
+        if (e.isIntersecting && !f.getAttribute("src")) f.src = f.dataset.src;
+        if (!e.isIntersecting && f.getAttribute("src")) f.removeAttribute("src");
+      });
+    }, { rootMargin: "200px" });
+    shots.forEach(s => io.observe(s));
+  </script>
+</body>
+</html>

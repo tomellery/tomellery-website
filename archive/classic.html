@@ -65,38 +65,14 @@
     a.link span { flex: 1; text-align: center; margin-right: 34px; }
     footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
 
-    /* ===== 1. Wasatch mountain silhouette ===== */
-    :root { --ridge-back: #dcdad4; --ridge-front: #cbc8c0; --snow: #ffffff; }
-    @media (prefers-color-scheme: dark) {
-      :root { --ridge-back: #1b1d20; --ridge-front: #24272b; --snow: #3a3e44; }
-    }
-    body { padding-bottom: 200px; position: relative; }
-    main { position: relative; z-index: 1; }
-    .mountains {
-      position: fixed; left: 0; right: 0; bottom: 0; height: 180px;
-      pointer-events: none; z-index: 0;
-    }
-    .mountains svg { width: 100%; height: 100%; display: block; }
-
-    /* ===== 2. Save contact button ===== */
-    .save-contact {
-      margin-top: 20px; width: 100%;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 14px 20px; border-radius: 14px; cursor: pointer;
-      background: var(--text); color: var(--bg);
-      border: 1px solid var(--text); font: inherit; font-weight: 600;
-      transition: transform .15s, opacity .15s;
-    }
-    .save-contact:hover, .save-contact:focus-visible { transform: translateY(-2px); opacity: .9; }
-    .save-contact svg { width: 20px; height: 20px; fill: currentColor; }
-
-    /* ===== 3. Easter egg ===== */
+    /* Easter egg: tap the TE 5 times, or type "play" */
     .avatar { cursor: default; user-select: none; -webkit-tap-highlight-color: transparent; transition: transform .1s; }
     .avatar.tap { transform: scale(.92); }
     .egg {
       position: fixed; inset: 0; z-index: 10; display: none; place-items: center;
       background: #0b0f0b; color: #39ff7a; text-shadow: 0 0 8px #39ff7a;
-      font-family: "Cascadia Code", Consolas, "Courier New", monospace; font-size: 18px; text-align: center; padding: 16px;
+      font-family: "Cascadia Code", Consolas, "Courier New", monospace; font-size: 18px;
+      text-align: center; white-space: pre; padding: 16px;
     }
     .egg.on { display: grid; }
   </style>
@@ -143,94 +119,14 @@
       <!-- Add more: copy one <li>…</li> block above and change the URL + name -->
     </ul>
 
-    <!-- 2. Save contact: downloads a contact card that opens in the phone's Contacts app -->
-    <button class="save-contact" id="saveContact" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-8 1.7-8 5v1h11.1a6 6 0 0 1-.1-1c0-1.8.8-3.4 2-4.5-1.6-.4-3.4-.5-5-.5zm7 0v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2z"/></svg>
-      Save my contact
-    </button>
-
     <footer>© <span id="year"></span> Tom Ellery</footer>
   </main>
 
-  <!-- 1. Wasatch skyline: two layered ridges with snowy peaks -->
-  <div class="mountains" aria-hidden="true">
-    <svg viewBox="0 0 1440 180" preserveAspectRatio="xMidYMax slice">
-      <path fill="var(--ridge-back)" d="M0 180 L0 120 L90 80 L170 105 L260 45 L330 90 L410 60 L500 100 L590 30 L660 75 L740 55 L830 95 L920 40 L1000 85 L1080 50 L1170 92 L1260 35 L1340 80 L1440 60 L1440 180 Z"/>
-      <path fill="var(--snow)" d="M260 45 L240 57 L252 60 L266 52 L280 62 Z M590 30 L568 44 L582 46 L596 38 L612 48 Z M920 40 L900 52 L914 55 L926 47 L940 56 Z M1260 35 L1240 48 L1254 50 L1268 42 L1282 52 Z"/>
-      <path fill="var(--ridge-front)" d="M0 180 L0 150 L120 115 L220 140 L330 100 L430 135 L540 95 L650 130 L760 105 L870 140 L980 110 L1090 138 L1200 102 L1320 132 L1440 112 L1440 180 Z"/>
-    </svg>
-  </div>
-
-  <!-- 3. Easter egg overlay -->
-  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    // ===== 2. Save contact =====
-    // Fill these in to include them on the card (leave "" to skip).
-    const CONTACT = {
-      name: "Tom Ellery",
-      first: "Tom",
-      last: "Ellery",
-      phone: "",
-      email: "",
-      note: "SLC 📍 Build · Ride · Repeat",
-      website: "https://tomellery.com",
-      socials: {
-        Instagram: "https://www.instagram.com/tom.a.ellery",
-        Facebook: "https://www.facebook.com/tom.a.ellery",
-        X: "https://x.com/tomaellery",
-        LinkedIn: "https://www.linkedin.com/in/thomas-ellery",
-      },
-    };
-    document.getElementById("saveContact").addEventListener("click", () => {
-      const c = CONTACT;
-      const lines = [
-        "BEGIN:VCARD", "VERSION:3.0",
-        `N:${c.last};${c.first};;;`, `FN:${c.name}`,
-        c.phone && `TEL;TYPE=CELL:${c.phone}`,
-        c.email && `EMAIL;TYPE=INTERNET:${c.email}`,
-        `URL:${c.website}`,
-        ...Object.entries(c.socials).map(([k, v]) => `X-SOCIALPROFILE;TYPE=${k.toLowerCase()}:${v}`),
-        `NOTE:${c.note}`,
-        "END:VCARD",
-      ].filter(Boolean);
-      const blob = new Blob([lines.join("\r\n")], { type: "text/vcard" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "Tom-Ellery.vcf";
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    });
-
-    // ===== 3. Easter egg: tap the TE 5 times quickly, or type "play" =====
-    const GAMES = ["8-terminal-flapper.html"]; // runner (7) is saved for a different hidden game later
-    const gameBase = location.pathname.includes("/options/") ? "" : "options/";
-    let taps = 0, tapTimer;
-    function launchEgg() {
-      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
-      egg.classList.add("on");
-      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
-      let i = 0;
-      text.style.whiteSpace = "pre";
-      (function type() {
-        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
-        else setTimeout(() => { location.href = gameBase + GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
-      })();
-    }
-    const avatar = document.getElementById("avatar");
-    avatar.addEventListener("click", () => {
-      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
-      taps++; clearTimeout(tapTimer);
-      tapTimer = setTimeout(() => taps = 0, 1500);
-      if (taps >= 5) { taps = 0; launchEgg(); }
-    });
-    let typed = "";
-    addEventListener("keydown", e => {
-      typed = (typed + e.key.toLowerCase()).slice(-4);
-      if (typed === "play") launchEgg();
-    });
   </script>
+  <script src="../assets/secrets.js?v=1"></script>
 </body>
 </html>

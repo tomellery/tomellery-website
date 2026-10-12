@@ -151,66 +151,29 @@
     </article>
 
     <div class="section">INSPECTION SIGN-OFF</div>
-    <ul>
-      <li><a class="item" href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">
+    <ul id="links"></ul>
+    <script src="../assets/links.js?v=1"></script>
+    <script>
+      // Links come from assets/links.js (edit them there)
+      TE.render("#links", (l, i) => `<li><a class="item" href="${l.url}" target="_blank" rel="noopener">
         <span class="check" aria-hidden="true">✓</span>
-        <span><span class="item-name">Instagram</span><span class="item-handle">@tom.a.ellery</span></span>
-        <span class="passed"><b>01</b>PASSED</span></a></li>
-      <li><a class="item" href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">
-        <span class="check" aria-hidden="true">✓</span>
-        <span><span class="item-name">Facebook</span><span class="item-handle">/tom.a.ellery</span></span>
-        <span class="passed"><b>02</b>PASSED</span></a></li>
-      <li><a class="item" href="https://x.com/tomaellery" target="_blank" rel="noopener">
-        <span class="check" aria-hidden="true">✓</span>
-        <span><span class="item-name">X</span><span class="item-handle">@tomaellery</span></span>
-        <span class="passed"><b>03</b>PASSED</span></a></li>
-      <li><a class="item" href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">
-        <span class="check" aria-hidden="true">✓</span>
-        <span><span class="item-name">LinkedIn</span><span class="item-handle">/in/thomas-ellery</span></span>
-        <span class="passed"><b>04</b>PASSED</span></a></li>
-      <li><a class="item" href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">
-        <span class="check" aria-hidden="true">✓</span>
-        <span><span class="item-name">Venmo</span><span class="item-handle">@tomellery</span></span>
-        <span class="passed"><b>05</b>PASSED</span></a></li>
-    </ul>
+        <span><span class="item-name">${l.name}</span><span class="item-handle">${l.handle}</span></span>
+        <span class="passed"><b>${String(i + 1).padStart(2, "0")}</b>PASSED</span></a></li>`);
+    </script>
 
     <footer>AUTHORIZED PERSONNEL ONLY</footer>
   </main>
 
   <div class="tape" aria-hidden="true"><span>CAUTION · ACTIVE JOB SITE</span></div>
 
-  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
 
   <script>
     const d = new Date();
     document.getElementById("issued").textContent =
       String(d.getMonth() + 1).padStart(2, "0") + "/" + String(d.getDate()).padStart(2, "0") + "/" + d.getFullYear();
 
-    // Easter egg: tap the TE badge 5 times quickly, or type "play"
-    const GAMES = ["8-terminal-flapper.html"];
-    const gameBase = location.pathname.includes("/options/") ? "" : "options/";
-    function launchEgg() {
-      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
-      if (egg.classList.contains("on")) return;
-      egg.classList.add("on");
-      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
-      let i = 0;
-      (function type() {
-        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
-        else setTimeout(() => { location.href = gameBase + GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
-      })();
-    }
-    const avatar = document.getElementById("avatar");
-    let taps = 0, tapTimer;
-    avatar.addEventListener("click", () => {
-      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
-      taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => taps = 0, 1500);
-      if (taps >= 5) { taps = 0; launchEgg(); }
-    });
-    let typed = "";
-    addEventListener("keydown", e => { typed = (typed + e.key.toLowerCase()).slice(-4); if (typed === "play") launchEgg(); });
   </script>
-  <script src="swipe.js?v=6"></script>
-  <script src="longpress.js?v=1"></script>
+  <script src="../assets/secrets.js?v=1"></script>
+  <script src="../assets/swipe.js?v=1"></script>
 </body>
 </html>

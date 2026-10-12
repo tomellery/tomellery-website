@@ -93,23 +93,17 @@
     <div class="rule" aria-hidden="true"></div>
     <p class="bio">Build · Ride · Repeat</p>
 
-    <ul>
-      <li><a class="row" href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">
-        <span class="n">01</span><span class="name">Instagram</span><span class="go"><span class="h">@tom.a.ellery</span><span class="a">↗</span></span></a></li>
-      <li><a class="row" href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">
-        <span class="n">02</span><span class="name">Facebook</span><span class="go"><span class="h">/tom.a.ellery</span><span class="a">↗</span></span></a></li>
-      <li><a class="row" href="https://x.com/tomaellery" target="_blank" rel="noopener">
-        <span class="n">03</span><span class="name">X</span><span class="go"><span class="h">@tomaellery</span><span class="a">↗</span></span></a></li>
-      <li><a class="row" href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">
-        <span class="n">04</span><span class="name">LinkedIn</span><span class="go"><span class="h">/in/thomas-ellery</span><span class="a">↗</span></span></a></li>
-      <li><a class="row" href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">
-        <span class="n">05</span><span class="name">Venmo</span><span class="go"><span class="h">@tomellery</span><span class="a">↗</span></span></a></li>
-    </ul>
+    <ul id="links"></ul>
+    <script src="../assets/links.js?v=1"></script>
+    <script>
+      // Links come from assets/links.js (edit them there)
+      TE.render("#links", (l, i) => `<li><a class="row" href="${l.url}" target="_blank" rel="noopener">
+        <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗</span></span></a></li>`);
+    </script>
 
     <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
   </div>
 
-  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
@@ -120,31 +114,8 @@
     function tick() { clock.textContent = fmt.format(new Date()); }
     tick(); setInterval(tick, 15000);
 
-    // Easter egg: tap the TE badge 5 times quickly, or type "play"
-    const GAMES = ["8-terminal-flapper.html"];
-    const gameBase = location.pathname.includes("/options/") ? "" : "options/";
-    function launchEgg() {
-      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
-      if (egg.classList.contains("on")) return;
-      egg.classList.add("on");
-      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
-      let i = 0;
-      (function type() {
-        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
-        else setTimeout(() => { location.href = gameBase + GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
-      })();
-    }
-    const avatar = document.getElementById("avatar");
-    let taps = 0, tapTimer;
-    avatar.addEventListener("click", () => {
-      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
-      taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => taps = 0, 1500);
-      if (taps >= 5) { taps = 0; launchEgg(); }
-    });
-    let typed = "";
-    addEventListener("keydown", e => { typed = (typed + e.key.toLowerCase()).slice(-4); if (typed === "play") launchEgg(); });
   </script>
-  <script src="swipe.js?v=6"></script>
-  <script src="longpress.js?v=1"></script>
+  <script src="../assets/secrets.js?v=1"></script>
+  <script src="../assets/swipe.js?v=1"></script>
 </body>
 </html>

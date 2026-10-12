@@ -1,21 +1,28 @@
 // Swipe (phones) or arrow keys (computers) to move between the link page designs.
-// Order: Lift Ticket (home) -> Trail Signs -> Monolith -> Job Site -> back to Lift Ticket.
+// To change the order, edit this list. "" is the home page (tomellery.com).
 (function () {
-  const PAGES = ["index.html", "options/design-trailsigns.html", "options/design-monolith.html", "options/design-jobsite.html"];
+  const ROTATION = [
+    "",                         // Lift Ticket (home)
+    "designs/trailsigns.html",  // Trail Signs
+    "designs/monolith.html",    // Monolith
+    "designs/jobsite.html",     // Job Site
+    "designs/fieldbook.html",   // Field Book
+    "designs/businesscard.html" // Business Card
+  ];
 
-  const inOptions = location.pathname.includes("/options/");
-  const prefix = inOptions ? "../" : "";
-  const path = location.pathname.endsWith("/") ? location.pathname + "index.html" : location.pathname;
-  const current = PAGES.findIndex(p =>
-    p === "index.html" ? !inOptions && path.endsWith("/index.html") : path.endsWith("/" + p));
+  const root = new URL("../", document.currentScript.src);
+  const isFile = location.protocol === "file:";
+  const here = location.origin === "null" ? location.href.split(/[?#]/)[0] : location.origin + location.pathname;
+  const urlFor = p => new URL(p || (isFile ? "index.html" : ""), root).href;
+  const current = ROTATION.findIndex(p =>
+    p === "" ? here === root.href || here === new URL("index.html", root).href : here === urlFor(p));
   if (current === -1) return;
 
   // Tidy the address bar: drop the fresh-copy "?s=" tag added when swiping here
-  if (location.search.includes("s=")) {
+  if (/[?&]s=/.test(location.search)) {
     try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
   }
 
-  // Slide-in when arriving from a swipe
   const style = document.createElement("style");
   style.textContent = `
     body.swipe-out-left  { transition: opacity .18s ease, transform .18s ease; opacity: 0; transform: translateX(-40px); }
@@ -40,17 +47,13 @@
   function go(step) {
     if (leaving) return;
     leaving = true;
-    const next = (current + step + PAGES.length) % PAGES.length;
+    const next = (current + step + ROTATION.length) % ROTATION.length;
     const dir = step > 0 ? "left" : "right";
     try { sessionStorage.setItem("swipeDir", dir); } catch (e) {}
     document.body.classList.add("swipe-out-" + dir);
-    // On the real site, link home as the plain folder ("tomellery.com/") so it matches the
-    // address people type and can't show a stale saved copy of "/index.html".
-    let target = prefix + PAGES[next];
-    if (PAGES[next] === "index.html" && location.protocol !== "file:") target = prefix || "./";
     // A one-time "?s=" tag makes the phone fetch a fresh copy instead of a saved one.
-    // It's removed from the address bar as soon as the page loads (see below).
-    if (location.protocol !== "file:") target += "?s=" + Date.now();
+    let target = urlFor(ROTATION[next]);
+    if (!isFile) target += "?s=" + Date.now();
     setTimeout(() => { location.href = target; }, 180);
   }
 

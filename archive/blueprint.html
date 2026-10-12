@@ -119,12 +119,6 @@
     .arrow { font-size: 18px; transition: transform .15s; }
     a.part:hover .arrow { transform: translateX(4px); }
 
-    /* Hand-drawn annotation */
-    .annotation {
-      font-family: var(--hand); font-size: 16px; color: var(--line-soft);
-      text-align: right; margin-top: 10px; transform: rotate(-2deg);
-    }
-
     /* Title block */
     .title-block {
       margin-top: 30px; border: 2px solid var(--line);
@@ -180,8 +174,6 @@
         <span class="num">05</span><span class="name">VENMO<span class="spec">@tomellery</span></span><span class="arrow">→</span></a></li>
     </ul>
 
-
-
     <div class="title-block">
       <div class="wide"><small>PROJECT</small>TOMELLERY.COM</div>
       <div><small>DRAWN BY</small>T.E.</div>
@@ -193,42 +185,12 @@
     </div>
   </div>
 
-  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
-
   <script>
     const d = new Date();
     document.getElementById("date").textContent =
       String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getDate()).padStart(2, "0") + "." + String(d.getFullYear()).slice(2);
 
-    // Easter egg: tap the TE bubble 5 times quickly, or type "play"
-    const GAMES = ["8-terminal-flapper.html"]; // runner (7) is saved for a different hidden game later
-    const gameBase = location.pathname.includes("/options/") ? "" : "options/";
-    function launchEgg() {
-      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
-      if (egg.classList.contains("on")) return;
-      egg.classList.add("on");
-      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
-      let i = 0;
-      (function type() {
-        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
-        else setTimeout(() => { location.href = gameBase + GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
-      })();
-    }
-    const avatar = document.getElementById("avatar");
-    let taps = 0, tapTimer;
-    avatar.addEventListener("click", () => {
-      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
-      taps++; clearTimeout(tapTimer);
-      tapTimer = setTimeout(() => taps = 0, 1500);
-      if (taps >= 5) { taps = 0; launchEgg(); }
-    });
-    let typed = "";
-    addEventListener("keydown", e => {
-      typed = (typed + e.key.toLowerCase()).slice(-4);
-      if (typed === "play") launchEgg();
-    });
   </script>
-  <script src="swipe.js?v=6"></script>
-  <script src="longpress.js?v=1"></script>
+  <script src="../assets/secrets.js?v=1"></script>
 </body>
 </html>

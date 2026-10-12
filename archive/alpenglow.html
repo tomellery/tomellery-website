@@ -187,7 +187,6 @@
     <footer>Wasatch Range · Est. <span id="year"></span></footer>
   </main>
 
-  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
@@ -242,31 +241,7 @@
       parallax(Math.max(-1, Math.min(1, e.gamma / 30)), Math.max(-1, Math.min(1, (e.beta - 45) / 30)));
     });
 
-    // ===== Easter egg: tap TE 5 times, or type "play" =====
-    const GAMES = ["8-terminal-flapper.html"];
-    const gameBase = location.pathname.includes("/options/") ? "" : "options/";
-    function launchEgg() {
-      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
-      if (egg.classList.contains("on")) return;
-      egg.classList.add("on");
-      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
-      let i = 0;
-      (function type() {
-        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
-        else setTimeout(() => { location.href = gameBase + GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
-      })();
-    }
-    const avatar = document.getElementById("avatar");
-    let taps = 0, tapTimer;
-    avatar.addEventListener("click", () => {
-      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
-      taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => taps = 0, 1500);
-      if (taps >= 5) { taps = 0; launchEgg(); }
-    });
-    let typed = "";
-    addEventListener("keydown", e => { typed = (typed + e.key.toLowerCase()).slice(-4); if (typed === "play") launchEgg(); });
   </script>
-  <script src="swipe.js?v=6"></script>
-  <script src="longpress.js?v=1"></script>
+  <script src="../assets/secrets.js?v=1"></script>
 </body>
 </html>
