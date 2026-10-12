@@ -156,6 +156,7 @@
     .coin small { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 9px; font-weight: 700; letter-spacing: .2em; color: var(--dim); }
     .coin small img { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
     .coin b { display: block; font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1.2; color: var(--white); letter-spacing: .01em; }
+    .coin b sub { font-family: var(--mono); font-size: .5em; font-weight: 700; vertical-align: baseline; position: relative; top: .1em; margin: 0 1px; }
     .coin em { display: block; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em; }
     .coin em.up { color: #3ddc84; }
     .coin em.down { color: #ff5c5c; }
@@ -227,7 +228,7 @@
     <script>
       // Links come from assets/links.js (edit them there)
       TE.render("#links", (l, i) => `<li><a class="row" href="${l.url}" target="_blank" rel="noopener">
-        <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗</span></span></a></li>`);
+        <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗︎</span></span></a></li>`);
     </script>
 
     <!-- Crypto prices band (filled in by assets/crypto.js) -->
@@ -292,8 +293,8 @@
       document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
     }));
   </script>
-  <script src="assets/snow.js?v=14"></script>
-  <script src="assets/crypto.js?v=9"></script>
+  <script src="assets/snow.js?v=15"></script>
+  <script src="assets/crypto.js?v=10"></script>
   <script src="assets/holiday.js?v=3"></script>
   <script src="assets/secrets.js?v=2"></script>
 </body>

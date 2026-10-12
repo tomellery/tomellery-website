@@ -18,11 +18,11 @@
       <ellipse cx="8" cy="11.5" rx="6" ry="2.5"/><ellipse cx="8" cy="8" rx="6" ry="2.5"/><ellipse cx="8" cy="4.5" rx="6" ry="2.5"/></g></svg>`);
 
   // Tiny prices (like BONK) use the crypto-chart style $0.0₅347 = $0.00000347 (the small 5 = five zeros)
-  const SUB = "₀₁₂₃₄₅₆₇₈₉";
+  // The small number is a <sub> tag, so it works in any font.
   function tiny(n) {
     const zeros = Math.ceil(-Math.log10(n)) - 1;               // zeros right after the decimal point
     const digits = Math.round(n * Math.pow(10, zeros + 3));    // the next 3 significant digits
-    return "0.0" + String(zeros).split("").map(d => SUB[d]).join("") + digits;
+    return `0.0<sub>${zeros}</sub>${digits}`;
   }
   const price = n => "$" + (n >= 1e12 ? (n / 1e12).toFixed(2) + "T"
     : n >= 1e9 ? (n / 1e9).toFixed(1) + "B"

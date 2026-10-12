@@ -198,7 +198,7 @@
     <script>
       // Links come from assets/links.js (edit them there)
       TE.render("#links", (l, i) => `<li><a class="row" href="${l.url}" target="_blank" rel="noopener">
-        <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗</span></span></a></li>`);
+        <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗︎</span></span></a></li>`);
     </script>
 
     <!-- Local mountains snow report (filled in by assets/snow.js) -->
@@ -257,7 +257,7 @@
       document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
     }));
   </script>
-  <script src="../assets/snow.js?v=14"></script>
+  <script src="../assets/snow.js?v=15"></script>
   <script src="../assets/secrets.js?v=2"></script>
 </body>
 </html>

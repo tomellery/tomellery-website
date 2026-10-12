@@ -188,7 +188,8 @@
   }
   const seasonCell = (m, i) => {
     const v = season ? season[i] : undefined;   // undefined = still loading, null = no sensor nearby
-    const big = v === undefined ? "…" : v === null ? "—" : v + "″";
+    // The 7-day number comes from a different source (weather model), so never show a season smaller than it
+    const big = v === undefined ? "…" : v === null ? "—" : Math.max(v, m.week) + "″";
     return `
     <div class="snow-cell">
       <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
