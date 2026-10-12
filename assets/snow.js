@@ -48,8 +48,51 @@
     return { inches: sum(24), week: sum(24 * 7), temp: Math.round(d.current.temperature_2m) + "°F" };
   }
 
-  // Which number the boards show: "week" (big = last 7 days, "+X TODAY" below) or "day" (big = last 24 hours).
-  // Remembered per visitor; the 24 HR / 7 DAY buttons are any element with data-snow-mode.
+  // ===== Season totals (estimated) from SNOTEL, the government snow sensors at the mountains =====
+  // Weather models badly undercount mountain snow over a season, so SEASON uses real measured precipitation
+  // from the nearest SNOTEL sensor, counting only days cold enough to snow (avg <= 34°F), times a 12:1 snow ratio.
+  // Mountains without a sensor nearby show "—".
+  const SNOTEL = {
+    "Brighton": "366:UT:SNTL", "Solitude": "366:UT:SNTL", "Alta": "1308:UT:SNTL", "Snowbird": "766:UT:SNTL",
+    "Park City": "814:UT:SNTL", "Deer Valley": "814:UT:SNTL", "Snowbasin": "1300:UT:SNTL", "Powder Mountain": "1300:UT:SNTL",
+    "Sundance": "820:UT:SNTL", "Palisades Tahoe": "784:CA:SNTL", "Big Sky": "590:MT:SNTL", "Jackson Hole": "689:WY:SNTL",
+    "Vail": "842:CO:SNTL", "Telluride": "1344:CO:SNTL", "Mt. Baker": "909:WA:SNTL",
+  };
+  const SNOW_RATIO = 12, COLD_F = 34;
+  let season = null;               // inches per mountain (same order as MOUNTAINS), null = no sensor
+  const onSeason = [];             // things to redraw once season numbers arrive
+  (function loadSeason() {
+    const today = new Date(), y = today.getFullYear();
+    const startYear = today.getMonth() >= 9 ? y : y - 1;                 // season starts Oct 1
+    const iso = d => d.toISOString().slice(0, 10);
+    const begin = iso(new Date(Date.UTC(startYear, 8, 30)));             // Sep 30, so Oct 1's increase counts
+    const triplets = [...new Set(Object.values(SNOTEL))];
+    fetch("https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/data?stationTriplets=" + triplets.join(",")
+      + `&elements=PREC,TAVG&duration=DAILY&beginDate=${begin}&endDate=${iso(today)}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(stations => {
+        const total = {};
+        stations.forEach(st => {
+          const el = {};
+          st.data.forEach(e => { el[e.stationElement.elementCode] = Object.fromEntries(e.values.map(v => [v.date, v.value])); });
+          const P = el.PREC || {}, T = el.TAVG || {}, days = Object.keys(P).sort();
+          let water = 0;
+          for (let i = 1; i < days.length; i++) {
+            const a = P[days[i - 1]], b = P[days[i]], t = T[days[i]];
+            if (a == null || b == null || t == null) continue;
+            if (t <= COLD_F) water += Math.max(0, b - a);
+          }
+          total[st.stationTriplet] = Math.round(water * SNOW_RATIO);
+        });
+        season = MOUNTAINS.map(m => SNOTEL[m[NAME]] in total ? total[SNOTEL[m[NAME]]] : null);
+        onSeason.forEach(fn => fn());
+      })
+      .catch(() => { season = MOUNTAINS.map(() => null); onSeason.forEach(fn => fn()); });
+  })();
+
+  // Which number the boards show: "day" (big = last 24 hours), "week" (big = last 7 days, "+X TODAY" below)
+  // or "season" (big = estimated season total, "+X 7 DAYS" below).
+  // Remembered per visitor; the 24 HR / 7 DAY / SEASON buttons are any element with data-snow-mode.
   let mode = "week";
   try { mode = localStorage.getItem("te-snow-mode") || "week"; } catch (e) {}
 
@@ -143,7 +186,18 @@
       requestAnimationFrame(step);
     })(last);
   }
-  const cell = (m, i, view = "day") => view === "week" ? `
+  const seasonCell = (m, i) => {
+    const v = season ? season[i] : undefined;   // undefined = still loading, null = no sensor nearby
+    const big = v === undefined ? "…" : v === null ? "—" : v + "″";
+    return `
+    <div class="snow-cell">
+      <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
+      <b>${big}</b>
+      <em class="today${m.week > 0 ? " fresh" : ""}">+${m.week}″ 7 DAYS</em>
+      <span>${m.temp}</span>
+    </div>`;
+  };
+  const cell = (m, i, view = "day") => view === "season" ? seasonCell(m, i) : view === "week" ? `
     <div class="snow-cell${m.week > 0 ? " fresh" : ""}">
       <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
       <b>${m.week}″</b>
@@ -191,11 +245,16 @@
             <h3>${g.toUpperCase()}</h3>
             <div class="snow-grid" data-board="${g}"></div>
           </section>`).join("")}</div>
-          <div class="snow-dots">${groups.map((g, i) => `<button type="button" aria-label="Show ${g}"${i ? "" : ' aria-current="true"'}><i></i></button>`).join("")}</div>`;
-        const fill = () => el.querySelectorAll(".snow-grid").forEach(grid => {
-          grid.innerHTML = data.map((m, i) => MOUNTAINS[i][BOARD] === grid.dataset.board ? cell(m, i, mode) : "").join("");
-        });
+          <div class="snow-dots">${groups.map((g, i) => `<button type="button" aria-label="Show ${g}"${i ? "" : ' aria-current="true"'}><i></i></button>`).join("")}</div>
+          <p class="snow-note" hidden>SEASON = ESTIMATE SINCE OCT 1 FROM SNOTEL SNOW SENSORS · NOT OFFICIAL RESORT TOTALS</p>`;
+        const fill = () => {
+          el.querySelectorAll(".snow-grid").forEach(grid => {
+            grid.innerHTML = data.map((m, i) => MOUNTAINS[i][BOARD] === grid.dataset.board ? cell(m, i, mode) : "").join("");
+          });
+          el.querySelector(".snow-note").hidden = mode !== "season";
+        };
         fill();
+        onSeason.push(() => { if (mode === "season") fill(); });
         document.querySelectorAll("[data-snow-mode]").forEach(btn => {
           btn.setAttribute("aria-pressed", btn.dataset.snowMode === mode);
           btn.addEventListener("click", () => {

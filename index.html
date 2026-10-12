@@ -123,6 +123,7 @@
     .snow-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
     .snow-grid .snow-cell:not(:nth-child(3n)) { border-right: 1px solid var(--line); }
     .snow-dots { display: flex; justify-content: center; padding-top: 4px; }
+    .snow-note { text-align: center; font-size: 8.5px; letter-spacing: .14em; line-height: 1.6; color: var(--dim); padding: 2px 8px 0; }
     .snow-dots button { padding: 10px 5px; border: 0; background: none; cursor: pointer; }
     .snow-dots i { display: block; width: 8px; height: 8px; border-radius: 99px; background: rgba(242, 239, 230, .3); transition: width .3s, background .3s; }
     .snow-dots button[aria-current="true"] i { width: 22px; background: var(--orange); }
@@ -135,7 +136,7 @@
     .snow-cell em.today.fresh { color: var(--orange); }
     .snow-head { align-items: center; }
     .snow-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
-    .snow-switch button { background: none; border: 0; color: var(--dim); font: 700 10px var(--mono); letter-spacing: .15em; padding: 6px 11px; cursor: pointer; transition: background .15s, color .15s; }
+    .snow-switch button { background: none; border: 0; color: var(--dim); font: 700 10px var(--mono); letter-spacing: .12em; padding: 6px 9px; cursor: pointer; transition: background .15s, color .15s; }
     .snow-switch button[aria-pressed="true"] { background: var(--orange); color: var(--black); }
     .snow-switch button:focus-visible { outline: 2px solid var(--white); outline-offset: -2px; }
     .snow-cell.fresh small { color: var(--white); }
@@ -237,7 +238,7 @@
     <!-- Local mountains snow report (filled in by assets/snow.js) -->
     <section class="snow-board" id="snow" data-snow-wrap hidden aria-label="Snow report for local mountains">
       <div class="snow-head"><span><b>❄ SNOW REPORT</b></span>
-        <span class="snow-switch" role="group" aria-label="Snow totals"><button type="button" data-snow-mode="day">24 HR</button><button type="button" data-snow-mode="week">7 DAY</button></span></div>
+        <span class="snow-switch" role="group" aria-label="Snow totals"><button type="button" data-snow-mode="day">24 HR</button><button type="button" data-snow-mode="week">7 DAY</button><button type="button" data-snow-mode="season">SEASON</button></span></div>
       <div data-snow-boards></div>
     </section>
 
@@ -291,7 +292,7 @@
       document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
     }));
   </script>
-  <script src="assets/snow.js?v=12"></script>
+  <script src="assets/snow.js?v=14"></script>
   <script src="assets/crypto.js?v=9"></script>
   <script src="assets/holiday.js?v=3"></script>
   <script src="assets/secrets.js?v=2"></script>
