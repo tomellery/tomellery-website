@@ -10,6 +10,11 @@
     p === "index.html" ? !inOptions && path.endsWith("/index.html") : path.endsWith("/" + p));
   if (current === -1) return;
 
+  // Tidy the address bar: drop the fresh-copy "?s=" tag added when swiping here
+  if (location.search.includes("s=")) {
+    try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+  }
+
   // Slide-in when arriving from a swipe
   const style = document.createElement("style");
   style.textContent = `
@@ -43,6 +48,9 @@
     // address people type and can't show a stale saved copy of "/index.html".
     let target = prefix + PAGES[next];
     if (PAGES[next] === "index.html" && location.protocol !== "file:") target = prefix || "./";
+    // A one-time "?s=" tag makes the phone fetch a fresh copy instead of a saved one.
+    // It's removed from the address bar as soon as the page loads (see below).
+    if (location.protocol !== "file:") target += "?s=" + Date.now();
     setTimeout(() => { location.href = target; }, 180);
   }
 
