@@ -1,7 +1,7 @@
 // Swipe (phones) or arrow keys (computers) to move between the link page designs.
-// Order: Lift Ticket (home) -> Trail Signs -> Blueprint -> Classic -> back to Lift Ticket.
+// Order: Lift Ticket (home) -> Trail Signs -> Monolith -> Blueprint -> Classic -> back to Lift Ticket.
 (function () {
-  const PAGES = ["index.html", "options/design-trailsigns.html", "options/design-blueprint.html", "options/design-classic.html"];
+  const PAGES = ["index.html", "options/design-trailsigns.html", "options/design-monolith.html", "options/design-blueprint.html", "options/design-classic.html"];
 
   const inOptions = location.pathname.includes("/options/");
   const prefix = inOptions ? "../" : "";

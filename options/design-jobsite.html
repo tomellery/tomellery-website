@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tom Ellery</title>
+  <meta name="description" content="Tom Ellery. SLC. Build · Ride · Repeat.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@500;700&family=Saira+Stencil+One&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --concrete: #232322;
+      --concrete-2: #2d2d2b;
+      --paper: #f2efe6;
+      --ink: #0d0d0d;
+      --orange: #ff5a1f;
+      --hivis: #ffd400;
+      --red: #c8281e;
+      --muted: rgba(242, 239, 230, .55);
+      --display: "Anton", Impact, "Arial Narrow", sans-serif;
+      --stencil: "Saira Stencil One", "Anton", Impact, sans-serif;
+      --mono: "JetBrains Mono", Consolas, monospace;
+      --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .11 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html { background: var(--concrete); }
+    body {
+      font-family: var(--mono); color: var(--paper); min-height: 100vh; overflow-x: hidden;
+      background: var(--noise), radial-gradient(ellipse at 50% 20%, var(--concrete-2), var(--concrete) 70%);
+    }
+
+    /* Hazard tape */
+    .tape {
+      position: relative; height: 34px; display: flex; align-items: center; overflow: hidden;
+      background: repeating-linear-gradient(-45deg, var(--hivis) 0 22px, var(--ink) 22px 44px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+    }
+    .tape span {
+      margin: 0 auto; background: var(--hivis); color: var(--ink); padding: 3px 12px;
+      font-family: var(--display); font-size: 15px; letter-spacing: .14em; white-space: nowrap;
+    }
+
+    main { width: 100%; max-width: 440px; margin: 0 auto; padding: 36px 16px 40px; }
+
+    /* ===== Permit card ===== */
+    .permit {
+      position: relative; background: var(--paper); color: var(--ink);
+      padding: 0 0 18px; transform: rotate(-1deg);
+      box-shadow: 0 24px 50px rgba(0, 0, 0, .55);
+    }
+    .permit::after { content: ""; position: absolute; inset: 0; background: var(--noise); mix-blend-mode: multiply; opacity: .6; pointer-events: none; }
+    .staple { position: absolute; top: 10px; width: 26px; height: 5px; border: 2px solid #9a9a96; border-bottom: none; border-radius: 1px; z-index: 2; }
+    .staple.l { left: 14px; transform: rotate(-8deg); }
+    .staple.r { right: 14px; transform: rotate(6deg); }
+    .permit-head {
+      background: var(--orange); padding: 26px 18px 12px; display: flex; justify-content: space-between; align-items: flex-end;
+      border-bottom: 3px solid var(--ink);
+    }
+    .permit-head h2 { font-family: var(--display); font-weight: 400; font-size: 30px; line-height: .9; }
+    .permit-head small { display: block; font-size: 10px; font-weight: 700; letter-spacing: .2em; margin-bottom: 4px; }
+    .permit-no { text-align: right; font-size: 10px; font-weight: 700; letter-spacing: .14em; }
+    .permit-no b { display: block; font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: .02em; }
+
+    .permit-body { padding: 16px 18px 0; display: grid; grid-template-columns: 78px 1fr; gap: 14px; align-items: start; }
+    .badge {
+      width: 78px; height: 78px; background: var(--ink); color: var(--hivis);
+      display: grid; place-items: center; font-family: var(--stencil); font-size: 38px;
+      cursor: default; user-select: none; -webkit-tap-highlight-color: transparent; transition: transform .1s;
+    }
+    .badge.tap { transform: scale(.93); }
+    .holder small, .field small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .2em; color: #6d685c; }
+    .holder h1 { font-family: var(--display); font-weight: 400; font-size: 40px; line-height: .92; text-transform: uppercase; margin-top: 2px; }
+
+    .fields { margin: 14px 18px 0; display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid var(--ink); }
+    .field { padding: 8px 0; font-size: 12px; font-weight: 700; letter-spacing: .04em; border-bottom: 1px solid rgba(13, 13, 13, .25); }
+    .field:nth-child(odd) { padding-right: 10px; border-right: 1px solid rgba(13, 13, 13, .25); }
+    .field:nth-child(even) { padding-left: 10px; }
+    .field.wide { grid-column: 1 / -1; padding-left: 0; border-right: none; }
+
+    .stamp {
+      position: absolute; right: 14px; bottom: 74px; z-index: 3;
+      border: 3px solid var(--red); color: var(--red); padding: 4px 10px; border-radius: 4px;
+      font-family: var(--display); font-size: 24px; letter-spacing: .1em; transform: rotate(-12deg);
+      opacity: .85; mix-blend-mode: multiply;
+    }
+    .stamp small { display: block; font-family: var(--mono); font-size: 8px; font-weight: 700; letter-spacing: .2em; text-align: center; }
+
+    /* ===== Links: inspection sign-off ===== */
+    .section { margin: 40px 0 12px; display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: .3em; color: var(--muted); }
+    .section::after { content: ""; flex: 1; height: 2px; background: repeating-linear-gradient(90deg, var(--muted) 0 6px, transparent 6px 10px); opacity: .5; }
+    ul { list-style: none; padding: 0; display: grid; gap: 10px; }
+    a.item {
+      display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 12px;
+      padding: 14px 16px; background: #1a1a19; color: var(--paper); text-decoration: none;
+      border-left: 6px solid var(--hivis);
+      box-shadow: inset 0 0 0 1px rgba(242, 239, 230, .08);
+      transition: background .15s, color .15s, transform .15s;
+    }
+    a.item:hover, a.item:focus-visible { background: var(--hivis); color: var(--ink); transform: translateX(4px); outline: none; }
+    .check {
+      width: 30px; height: 30px; border: 2px solid currentColor; display: grid; place-items: center;
+      font-family: var(--display); font-size: 18px; line-height: 1;
+    }
+    .item-name { font-family: var(--stencil); font-size: 26px; line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
+    .item-handle { display: block; font-family: var(--mono); font-size: 11px; opacity: .6; margin-top: 3px; }
+    .passed { font-size: 10px; font-weight: 700; letter-spacing: .18em; text-align: right; }
+    .passed b { display: block; font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: .04em; }
+
+    footer { margin-top: 34px; text-align: center; font-size: 10px; font-weight: 700; letter-spacing: .3em; color: var(--muted); }
+
+    .egg {
+      position: fixed; inset: 0; z-index: 10; display: none; place-items: center;
+      background: #0b0f0b; color: #39ff7a; text-shadow: 0 0 8px #39ff7a;
+      font-family: var(--mono); font-size: 18px; text-align: center; white-space: pre; padding: 16px;
+    }
+    .egg.on { display: grid; }
+
+    @media (max-width: 360px) {
+      .holder h1 { font-size: 34px; }
+      .item-name { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="tape" aria-hidden="true"><span>HARD HAT AREA</span></div>
+
+  <main>
+    <article class="permit" aria-label="Tom Ellery permit card">
+      <i class="staple l" aria-hidden="true"></i><i class="staple r" aria-hidden="true"></i>
+      <div class="permit-head">
+        <h2><small>SALT LAKE CITY · UTAH</small>BUILDING<br>PERMIT</h2>
+        <div class="permit-no">PERMIT NO.<b>TE-0001</b></div>
+      </div>
+
+      <div class="permit-body">
+        <div class="badge" id="avatar" aria-hidden="true">TE</div>
+        <div class="holder">
+          <small>PERMIT HOLDER</small>
+          <h1>Tom<br>Ellery</h1>
+        </div>
+      </div>
+
+      <div class="fields">
+        <div class="field wide"><small>SCOPE OF WORK</small>BUILD · RIDE · REPEAT</div>
+        <div class="field"><small>LOCATION</small>SLC, UTAH</div>
+        <div class="field"><small>ISSUED</small><span id="issued"></span></div>
+      </div>
+
+      <div class="stamp" aria-hidden="true">APPROVED<small>SITE INSPECTOR</small></div>
+    </article>
+
+    <div class="section">INSPECTION SIGN-OFF</div>
+    <ul>
+      <li><a class="item" href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">
+        <span class="check" aria-hidden="true">✓</span>
+        <span><span class="item-name">Instagram</span><span class="item-handle">@tom.a.ellery</span></span>
+        <span class="passed"><b>01</b>PASSED</span></a></li>
+      <li><a class="item" href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">
+        <span class="check" aria-hidden="true">✓</span>
+        <span><span class="item-name">Facebook</span><span class="item-handle">/tom.a.ellery</span></span>
+        <span class="passed"><b>02</b>PASSED</span></a></li>
+      <li><a class="item" href="https://x.com/tomaellery" target="_blank" rel="noopener">
+        <span class="check" aria-hidden="true">✓</span>
+        <span><span class="item-name">X</span><span class="item-handle">@tomaellery</span></span>
+        <span class="passed"><b>03</b>PASSED</span></a></li>
+      <li><a class="item" href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">
+        <span class="check" aria-hidden="true">✓</span>
+        <span><span class="item-name">LinkedIn</span><span class="item-handle">/in/thomas-ellery</span></span>
+        <span class="passed"><b>04</b>PASSED</span></a></li>
+      <li><a class="item" href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">
+        <span class="check" aria-hidden="true">✓</span>
+        <span><span class="item-name">Venmo</span><span class="item-handle">@tomellery</span></span>
+        <span class="passed"><b>05</b>PASSED</span></a></li>
+    </ul>
+
+    <footer>AUTHORIZED PERSONNEL ONLY</footer>
+  </main>
+
+  <div class="tape" aria-hidden="true"><span>CAUTION · ACTIVE JOB SITE</span></div>
+
+  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
+
+  <script>
+    const d = new Date();
+    document.getElementById("issued").textContent =
+      String(d.getMonth() + 1).padStart(2, "0") + "/" + String(d.getDate()).padStart(2, "0") + "/" + d.getFullYear();
+
+    // Easter egg: tap the TE badge 5 times quickly, or type "play"
+    const GAMES = ["8-terminal-flapper.html"];
+    const gameBase = location.pathname.includes("/options/") ? "" : "options/";
+    function launchEgg() {
+      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
+      if (egg.classList.contains("on")) return;
+      egg.classList.add("on");
+      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
+      let i = 0;
+      (function type() {
+        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
+        else setTimeout(() => { location.href = gameBase + GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
+      })();
+    }
+    const avatar = document.getElementById("avatar");
+    let taps = 0, tapTimer;
+    avatar.addEventListener("click", () => {
+      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
+      taps++; clearTimeout(tapTimer); tapTimer = setTimeout(() => taps = 0, 1500);
+      if (taps >= 5) { taps = 0; launchEgg(); }
+    });
+    let typed = "";
+    addEventListener("keydown", e => { typed = (typed + e.key.toLowerCase()).slice(-4); if (typed === "play") launchEgg(); });
+  </script>
+  <script src="swipe.js?v=4"></script>
+  <script src="longpress.js?v=1"></script>
+</body>
+</html>
