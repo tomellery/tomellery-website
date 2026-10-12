@@ -109,7 +109,6 @@
     a.row.soon { cursor: default; }
     a.row.soon .name { display: flex; align-items: baseline; gap: 8px; }
     .btc-price { font-size: 11px; letter-spacing: .04em; color: var(--dim); white-space: nowrap; }
-    .btc-price[data-dir="up"] { color: var(--orange); }
     .tag-soon { font-size: 9px; font-weight: 700; letter-spacing: .2em; color: var(--orange); border: 1px solid var(--orange); padding: 3px 6px; }
     a.row.soon:hover .btc-price, a.row.soon:focus-visible .btc-price, a.row.soon:hover .tag-soon, a.row.soon:focus-visible .tag-soon { color: var(--black); border-color: var(--black); }
     .toast {
@@ -152,6 +151,22 @@
     .snow-switch button[aria-pressed="true"] { background: var(--orange); color: var(--black); }
     .snow-switch button:focus-visible { outline: 2px solid var(--white); outline-offset: -2px; }
     .snow-cell.fresh small { color: var(--white); }
+
+    /* Crypto ticker ribbon (stock-ticker style, filled by assets/crypto.js) */
+    .crypto-ribbon { margin-top: 26px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0d0d0d; }
+    .crypto-ticker {
+      overflow-x: auto; scrollbar-width: none; cursor: grab; white-space: nowrap; padding: 11px 0;
+      mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    }
+    .crypto-ticker::-webkit-scrollbar { display: none; }
+    .crypto-ticker.grabbing { cursor: grabbing; user-select: none; }
+    .crypto-track { display: inline-flex; }
+    .coin { padding: 0 22px; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--white); border-right: 1px solid var(--line); }
+    .coin b { color: var(--dim); margin-right: 6px; letter-spacing: .12em; }
+    .coin em { font-style: normal; margin-left: 6px; }
+    .coin em.up { color: #3ddc84; }
+    .coin em.down { color: #ff5c5c; }
 
     /* Menu button + full-screen menu */
     .bar .right-group { display: flex; align-items: center; gap: 14px; }
@@ -222,11 +237,11 @@
       TE.render("#links", (l, i) => `<li><a class="row" href="${l.url}" target="_blank" rel="noopener">
         <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗</span></span></a></li>`);
 
-      // Bitcoin: live price now, tips coming soon (add the receive address here when the wallet is ready)
+      // Bitcoin: tips coming soon (add the receive address here when the wallet is ready)
       document.getElementById("links").insertAdjacentHTML("beforeend", `<li><a class="row soon" href="#" id="btcRow" aria-disabled="true">
         <span class="n">${String(TE.links.length + 1).padStart(2, "0")}</span>
         <span class="name">Bitcoin</span>
-        <span class="go"><span class="btc-price" data-btc-price="short">₿</span><span class="tag-soon">SOON</span></span></a></li>`);
+        <span class="go"><span class="btc-price">TIPS</span><span class="tag-soon">SOON</span></span></a></li>`);
     </script>
 
     <!-- Local mountains snow report (filled in by assets/snow.js) -->
@@ -237,6 +252,11 @@
     </section>
 
     <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
+  </div>
+
+  <!-- Crypto prices ribbon -->
+  <div class="crypto-ribbon" data-crypto-wrap hidden aria-label="Crypto prices">
+    <div class="crypto-ticker" data-crypto-ticker></div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -299,7 +319,7 @@
     }));
   </script>
   <script src="assets/snow.js?v=9"></script>
-  <script src="assets/btc.js?v=1"></script>
+  <script src="assets/crypto.js?v=1"></script>
   <script src="assets/secrets.js?v=2"></script>
 </body>
 </html>
