@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tom Ellery</title>
+  <meta name="description" content="Tom Ellery · Salt Lake City · Build · Ride · Repeat. Find me on Instagram, Facebook, X, LinkedIn and Venmo.">
+
+  <!-- Share preview (texts, iMessage, DMs, LinkedIn) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tom Ellery">
+  <meta property="og:title" content="Tom Ellery">
+  <meta property="og:description" content="SLC 📍 Build · Ride · Repeat">
+  <meta property="og:url" content="http://tomellery.com/">
+  <meta property="og:image" content="http://tomellery.com/assets/share.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Icons -->
+  <link rel="icon" href="../assets/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="../assets/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0a0a">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Monolith v2 (home page). The original is saved at archive/monolith-v1.html */
+    :root {
+      --black: #0a0a0a;
+      --white: #f2efe6;
+      --dim: rgba(242, 239, 230, .45);
+      --line: rgba(242, 239, 230, .14);
+      --orange: #ff5a1f;
+      --display: "Anton", Impact, "Arial Narrow", sans-serif;
+      --mono: "JetBrains Mono", Consolas, monospace;
+      --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      --ease: cubic-bezier(.2, .8, .2, 1);
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html { background: var(--black); }
+    body {
+      font-family: var(--mono); color: var(--white);
+      min-height: 100vh; background: var(--noise), var(--black);
+      padding: 20px 0 22px; overflow-x: hidden;
+    }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px; min-height: calc(100vh - 42px); display: flex; flex-direction: column; }
+
+    /* Top bar */
+    .bar { display: flex; justify-content: space-between; align-items: center; font-size: 11px; letter-spacing: .2em; color: var(--dim); }
+    .badge {
+      width: 40px; height: 40px; display: grid; place-items: center;
+      background: var(--white); color: var(--black); font-family: var(--display); font-size: 19px; letter-spacing: .02em;
+    }
+    .bar .right { text-align: right; line-height: 1.6; }
+    .bar .right b { color: var(--white); font-weight: 700; }
+    .bar .snow { color: var(--orange); }
+
+    /* Name, with the reveal on load */
+    h1 {
+      font-family: var(--display); font-weight: 400; text-transform: uppercase;
+      font-size: clamp(88px, 31vw, 178px); line-height: .82; letter-spacing: -.01em;
+      margin: 44px 0 0;
+    }
+    h1 .line { display: block; overflow: hidden; padding-bottom: .02em; }
+    h1 .tom { display: block; animation: rise .8s var(--ease) .15s both; }
+    h1 .ellery { position: relative; display: inline-block; color: transparent; -webkit-text-stroke: 1.5px var(--white);
+      clip-path: inset(0 100% 0 0); animation: draw 1s var(--ease) .55s forwards; }
+    h1 .ellery::after { /* the "pen" that draws the outline */
+      content: ""; position: absolute; top: 6%; bottom: 10%; left: 0; width: 3px; background: var(--orange);
+      opacity: 0; animation: pen 1s var(--ease) .55s forwards;
+    }
+    @keyframes rise { from { transform: translateY(105%); } to { transform: none; } }
+    @keyframes draw { to { clip-path: inset(0 0 0 0); } }
+    @keyframes pen { 0% { left: 0; opacity: 1; } 85% { left: 100%; opacity: 1; } 100% { left: 100%; opacity: 0; } }
+
+    .rule { height: 4px; width: 64px; background: var(--orange); margin: 22px 0 14px; transform-origin: left; animation: grow .6s var(--ease) 1.4s both; }
+    @keyframes grow { from { transform: scaleX(0); } }
+    .bio { font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+
+    /* NOW line */
+    .now { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; font-size: 12px; letter-spacing: .06em; color: var(--dim); }
+    .now b { display: inline-flex; align-items: center; gap: 7px; color: var(--white); font-size: 10px; letter-spacing: .25em; flex-shrink: 0; }
+    .now b::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); animation: live 2s infinite; }
+    @keyframes live { 0% { box-shadow: 0 0 0 0 rgba(255, 90, 31, .7); } 70% { box-shadow: 0 0 0 7px rgba(255, 90, 31, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 90, 31, 0); } }
+
+    .fade { animation: fadeUp .6s var(--ease) both; }
+    .d1 { animation-delay: 1.5s; } .d2 { animation-delay: 1.6s; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } }
+
+    /* Links */
+    ul { list-style: none; padding: 0; margin-top: 38px; border-top: 1px solid var(--line); }
+    li { border-bottom: 1px solid var(--line); animation: fadeUp .5s var(--ease) both; }
+    li:nth-child(1) { animation-delay: 1.65s; } li:nth-child(2) { animation-delay: 1.72s; } li:nth-child(3) { animation-delay: 1.79s; }
+    li:nth-child(4) { animation-delay: 1.86s; } li:nth-child(5) { animation-delay: 1.93s; } li:nth-child(n+6) { animation-delay: 2s; }
+    a.row {
+      display: grid; grid-template-columns: 34px 1fr auto; align-items: baseline; gap: 10px;
+      padding: 16px 10px 14px; color: var(--white); text-decoration: none;
+      background: linear-gradient(var(--orange), var(--orange)) no-repeat 0 0 / 0% 100%;
+      transition: background-size .28s cubic-bezier(.6, 0, .2, 1), color .2s, padding .28s;
+    }
+    a.row:hover, a.row:focus-visible { background-size: 100% 100%; color: var(--black); padding-left: 16px; outline: none; }
+    .n { font-size: 11px; color: var(--dim); }
+    a.row:hover .n, a.row:focus-visible .n { color: var(--black); }
+    .name { font-family: var(--display); font-size: 34px; line-height: 1; text-transform: uppercase; letter-spacing: .01em; }
+    .go { display: flex; align-items: baseline; gap: 10px; font-size: 11px; letter-spacing: .06em; }
+    .go .h { opacity: .55; }
+    .go .a { font-family: var(--display); font-size: 22px; }
+
+    /* Snow report board */
+    .snow-board { margin-top: 40px; }
+    .snow-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+      font-size: 10px; font-weight: 700; letter-spacing: .22em; color: var(--dim); }
+    .snow-head b { color: var(--white); }
+    /* Swipeable 3x3 boards (one per group) */
+    .snow-pages { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .snow-pages::-webkit-scrollbar { display: none; }
+    .snow-page { flex: 0 0 100%; scroll-snap-align: start; }
+    .snow-page h3 { font-size: 10px; font-weight: 700; letter-spacing: .3em; color: var(--orange); padding: 12px 0 0; }
+    .snow-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .snow-grid .snow-cell:not(:nth-child(3n)) { border-right: 1px solid var(--line); }
+    .snow-dots { display: flex; justify-content: center; padding-top: 4px; }
+    .snow-dots button { padding: 10px 5px; border: 0; background: none; cursor: pointer; }
+    .snow-dots i { display: block; width: 8px; height: 8px; border-radius: 99px; background: rgba(242, 239, 230, .3); transition: width .3s, background .3s; }
+    .snow-dots button[aria-current="true"] i { width: 22px; background: var(--orange); }
+    .snow-cell { padding: 12px 4px 11px; text-align: center; border-bottom: 1px solid var(--line); }
+    .snow-cell small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .14em; color: var(--dim); white-space: nowrap; }
+    .snow-cell b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; color: var(--white); }
+    .snow-cell span { display: block; font-size: 10px; letter-spacing: .08em; color: var(--dim); }
+    .snow-cell.fresh b { color: var(--orange); }
+    .snow-cell.fresh small { color: var(--white); }
+
+    /* Menu button + full-screen menu */
+    .bar .right-group { display: flex; align-items: center; gap: 14px; }
+    .menu-btn {
+      width: 40px; height: 40px; display: grid; place-items: center; gap: 0; padding: 0; cursor: pointer;
+      background: none; border: 1px solid var(--line); color: var(--white);
+    }
+    .menu-btn span { display: block; width: 18px; height: 2px; background: currentColor; box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor; }
+    .menu-btn:hover, .menu-btn:focus-visible { border-color: var(--orange); color: var(--orange); outline: none; }
+
+    .menu {
+      position: fixed; inset: 0; z-index: 50; background: var(--noise), var(--black);
+      display: flex; flex-direction: column; padding: 20px 16px 28px;
+      opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s;
+    }
+    .menu.open { opacity: 1; visibility: visible; }
+    .menu-top { max-width: 560px; width: 100%; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 11px; letter-spacing: .2em; color: var(--dim); }
+    .menu-close { width: 40px; height: 40px; background: none; border: 1px solid var(--line); color: var(--white); font-size: 22px; line-height: 1; cursor: pointer; }
+    .menu-close:hover, .menu-close:focus-visible { border-color: var(--orange); color: var(--orange); outline: none; }
+    .menu nav { max-width: 560px; width: 100%; margin: auto; padding: 30px 0; }
+    .menu nav a, .menu nav .soon {
+      display: flex; align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line);
+      color: var(--white); text-decoration: none; font-family: var(--display); font-size: clamp(44px, 13vw, 72px); line-height: .95; text-transform: uppercase;
+      transform: translateY(14px); opacity: 0; transition: transform .45s var(--ease), opacity .45s, color .15s;
+    }
+    .menu.open nav > * { transform: none; opacity: 1; }
+    .menu.open nav > *:nth-child(2) { transition-delay: .05s; } .menu.open nav > *:nth-child(3) { transition-delay: .1s; } .menu.open nav > *:nth-child(4) { transition-delay: .15s; }
+    .menu nav small { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--dim); }
+    .menu nav a:hover, .menu nav a:focus-visible { color: var(--orange); outline: none; }
+    .menu nav .soon { color: rgba(242, 239, 230, .25); cursor: default; }
+    .menu nav .soon i { font-style: normal; font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--orange); border: 1px solid var(--orange); padding: 3px 6px; align-self: center; }
+    .menu-foot { max-width: 560px; width: 100%; margin: 0 auto; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+    body.menu-open { overflow: hidden; }
+
+    /* Footer */
+    footer { margin-top: auto; padding-top: 28px; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+
+    @media (max-width: 380px) {
+      .go .h { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; }
+      h1 .ellery { clip-path: none; }
+      h1 .ellery::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <div class="badge" id="avatar" aria-hidden="true">TE</div>
+      <div class="right-group">
+      <div class="right">SALT LAKE CITY, UT<br><b id="clock">--:--</b> LOCAL
+        <span data-snow-wrap hidden><br><span class="snow" data-snow="short"></span></span></div>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span></button>
+      </div>
+    </div>
+
+    <h1 aria-label="Tom Ellery"><span class="line"><span class="tom">Tom</span></span><span class="line"><span class="ellery">Ellery</span></span></h1>
+    <div class="rule" aria-hidden="true"></div>
+    <p class="bio fade d1">Build · Ride · Repeat</p>
+    <p class="now fade d2"><b>NOW</b><span id="now"></span></p>
+
+    <ul id="links" aria-label="Find me"></ul>
+    <script src="../assets/links.js?v=1"></script>
+    <script>
+      // Links come from assets/links.js (edit them there)
+      TE.render("#links", (l, i) => `<li><a class="row" href="${l.url}" target="_blank" rel="noopener">
+        <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗</span></span></a></li>`);
+    </script>
+
+    <!-- Local mountains snow report (filled in by assets/snow.js) -->
+    <section class="snow-board" id="snow" data-snow-wrap hidden aria-label="Snow report for local mountains">
+      <div class="snow-head"><span><b>❄ SNOW REPORT</b> · LAST 24 HRS</span><span>SWIPE ↔</span></div>
+      <div data-snow-boards></div>
+    </section>
+
+    <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
+  </div>
+
+  <!-- Menu -->
+  <div class="menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu">
+    <div class="menu-top">
+      <span>TOM ELLERY · MENU</span>
+      <button class="menu-close" id="menuClose" type="button" aria-label="Close menu">✕</button>
+    </div>
+    <nav>
+      <a href="#links" data-close><small>01</small>Links</a>
+      <a href="#snow" data-close><small>02</small>Snow Report</a>
+      <div class="soon" aria-disabled="true"><small>03</small>Projects <i>SOON</i></div>
+      <a href="../gallery/"><small>04</small>Other Looks</a>
+    </nav>
+    <div class="menu-foot"><span>SALT LAKE CITY, UT</span><span>BUILD · RIDE · REPEAT</span></div>
+  </div>
+
+  <script>
+    // ============================================================
+    //  The "NOW" status line. Change it any time.
+    // ============================================================
+    const NOW = "Building in SLC · Waiting on snow";
+
+    document.getElementById("now").textContent = NOW;
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Live Salt Lake City time
+    const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Denver", hour: "numeric", minute: "2-digit" });
+    const clock = document.getElementById("clock");
+    const tick = () => { clock.textContent = fmt.format(new Date()); };
+    tick(); setInterval(tick, 15000);
+
+    // Menu open/close
+    const menu = document.getElementById("menu"), menuBtn = document.getElementById("menuBtn");
+    function setMenu(open) {
+      menu.classList.toggle("open", open);
+      document.body.classList.toggle("menu-open", open);
+      menuBtn.setAttribute("aria-expanded", open);
+      (open ? document.getElementById("menuClose") : menuBtn).focus({ preventScroll: true });
+    }
+    menuBtn.addEventListener("click", () => setMenu(true));
+    document.getElementById("menuClose").addEventListener("click", () => setMenu(false));
+    addEventListener("keydown", e => { if (e.key === "Escape" && menu.classList.contains("open")) setMenu(false); });
+    menu.querySelectorAll("[data-close]").forEach(a => a.addEventListener("click", e => {
+      e.preventDefault();
+      setMenu(false);
+      document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+  </script>
+  <script src="../assets/snow.js?v=9"></script>
+  <script src="../assets/secrets.js?v=2"></script>
+</body>
+</html>

@@ -130,6 +130,13 @@
     .snow-cell b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; color: var(--white); }
     .snow-cell span { display: block; font-size: 10px; letter-spacing: .08em; color: var(--dim); }
     .snow-cell.fresh b { color: var(--orange); }
+    .snow-cell em.today { display: block; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--dim); margin: 1px 0 2px; }
+    .snow-cell em.today.fresh { color: var(--orange); }
+    .snow-head { align-items: center; }
+    .snow-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+    .snow-switch button { background: none; border: 0; color: var(--dim); font: 700 10px var(--mono); letter-spacing: .15em; padding: 6px 11px; cursor: pointer; transition: background .15s, color .15s; }
+    .snow-switch button[aria-pressed="true"] { background: var(--orange); color: var(--black); }
+    .snow-switch button:focus-visible { outline: 2px solid var(--white); outline-offset: -2px; }
     .snow-cell.fresh small { color: var(--white); }
 
     /* Menu button + full-screen menu */
@@ -204,7 +211,8 @@
 
     <!-- Local mountains snow report (filled in by assets/snow.js) -->
     <section class="snow-board" id="snow" data-snow-wrap hidden aria-label="Snow report for local mountains">
-      <div class="snow-head"><span><b>❄ SNOW REPORT</b> · LAST 24 HRS</span><span>SWIPE ↔</span></div>
+      <div class="snow-head"><span><b>❄ SNOW REPORT</b></span>
+        <span class="snow-switch" role="group" aria-label="Snow totals"><button type="button" data-snow-mode="day">24 HR</button><button type="button" data-snow-mode="week">7 DAY</button></span></div>
       <div data-snow-boards></div>
     </section>
 
@@ -258,7 +266,7 @@
       document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
     }));
   </script>
-  <script src="assets/snow.js?v=8"></script>
+  <script src="assets/snow.js?v=9"></script>
   <script src="assets/secrets.js?v=2"></script>
 </body>
 </html>

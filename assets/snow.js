@@ -36,17 +36,22 @@
   const col = i => MOUNTAINS.map(m => m[i]).join(",");
   const url = "https://api.open-meteo.com/v1/forecast"
     + `?latitude=${col(LAT)}&longitude=${col(LON)}&elevation=${col(ELEV)}`
-    + "&current=temperature_2m&hourly=snowfall&past_days=1&forecast_days=1"
+    + "&current=temperature_2m&hourly=snowfall&past_days=7&forecast_days=1"
     + "&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=auto";
 
-  // New snow over the last 24 hourly readings, up to the current hour (in each mountain's local time)
+  // New snow over the last 24 hours and the last 7 days, up to the current hour (in each mountain's local time)
   function summarize(d) {
     const hour = d.current.time.slice(0, 13);
     let end = d.hourly.time.findIndex(t => t.slice(0, 13) === hour);
     if (end === -1) end = d.hourly.time.length - 1;
-    const snow = d.hourly.snowfall.slice(Math.max(0, end - 23), end + 1).reduce((a, b) => a + (b || 0), 0);
-    return { inches: Math.round(snow), temp: Math.round(d.current.temperature_2m) + "°F" };
+    const sum = hours => Math.round(d.hourly.snowfall.slice(Math.max(0, end - hours + 1), end + 1).reduce((a, b) => a + (b || 0), 0));
+    return { inches: sum(24), week: sum(24 * 7), temp: Math.round(d.current.temperature_2m) + "°F" };
   }
+
+  // Which number the boards show: "week" (big = last 7 days, "+X TODAY" below) or "day" (big = last 24 hours).
+  // Remembered per visitor; the 24 HR / 7 DAY buttons are any element with data-snow-mode.
+  let mode = "week";
+  try { mode = localStorage.getItem("te-snow-mode") || "week"; } catch (e) {}
 
   const reveal = el => el.closest("[data-snow-wrap]")?.removeAttribute("hidden");
 
@@ -94,7 +99,13 @@
       requestAnimationFrame(step);
     })(last);
   }
-  const cell = (m, i) => `
+  const cell = (m, i, view = "day") => view === "week" ? `
+    <div class="snow-cell${m.week > 0 ? " fresh" : ""}">
+      <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
+      <b>${m.week}″</b>
+      <em class="today${m.inches > 0 ? " fresh" : ""}">+${m.inches}″ TODAY</em>
+      <span>${m.temp}</span>
+    </div>` : `
     <div class="snow-cell${m.inches > 0 ? " fresh" : ""}">
       <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
       <b>${m.inches}″</b>
@@ -117,7 +128,7 @@
 
       // Swipeable row of stacked cells that slowly drifts on its own (doubled so the loop is seamless)
       document.querySelectorAll("[data-snow-strip]").forEach(el => {
-        const row = data.map(cell).join("");
+        const row = data.map((m, i) => cell(m, i)).join("");
         el.innerHTML = `<div class="snow-track">${row}${row}</div>`;
         reveal(el);
         drift(el);
@@ -129,9 +140,22 @@
         el.innerHTML = `<div class="snow-pages">${groups.map(g => `
           <section class="snow-page" aria-label="${g}">
             <h3>${g.toUpperCase()}</h3>
-            <div class="snow-grid">${data.map((m, i) => MOUNTAINS[i][BOARD] === g ? cell(m, i) : "").join("")}</div>
+            <div class="snow-grid" data-board="${g}"></div>
           </section>`).join("")}</div>
           <div class="snow-dots">${groups.map((g, i) => `<button type="button" aria-label="Show ${g}"${i ? "" : ' aria-current="true"'}><i></i></button>`).join("")}</div>`;
+        const fill = () => el.querySelectorAll(".snow-grid").forEach(grid => {
+          grid.innerHTML = data.map((m, i) => MOUNTAINS[i][BOARD] === grid.dataset.board ? cell(m, i, mode) : "").join("");
+        });
+        fill();
+        document.querySelectorAll("[data-snow-mode]").forEach(btn => {
+          btn.setAttribute("aria-pressed", btn.dataset.snowMode === mode);
+          btn.addEventListener("click", () => {
+            mode = btn.dataset.snowMode;
+            try { localStorage.setItem("te-snow-mode", mode); } catch (e) {}
+            document.querySelectorAll("[data-snow-mode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.snowMode === mode));
+            fill();
+          });
+        });
         const pages = el.querySelector(".snow-pages"), dots = [...el.querySelectorAll(".snow-dots button")];
         const mark = n => dots.forEach((d, i) => d.setAttribute("aria-current", i === n ? "true" : "false"));
         dots.forEach((d, i) => d.addEventListener("click", () => {
