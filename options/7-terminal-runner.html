@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tom Ellery</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #0b0f0b; color: #39ff7a; font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+    min-height: 100vh; padding: 32px 16px; font-size: 15px; line-height: 1.7; text-shadow: 0 0 6px #39ff7a66; }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  .dim { color: #1f8a44; }
+  #game { display: block; width: 100%; height: 200px; margin-top: 18px; border: 1px solid #1f8a44; border-radius: 4px;
+    touch-action: none; cursor: pointer; opacity: 0; transition: opacity .6s; }
+  #game.on { opacity: 1; }
+  .help { font-size: 13px; margin-top: 6px; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 24px; padding-top: 14px; border-top: 1px dashed #1f8a44; }
+  .links a { color: #b6ffcf; }
+</style></head>
+<body>
+  <div class="wrap">
+    <div id="out"></div>
+    <canvas id="game" aria-label="Runner game. Press space or tap to jump, down arrow or swipe down to duck."></canvas>
+    <div class="help dim">SPACE / ↑ / tap = jump &nbsp;·&nbsp; ↓ / swipe down = duck</div>
+    <nav class="links" aria-label="Find me elsewhere">
+      <span class="dim">find me:</span>
+      <a href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">instagram</a>
+      <a href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">facebook</a>
+      <a href="https://x.com/tomaellery" target="_blank" rel="noopener">x</a>
+      <a href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">linkedin</a>
+      <a href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">venmo</a>
+    </nav>
+  </div>
+<script>
+  // ---- Intro: typed terminal lines ----
+  const lines = [
+    "$ ./build-website --awesome",
+    "> mixing pixels............ ok",
+    "> adding vibes............. 87%",
+    "> brewing coffee........... please hold",
+    "STATUS: under construction 🚧",
+    "Play while you wait:",
+  ];
+  const out = document.getElementById("out");
+  let li = 0, ci = 0, cur;
+  (function type() {
+    if (li >= lines.length) { canvas.classList.add("on"); return; }
+    if (ci === 0) { cur = document.createElement("div"); out.appendChild(cur); }
+    if (ci < lines[li].length) { cur.textContent += lines[li][ci++]; setTimeout(type, 28); }
+    else { li++; ci = 0; setTimeout(type, 280); }
+  })();
+
+  // ---- Game ----
+  const GREEN = "#39ff7a", DIM = "#1f8a44", BG = "#0b0f0b";
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 200, GROUND = 170;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    W = canvas.clientWidth; H = canvas.clientHeight; GROUND = H - 30;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  addEventListener("resize", resize);
+  resize();
+
+  let hi = 0;
+  try { hi = parseInt(localStorage.getItem("runnerHi"), 10) || 0; } catch (e) {}
+
+  const player = { x: 40, y: 0, vy: 0, duck: false, w: 18 };
+  let state = "ready", obstacles, dots, speed, score, nextGap, last;
+
+  function reset() {
+    player.y = GROUND; player.vy = 0; player.duck = false;
+    obstacles = []; speed = 300; score = 0; nextGap = 400;
+    dots = Array.from({ length: 24 }, () => ({ x: Math.random() * W, y: GROUND + 6 + Math.random() * 18 }));
+  }
+  reset();
+
+  function playerBox() {
+    const h = player.duck ? 14 : 26;
+    return { x: player.x, y: player.y - h, w: player.duck ? 26 : player.w, h };
+  }
+
+  function jump() {
+    if (state !== "running") { reset(); state = "running"; last = performance.now(); return; }
+    if (player.y >= GROUND && !player.duck) player.vy = -560;
+  }
+
+  function spawn() {
+    if (score > 25 && Math.random() < 0.3) {
+      obstacles.push({ type: "bug", x: W + 10, y: GROUND - 34, w: 30, h: 12 });
+    } else {
+      const tall = Math.random() < 0.4, wide = Math.random() < 0.35;
+      const h = tall ? 40 : 26, w = wide ? 30 : 16;
+      obstacles.push({ type: "block", x: W + 10, y: GROUND - h, w, h });
+    }
+    nextGap = (240 + Math.random() * 320) * (speed / 300);
+  }
+
+  function update(dt) {
+    speed += 8 * dt;
+    score += dt * 10;
+    player.vy += (player.duck && player.y < GROUND ? 4200 : 1600) * dt;
+    player.y += player.vy * dt;
+    if (player.y > GROUND) { player.y = GROUND; player.vy = 0; }
+
+    const move = speed * dt;
+    obstacles.forEach(o => o.x -= move);
+    obstacles = obstacles.filter(o => o.x + o.w > -10);
+    dots.forEach(d => { d.x -= move; if (d.x < 0) d.x += W; });
+
+    const lastOb = obstacles[obstacles.length - 1];
+    if (!lastOb || W - lastOb.x > nextGap) spawn();
+
+    const p = playerBox();
+    for (const o of obstacles) {
+      if (p.x + 3 < o.x + o.w && p.x + p.w - 3 > o.x && p.y + 3 < o.y + o.h && p.y + p.h > o.y + 2) {
+        state = "over";
+        const s = Math.floor(score);
+        if (s > hi) { hi = s; try { localStorage.setItem("runnerHi", hi); } catch (e) {} }
+      }
+    }
+  }
+
+  const pad = n => String(n).padStart(5, "0");
+
+  function draw() {
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+    ctx.shadowColor = GREEN; ctx.shadowBlur = 6;
+
+    // ground
+    ctx.fillStyle = DIM; ctx.fillRect(0, GROUND, W, 1);
+    ctx.font = "12px monospace";
+    dots.forEach(d => ctx.fillText(".", d.x, d.y));
+
+    // obstacles drawn from characters
+    ctx.fillStyle = GREEN;
+    obstacles.forEach(o => {
+      if (o.type === "bug") {
+        ctx.font = "bold 14px monospace";
+        ctx.fillText(Math.floor(performance.now() / 150) % 2 ? "}o{" : "]o[", o.x, o.y + o.h);
+      } else {
+        ctx.font = "bold 14px monospace";
+        for (let yy = o.y + 13; yy <= o.y + o.h + 1; yy += 13)
+          for (let xx = o.x; xx < o.x + o.w - 2; xx += 9) ctx.fillText("#", xx, yy);
+      }
+    });
+
+    // player
+    ctx.font = "bold 26px monospace";
+    if (player.duck) { ctx.font = "bold 16px monospace"; ctx.fillText("_@", player.x, player.y); }
+    else ctx.fillText("@", player.x, player.y);
+
+    // score
+    ctx.shadowBlur = 0;
+    ctx.font = "13px monospace";
+    ctx.fillStyle = DIM; ctx.fillText("HI " + pad(hi), W - 190, 22);
+    ctx.fillStyle = GREEN; ctx.fillText("SCORE " + pad(Math.floor(score)), W - 105, 22);
+
+    ctx.textAlign = "center"; ctx.font = "14px monospace";
+    if (state === "ready") ctx.fillText("press SPACE or tap to start", W / 2, H / 2 - 10);
+    if (state === "over") {
+      ctx.fillText("ERROR: website crashed 💥", W / 2, H / 2 - 18);
+      ctx.fillStyle = DIM; ctx.fillText("press SPACE or tap to reboot", W / 2, H / 2 + 4);
+    }
+    ctx.textAlign = "left";
+  }
+
+  function loop(now) {
+    if (state === "running") {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      update(dt);
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ---- Controls ----
+  addEventListener("keydown", e => {
+    if (e.code === "Space" || e.code === "ArrowUp") { e.preventDefault(); jump(); }
+    if (e.code === "ArrowDown") { e.preventDefault(); if (state === "running") player.duck = true; }
+  });
+  addEventListener("keyup", e => { if (e.code === "ArrowDown") player.duck = false; });
+
+  let touchY = null, swiped = false;
+  canvas.addEventListener("touchstart", e => { e.preventDefault(); touchY = e.touches[0].clientY; swiped = false; }, { passive: false });
+  canvas.addEventListener("touchmove", e => {
+    if (touchY !== null && e.touches[0].clientY - touchY > 25 && state === "running") { player.duck = true; swiped = true; }
+  }, { passive: true });
+  canvas.addEventListener("touchend", () => { if (!swiped) jump(); player.duck = false; touchY = null; });
+  canvas.addEventListener("mousedown", jump);
+</script>
+</body></html>
