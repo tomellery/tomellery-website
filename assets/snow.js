@@ -8,9 +8,10 @@
     + "&current=temperature_2m&hourly=snowfall&past_days=1&forecast_days=1"
     + "&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America%2FDenver";
 
-  function show(text) {
+  // data-snow="short" gets a compact version, e.g. "BRIGHTON · 6″ NEW" or "BRIGHTON · 38°F"
+  function show(full, short) {
     document.querySelectorAll("[data-snow]").forEach(el => {
-      el.textContent = text;
+      el.textContent = el.dataset.snow === "short" ? short : full;
       el.closest("[data-snow-wrap]")?.removeAttribute("hidden");
     });
   }
@@ -25,7 +26,8 @@
       const snow = d.hourly.snowfall.slice(Math.max(0, end - 23), end + 1).reduce((a, b) => a + (b || 0), 0);
       const temp = Math.round(d.current.temperature_2m) + "°F";
       const inches = Math.round(snow);
-      show(inches > 0 ? `BRIGHTON · ${inches}″ NEW · ${temp}` : `BRIGHTON · NO NEW SNOW · ${temp}`);
+      show(inches > 0 ? `BRIGHTON · ${inches}″ NEW · ${temp}` : `BRIGHTON · NO NEW SNOW · ${temp}`,
+           inches > 0 ? `BRIGHTON · ${inches}″ NEW` : `BRIGHTON · ${temp}`);
     })
     .catch(() => {});
 })();

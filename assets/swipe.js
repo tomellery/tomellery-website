@@ -2,9 +2,9 @@
 // To change the order, edit this list. "index.html" is the home page (tomellery.com).
 (function () {
   const ROTATION = [
-    { id: "liftticket",   file: "index.html",                title: "Lift Ticket" },
+    { id: "monolith",     file: "index.html",                title: "Monolith" },
+    { id: "liftticket",   file: "designs/liftticket.html",   title: "Lift Ticket" },
     { id: "trailsigns",   file: "designs/trailsigns.html",   title: "Trail Signs" },
-    { id: "monolith",     file: "designs/monolith.html",     title: "Monolith" },
     { id: "jobsite",      file: "designs/jobsite.html",      title: "Job Site" },
     { id: "fieldbook",    file: "designs/fieldbook.html",    title: "Field Book" },
     { id: "businesscard", file: "designs/businesscard.html", title: "Business Card" },
