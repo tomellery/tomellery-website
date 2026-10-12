@@ -105,18 +105,6 @@
     .n { font-size: 11px; color: var(--dim); }
     a.row:hover .n, a.row:focus-visible .n { color: var(--black); }
 
-    /* Bitcoin row: live price + SOON tag (tips not set up yet) */
-    a.row.soon { cursor: default; }
-    a.row.soon .name { display: flex; align-items: baseline; gap: 8px; }
-    .btc-price { font-size: 11px; letter-spacing: .04em; color: var(--dim); white-space: nowrap; }
-    .tag-soon { font-size: 9px; font-weight: 700; letter-spacing: .2em; color: var(--orange); border: 1px solid var(--orange); padding: 3px 6px; }
-    a.row.soon:hover .btc-price, a.row.soon:focus-visible .btc-price, a.row.soon:hover .tag-soon, a.row.soon:focus-visible .tag-soon { color: var(--black); border-color: var(--black); }
-    .toast {
-      position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 60;
-      transform: translate(-50%, 12px); opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
-      background: var(--white); color: var(--black); padding: 11px 16px; font-size: 11px; font-weight: 700; letter-spacing: .16em; white-space: nowrap;
-    }
-    .toast.show { opacity: 1; transform: translate(-50%, 0); }
     .name { font-family: var(--display); font-size: 34px; line-height: 1; text-transform: uppercase; letter-spacing: .01em; }
     .go { display: flex; align-items: baseline; gap: 10px; font-size: 11px; letter-spacing: .06em; }
     .go .h { opacity: .55; }
@@ -153,7 +141,8 @@
     .snow-cell.fresh small { color: var(--white); }
 
     /* Crypto ticker ribbon (stock-ticker style, filled by assets/crypto.js) */
-    .crypto-ribbon { margin-top: 26px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0d0d0d; }
+    .crypto-ribbon { margin: 34px -16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0d0d0d; }
+    @media (min-width: 592px) { .crypto-ribbon { margin-left: 0; margin-right: 0; } }
     .crypto-ticker {
       overflow-x: auto; scrollbar-width: none; cursor: grab;
       mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
@@ -237,13 +226,12 @@
       // Links come from assets/links.js (edit them there)
       TE.render("#links", (l, i) => `<li><a class="row" href="${l.url}" target="_blank" rel="noopener">
         <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗</span></span></a></li>`);
-
-      // Bitcoin: tips coming soon (add the receive address here when the wallet is ready)
-      document.getElementById("links").insertAdjacentHTML("beforeend", `<li><a class="row soon" href="#" id="btcRow" aria-disabled="true">
-        <span class="n">${String(TE.links.length + 1).padStart(2, "0")}</span>
-        <span class="name">Bitcoin</span>
-        <span class="go"><span class="btc-price">TIPS</span><span class="tag-soon">SOON</span></span></a></li>`);
     </script>
+
+    <!-- Crypto prices band (filled in by assets/crypto.js) -->
+    <div class="crypto-ribbon" data-crypto-wrap hidden aria-label="Crypto prices">
+      <div class="crypto-ticker" data-crypto-ticker></div>
+    </div>
 
     <!-- Local mountains snow report (filled in by assets/snow.js) -->
     <section class="snow-board" id="snow" data-snow-wrap hidden aria-label="Snow report for local mountains">
@@ -254,13 +242,6 @@
 
     <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
   </div>
-
-  <!-- Crypto prices ribbon -->
-  <div class="crypto-ribbon" data-crypto-wrap hidden aria-label="Crypto prices">
-    <div class="crypto-ticker" data-crypto-ticker></div>
-  </div>
-
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <!-- Menu -->
   <div class="menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu">
@@ -292,16 +273,6 @@
     const tick = () => { clock.textContent = fmt.format(new Date()); };
     tick(); setInterval(tick, 15000);
 
-    // Bitcoin row: not live yet
-    let toastTimer;
-    document.getElementById("btcRow").addEventListener("click", e => {
-      e.preventDefault();
-      const t = document.getElementById("toast");
-      t.textContent = "₿ BITCOIN TIPS · COMING SOON";
-      t.classList.add("show");
-      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
-    });
-
     // Menu open/close
     const menu = document.getElementById("menu"), menuBtn = document.getElementById("menuBtn");
     function setMenu(open) {
@@ -321,6 +292,7 @@
   </script>
   <script src="assets/snow.js?v=12"></script>
   <script src="assets/crypto.js?v=2"></script>
+  <script src="assets/holiday.js?v=1"></script>
   <script src="assets/secrets.js?v=2"></script>
 </body>
 </html>
