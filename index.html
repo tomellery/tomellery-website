@@ -114,21 +114,55 @@
     .snow-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--line);
       font-size: 10px; font-weight: 700; letter-spacing: .22em; color: var(--dim); }
     .snow-head b { color: var(--white); }
-    /* A slowly drifting row of stacked cells; touch or hover to pause */
+    /* Swipeable row of stacked cells; drifts slowly on its own (see assets/snow.js) */
     .snow-strip {
-      overflow: hidden; border-bottom: 1px solid var(--line);
+      overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; cursor: grab;
+      border-bottom: 1px solid var(--line); -webkit-overflow-scrolling: touch;
       mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
       -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
     }
-    .snow-track { display: flex; width: max-content; animation: drift calc(var(--cells) * 4.5s) linear infinite; }
-    .snow-strip:hover .snow-track, .snow-strip:active .snow-track { animation-play-state: paused; }
-    @keyframes drift { to { transform: translateX(-50%); } }
+    .snow-strip::-webkit-scrollbar { display: none; }
+    .snow-strip.grabbing { cursor: grabbing; user-select: none; }
+    .snow-track { display: flex; width: max-content; }
     .snow-cell { flex: 0 0 104px; padding: 12px 4px 11px; text-align: center; border-right: 1px solid var(--line); }
     .snow-cell small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .14em; color: var(--dim); white-space: nowrap; }
     .snow-cell b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; color: var(--white); }
     .snow-cell span { display: block; font-size: 10px; letter-spacing: .08em; color: var(--dim); }
     .snow-cell.fresh b { color: var(--orange); }
     .snow-cell.fresh small { color: var(--white); }
+
+    /* Menu button + full-screen menu */
+    .bar .right-group { display: flex; align-items: center; gap: 14px; }
+    .menu-btn {
+      width: 40px; height: 40px; display: grid; place-items: center; gap: 0; padding: 0; cursor: pointer;
+      background: none; border: 1px solid var(--line); color: var(--white);
+    }
+    .menu-btn span { display: block; width: 18px; height: 2px; background: currentColor; box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor; }
+    .menu-btn:hover, .menu-btn:focus-visible { border-color: var(--orange); color: var(--orange); outline: none; }
+
+    .menu {
+      position: fixed; inset: 0; z-index: 50; background: var(--noise), var(--black);
+      display: flex; flex-direction: column; padding: 20px 16px 28px;
+      opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s;
+    }
+    .menu.open { opacity: 1; visibility: visible; }
+    .menu-top { max-width: 560px; width: 100%; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; font-size: 11px; letter-spacing: .2em; color: var(--dim); }
+    .menu-close { width: 40px; height: 40px; background: none; border: 1px solid var(--line); color: var(--white); font-size: 22px; line-height: 1; cursor: pointer; }
+    .menu-close:hover, .menu-close:focus-visible { border-color: var(--orange); color: var(--orange); outline: none; }
+    .menu nav { max-width: 560px; width: 100%; margin: auto; padding: 30px 0; }
+    .menu nav a, .menu nav .soon {
+      display: flex; align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line);
+      color: var(--white); text-decoration: none; font-family: var(--display); font-size: clamp(44px, 13vw, 72px); line-height: .95; text-transform: uppercase;
+      transform: translateY(14px); opacity: 0; transition: transform .45s var(--ease), opacity .45s, color .15s;
+    }
+    .menu.open nav > * { transform: none; opacity: 1; }
+    .menu.open nav > *:nth-child(2) { transition-delay: .05s; } .menu.open nav > *:nth-child(3) { transition-delay: .1s; } .menu.open nav > *:nth-child(4) { transition-delay: .15s; }
+    .menu nav small { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--dim); }
+    .menu nav a:hover, .menu nav a:focus-visible { color: var(--orange); outline: none; }
+    .menu nav .soon { color: rgba(242, 239, 230, .25); cursor: default; }
+    .menu nav .soon i { font-style: normal; font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--orange); border: 1px solid var(--orange); padding: 3px 6px; align-self: center; }
+    .menu-foot { max-width: 560px; width: 100%; margin: 0 auto; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+    body.menu-open { overflow: hidden; }
 
     /* Footer */
     footer { margin-top: auto; padding-top: 28px; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
@@ -147,8 +181,11 @@
   <div class="wrap">
     <div class="bar">
       <div class="badge" id="avatar" aria-hidden="true">TE</div>
+      <div class="right-group">
       <div class="right">SALT LAKE CITY, UT<br><b id="clock">--:--</b> LOCAL
         <span data-snow-wrap hidden><br><span class="snow" data-snow="short"></span></span></div>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span></button>
+      </div>
     </div>
 
     <h1 aria-label="Tom Ellery"><span class="line"><span class="tom">Tom</span></span><span class="line"><span class="ellery">Ellery</span></span></h1>
@@ -156,7 +193,7 @@
     <p class="bio fade d1">Build · Ride · Repeat</p>
     <p class="now fade d2"><b>NOW</b><span id="now"></span></p>
 
-    <ul id="links"></ul>
+    <ul id="links" aria-label="Find me"></ul>
     <script src="assets/links.js?v=1"></script>
     <script>
       // Links come from assets/links.js (edit them there)
@@ -165,12 +202,27 @@
     </script>
 
     <!-- Local mountains snow report (filled in by assets/snow.js) -->
-    <section class="snow-board" data-snow-wrap hidden aria-label="Snow report for local mountains">
-      <div class="snow-head"><span><b>❄ SNOW REPORT</b> · LAST 24 HRS</span><span>HOLD TO PAUSE</span></div>
+    <section class="snow-board" id="snow" data-snow-wrap hidden aria-label="Snow report for local mountains">
+      <div class="snow-head"><span><b>❄ SNOW REPORT</b> · LAST 24 HRS</span><span>SWIPE ↔</span></div>
       <div class="snow-strip" data-snow-strip></div>
     </section>
 
     <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
+  </div>
+
+  <!-- Menu -->
+  <div class="menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu">
+    <div class="menu-top">
+      <span>TOM ELLERY · MENU</span>
+      <button class="menu-close" id="menuClose" type="button" aria-label="Close menu">✕</button>
+    </div>
+    <nav>
+      <a href="#links" data-close><small>01</small>Links</a>
+      <a href="#snow" data-close><small>02</small>Snow Report</a>
+      <div class="soon" aria-disabled="true"><small>03</small>Projects <i>SOON</i></div>
+      <a href="gallery/"><small>04</small>Other Looks</a>
+    </nav>
+    <div class="menu-foot"><span>SALT LAKE CITY, UT</span><span>BUILD · RIDE · REPEAT</span></div>
   </div>
 
   <script>
@@ -187,9 +239,25 @@
     const clock = document.getElementById("clock");
     const tick = () => { clock.textContent = fmt.format(new Date()); };
     tick(); setInterval(tick, 15000);
+
+    // Menu open/close
+    const menu = document.getElementById("menu"), menuBtn = document.getElementById("menuBtn");
+    function setMenu(open) {
+      menu.classList.toggle("open", open);
+      document.body.classList.toggle("menu-open", open);
+      menuBtn.setAttribute("aria-expanded", open);
+      (open ? document.getElementById("menuClose") : menuBtn).focus({ preventScroll: true });
+    }
+    menuBtn.addEventListener("click", () => setMenu(true));
+    document.getElementById("menuClose").addEventListener("click", () => setMenu(false));
+    addEventListener("keydown", e => { if (e.key === "Escape" && menu.classList.contains("open")) setMenu(false); });
+    menu.querySelectorAll("[data-close]").forEach(a => a.addEventListener("click", e => {
+      e.preventDefault();
+      setMenu(false);
+      document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
   </script>
-  <script src="assets/snow.js?v=5"></script>
+  <script src="assets/snow.js?v=6"></script>
   <script src="assets/secrets.js?v=2"></script>
-  <script src="assets/swipe.js?v=6"></script>
 </body>
 </html>

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tom Ellery</title>
+  <meta name="description" content="Tom Ellery. SLC. Build · Ride · Repeat.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0d0d0d;
+      --night: #0e1116;
+      --sign: #f2efe6;
+      --snow: #fbfbf8;
+      --orange: #ff5a1f;
+      --green: #1f9d55;
+      --blue: #1d5fd6;
+      --muted: rgba(242, 239, 230, .6);
+      --display: "Anton", Impact, "Arial Narrow", sans-serif;
+      --mono: "JetBrains Mono", Consolas, monospace;
+      --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html { background: var(--night); }
+    body {
+      font-family: var(--mono); color: var(--sign);
+      min-height: 100vh; overflow-x: hidden;
+      background: var(--noise), radial-gradient(ellipse at 50% -10%, #2a3140, var(--night) 65%);
+      padding: 40px 16px 0;
+    }
+    canvas#snow { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+
+    main { position: relative; z-index: 1; width: 100%; max-width: 420px; margin: 0 auto; }
+
+    /* ===== Post ===== */
+    .post {
+      position: absolute; left: 50%; top: 60px; bottom: 40px; width: 20px; margin-left: -10px; z-index: 0;
+      background: linear-gradient(90deg, #3b2a1d, #6b4a2f 40%, #4a3322 70%, #2c1f15);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 6px 0 18px rgba(0, 0, 0, .5);
+    }
+    .post::before { /* snow cap on the top of the post */
+      content: ""; position: absolute; top: -10px; left: -6px; right: -6px; height: 16px;
+      background: var(--snow); border-radius: 50% 50% 40% 40%;
+    }
+
+    /* ===== Header sign ===== */
+    .header-wrap { position: relative; z-index: 1; margin-bottom: 30px; }
+    .cap { position: absolute; left: 6px; right: 6px; top: -6px; height: 11px; background: var(--snow); border-radius: 40% 55% 30% 45% / 100% 100% 0 0; z-index: 2; box-shadow: 0 2px 0 rgba(0,0,0,.08); }
+    .header {
+      position: relative; background: var(--orange); color: var(--ink); border-radius: 6px;
+      padding: 18px 18px 16px; display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: center;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, .5), inset 0 0 0 3px rgba(13, 13, 13, .85), inset 0 0 0 6px var(--orange), inset 0 0 0 7px rgba(13, 13, 13, .5);
+    }
+    .header::after, .board::after { content: ""; position: absolute; inset: 0; background: var(--noise); mix-blend-mode: multiply; opacity: .55; pointer-events: none; border-radius: inherit; }
+    .badge {
+      width: 76px; height: 76px; background: var(--ink); color: var(--orange); border-radius: 4px;
+      display: grid; place-items: center; font-family: var(--display); font-size: 36px;
+      cursor: default; user-select: none; -webkit-tap-highlight-color: transparent; transition: transform .1s;
+    }
+    .badge.tap { transform: scale(.93); }
+    .header h1 { font-family: var(--display); font-weight: 400; font-size: 42px; line-height: .9; text-transform: uppercase; }
+    .header .elev { font-size: 11px; font-weight: 700; letter-spacing: .18em; margin-top: 6px; }
+    .bio-plate {
+      position: relative; z-index: 1; margin: 0 auto 34px; width: fit-content; max-width: 100%;
+      background: var(--ink); color: var(--sign); border: 2px solid var(--sign); border-radius: 4px;
+      padding: 8px 14px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; text-align: center;
+    }
+
+    /* ===== Trail signs ===== */
+    ul { list-style: none; padding: 0; display: grid; gap: 22px; position: relative; z-index: 1; }
+    li { position: relative; width: 86%; }
+    li:nth-child(odd) { margin-right: auto; }
+    li:nth-child(even) { margin-left: auto; }
+    li .cap { left: 10px; right: 26px; }
+    li:nth-child(even) .cap { left: 26px; right: 10px; }
+
+    a.board {
+      position: relative; display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: center;
+      background: var(--sign); color: var(--ink); text-decoration: none;
+      padding: 14px 44px 14px 16px; min-height: 68px;
+      clip-path: polygon(0 0, calc(100% - 30px) 0, 100% 50%, calc(100% - 30px) 100%, 0 100%);
+      filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .45));
+      transition: transform .2s ease, background .15s;
+    }
+    li:nth-child(even) a.board {
+      padding: 14px 16px 14px 44px;
+      clip-path: polygon(30px 0, 100% 0, 100% 100%, 30px 100%, 0 50%);
+    }
+    li:nth-child(odd) a.board:hover, li:nth-child(odd) a.board:focus-visible { transform: translateX(8px); }
+    li:nth-child(even) a.board:hover, li:nth-child(even) a.board:focus-visible { transform: translateX(-8px); }
+    a.board:hover, a.board:focus-visible { background: #fff; outline: none; }
+
+    .diff { width: 30px; height: 30px; justify-self: center; }
+    .diff.green { border-radius: 50%; background: var(--green); }
+    .diff.blue { background: var(--blue); border-radius: 2px; }
+    .diff.black { background: var(--ink); transform: rotate(45deg) scale(.82); border-radius: 2px; }
+    .run { display: block; font-family: var(--display); font-size: 26px; line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
+    .meta { display: flex; flex-direction: column; gap: 1px; margin-top: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; }
+    .meta .level { opacity: .55; text-transform: uppercase; }
+
+    /* ===== Snowbank at the base ===== */
+    .bank {
+      position: relative; z-index: 1; height: 90px; margin: 28px -16px 0;
+      background: var(--snow);
+      border-radius: 55% 45% 0 0 / 70px 60px 0 0;
+      box-shadow: inset 0 10px 18px rgba(160, 175, 200, .35);
+      display: grid; place-items: end center; padding-bottom: 18px;
+    }
+    .bank p { font-size: 10px; font-weight: 700; letter-spacing: .3em; color: #6c7586; }
+
+    .egg {
+      position: fixed; inset: 0; z-index: 10; display: none; place-items: center;
+      background: #0b0f0b; color: #39ff7a; text-shadow: 0 0 8px #39ff7a;
+      font-family: var(--mono); font-size: 18px; text-align: center; white-space: pre; padding: 16px;
+    }
+    .egg.on { display: grid; }
+
+    @media (max-width: 360px) {
+      .header h1 { font-size: 34px; }
+      .run { font-size: 22px; }
+      li { width: 92%; }
+    }
+  
+    /* Live Brighton conditions board */
+    .conditions {
+      position: relative; z-index: 1; margin: -20px auto 34px; width: fit-content; max-width: 100%;
+      background: var(--green); color: #fff; border-radius: 4px; padding: 6px 12px;
+      font-size: 11px; font-weight: 700; letter-spacing: .14em; box-shadow: 0 8px 18px rgba(0, 0, 0, .4);
+    }
+    .conditions b { opacity: .75; margin-right: 6px; }
+  </style>
+  <link rel="icon" href="../assets/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <meta property="og:title" content="Tom Ellery">
+  <meta property="og:description" content="SLC 📍 Build · Ride · Repeat">
+  <meta property="og:image" content="http://tomellery.com/assets/share.png">
+  <meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+  <canvas id="snow" aria-hidden="true"></canvas>
+
+  <main>
+    <div class="post" aria-hidden="true"></div>
+
+    <div class="header-wrap">
+      <div class="cap" aria-hidden="true"></div>
+      <header class="header">
+        <div class="badge" id="avatar" aria-hidden="true">TE</div>
+        <div>
+          <h1>Tom Ellery</h1>
+          <div class="elev">ELEV. 4,226 FT · SLC, UT</div>
+        </div>
+      </header>
+    </div>
+
+    <p class="bio-plate">SLC 📍 Build · Ride · Repeat</p>
+    <p class="conditions" data-snow-wrap hidden><b>TODAY</b><span data-snow></span></p>
+
+    <ul id="links"></ul>
+    <script src="../assets/links.js?v=1"></script>
+    <script>
+      // Links come from assets/links.js (edit them there)
+      TE.render("#links", (l) => {
+      // Difficulty marker for each link: [shape, label]
+      const level = { instagram: ["green", "Easiest"], facebook: ["green", "Easiest"], x: ["blue", "More difficult"],
+                      linkedin: ["blue", "More difficult"], venmo: ["black", "Most difficult"] }[l.id] || ["blue", "More difficult"];
+      return `<li><div class="cap" aria-hidden="true"></div><a class="board" href="${l.url}" target="_blank" rel="noopener">
+        <span class="diff ${level[0]}" aria-hidden="true"></span>
+        <span><span class="run">${l.name}</span><span class="meta"><span>${l.handle}</span><span class="level">${level[1]}</span></span></span></a></li>`;
+    });
+    </script>
+
+    <div class="bank"><p>STAY ON MARKED TRAILS</p></div>
+  </main>
+
+
+  <script>
+    // Light falling snow
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const c = document.getElementById("snow"), ctx = c.getContext("2d");
+    let W, H, flakes = [];
+    function resize() {
+      const dpr = devicePixelRatio || 1;
+      W = innerWidth; H = innerHeight; c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      flakes = Array.from({ length: Math.round(W / 10) }, () => flake(true));
+    }
+    function flake(any) { return { x: Math.random() * W, y: any ? Math.random() * H : -8, r: Math.random() * 1.8 + .5, vy: Math.random() * 28 + 18, p: Math.random() * 6, s: Math.random() * 14 + 4 }; }
+    let last = performance.now();
+    function tick(now) {
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      ctx.clearRect(0, 0, W, H); ctx.fillStyle = "rgba(255,255,255,.8)";
+      flakes.forEach((f, i) => {
+        f.y += f.vy * dt; f.p += dt;
+        ctx.beginPath(); ctx.arc(f.x + Math.sin(f.p) * f.s, f.y, f.r, 0, 7); ctx.fill();
+        if (f.y > H + 8) flakes[i] = flake(false);
+      });
+      requestAnimationFrame(tick);
+    }
+    addEventListener("resize", resize); resize();
+    if (!reduceMotion) requestAnimationFrame(tick);
+
+  </script>
+  <script src="../assets/snow.js?v=6"></script>
+  <script src="../assets/secrets.js?v=2"></script>
+</body>
+</html>

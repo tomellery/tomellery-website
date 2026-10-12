@@ -46,6 +46,51 @@
   }
 
   const reveal = el => el.closest("[data-snow-wrap]")?.removeAttribute("hidden");
+
+  // Let people swipe/drag the strip; when nobody is touching it, it drifts slowly and loops.
+  function drift(el) {
+    const SPEED = 23;      // pixels per second (about one mountain every 4.5 seconds)
+    const RESUME = 2500;   // wait this long after someone lets go before drifting again
+    let pos = 0, last = performance.now(), busyUntil = 0, dragging = false, dragX = 0, dragStart = 0;
+    const half = () => el.scrollWidth / 2;
+    const hold = () => { busyUntil = Infinity; };
+    const release = () => { busyUntil = performance.now() + RESUME; };
+
+    el.addEventListener("touchstart", hold, { passive: true });
+    el.addEventListener("touchend", release, { passive: true });
+    el.addEventListener("touchcancel", release, { passive: true });
+    el.addEventListener("wheel", () => { busyUntil = performance.now() + RESUME; }, { passive: true });
+    if (matchMedia("(hover: hover)").matches) { // computers: pause while the mouse is over it
+      el.addEventListener("mouseenter", hold);
+      el.addEventListener("mouseleave", () => { dragging = false; release(); });
+    }
+
+    // Mouse: click and drag sideways
+    el.addEventListener("pointerdown", e => {
+      if (e.pointerType !== "mouse") return;
+      dragging = true; dragX = e.clientX; dragStart = el.scrollLeft; el.classList.add("grabbing");
+    });
+    addEventListener("pointermove", e => { if (dragging) el.scrollLeft = dragStart - (e.clientX - dragX); });
+    addEventListener("pointerup", () => { if (dragging) { dragging = false; el.classList.remove("grabbing"); } });
+
+    // Keep looping when someone scrolls past either end
+    el.addEventListener("scroll", () => {
+      if (el.scrollLeft >= half()) el.scrollLeft -= half();
+      else if (el.scrollLeft <= 0 && busyUntil > performance.now()) el.scrollLeft += half();
+    }, { passive: true });
+
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    (function step(now) {
+      const dt = Math.min(.1, (now - last) / 1000); last = now;
+      if (now > busyUntil) {
+        if (Math.abs(el.scrollLeft - pos) > 2) pos = el.scrollLeft; // pick up where a swipe left off
+        pos += SPEED * dt;
+        if (pos >= half()) pos -= half();
+        el.scrollLeft = pos;
+      }
+      requestAnimationFrame(step);
+    })(last);
+  }
   const cell = (m, i) => `
     <div class="snow-cell${m.inches > 0 ? " fresh" : ""}">
       <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
@@ -67,11 +112,12 @@
         reveal(el);
       });
 
-      // Drifting row of stacked cells (doubled so the loop is seamless)
+      // Swipeable row of stacked cells that slowly drifts on its own (doubled so the loop is seamless)
       document.querySelectorAll("[data-snow-strip]").forEach(el => {
         const row = data.map(cell).join("");
-        el.innerHTML = `<div class="snow-track" style="--cells:${data.length}">${row}${row}</div>`;
+        el.innerHTML = `<div class="snow-track">${row}${row}</div>`;
         reveal(el);
+        drift(el);
       });
 
       // Board
