@@ -117,9 +117,12 @@
       mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
       -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
     }
-    .ticker div { display: inline-block; animation: ticker 40s linear infinite; }
-    .ticker span { padding-right: 2.2em; }
-    .ticker i { font-style: normal; color: var(--orange); padding-right: 2.2em; }
+    .ticker div { display: inline-block; animation: ticker 70s linear infinite; }
+    .ticker span { padding-right: 1.6em; }
+    .ticker b { color: var(--white); margin-right: .5em; }
+    .ticker em { font-style: normal; color: var(--orange); }
+    .ticker .label { color: var(--white); }
+    .ticker i { font-style: normal; color: var(--orange); padding-right: 1.6em; }
     @keyframes ticker { to { transform: translateX(-50%); } }
 
     /* Footer */
@@ -157,7 +160,8 @@
     </script>
   </div>
 
-  <div class="ticker" aria-hidden="true"><div id="ticker"></div></div>
+  <!-- Local mountains snow report (filled in by assets/snow.js) -->
+  <div class="ticker" data-snow-wrap hidden aria-label="Snow report for local mountains"><div data-snow-ticker></div></div>
 
   <div class="wrap" style="min-height: 0">
     <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
@@ -168,12 +172,8 @@
     //  The "NOW" status line. Change it any time.
     // ============================================================
     const NOW = "Building in SLC · Waiting on snow";
-    // Words that scroll along the ticker
-    const TICKER = ["SALT LAKE CITY", "BUILD", "RIDE", "REPEAT", "WASATCH RANGE", "BRIGHTON"];
 
     document.getElementById("now").textContent = NOW;
-    const once = TICKER.map(w => `<span>${w}</span><i>●</i>`).join("");
-    document.getElementById("ticker").innerHTML = once + once; // doubled so the loop is seamless
     document.getElementById("year").textContent = new Date().getFullYear();
 
     // Live Salt Lake City time
@@ -182,7 +182,7 @@
     const tick = () => { clock.textContent = fmt.format(new Date()); };
     tick(); setInterval(tick, 15000);
   </script>
-  <script src="assets/snow.js?v=2"></script>
+  <script src="assets/snow.js?v=3"></script>
   <script src="assets/secrets.js?v=2"></script>
   <script src="assets/swipe.js?v=6"></script>
 </body>
