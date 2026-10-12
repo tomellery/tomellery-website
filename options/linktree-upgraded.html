@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tom Ellery</title>
+  <meta name="description" content="Find Tom Ellery on Instagram, Facebook, X, LinkedIn and more.">
+  <style>
+    :root {
+      --bg: #f6f5f2;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --muted: #6b6b6b;
+      --border: #e4e2dd;
+      --hover: #1a1a1a;
+      --hover-text: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121212;
+        --card: #1c1c1c;
+        --text: #f2f2f2;
+        --muted: #9a9a9a;
+        --border: #2c2c2c;
+        --hover: #f2f2f2;
+        --hover-text: #121212;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 64px 16px;
+    }
+    main { width: 100%; max-width: 480px; text-align: center; }
+    .avatar {
+      width: 96px; height: 96px; border-radius: 50%;
+      background: var(--text); color: var(--bg);
+      display: grid; place-items: center;
+      font-size: 32px; font-weight: 600;
+      margin: 0 auto 16px;
+      object-fit: cover;
+    }
+    h1 { font-size: 24px; font-weight: 600; }
+    .bio { color: var(--muted); margin: 8px 0 32px; line-height: 1.5; }
+    ul { list-style: none; padding: 0; display: grid; gap: 12px; }
+    a.link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: inherit; text-decoration: none; font-weight: 500;
+      transition: background .15s, color .15s, transform .15s;
+    }
+    a.link:hover, a.link:focus-visible {
+      background: var(--hover); color: var(--hover-text);
+      transform: translateY(-2px);
+    }
+    a.link svg { width: 22px; height: 22px; flex-shrink: 0; fill: currentColor; }
+    a.link span { flex: 1; text-align: center; margin-right: 34px; }
+    footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+
+    /* ===== 1. Wasatch mountain silhouette ===== */
+    :root { --ridge-back: #dcdad4; --ridge-front: #cbc8c0; --snow: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      :root { --ridge-back: #1b1d20; --ridge-front: #24272b; --snow: #3a3e44; }
+    }
+    body { padding-bottom: 200px; position: relative; }
+    main { position: relative; z-index: 1; }
+    .mountains {
+      position: fixed; left: 0; right: 0; bottom: 0; height: 180px;
+      pointer-events: none; z-index: 0;
+    }
+    .mountains svg { width: 100%; height: 100%; display: block; }
+
+    /* ===== 2. Save contact button ===== */
+    .save-contact {
+      margin-top: 20px; width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 14px 20px; border-radius: 14px; cursor: pointer;
+      background: var(--text); color: var(--bg);
+      border: 1px solid var(--text); font: inherit; font-weight: 600;
+      transition: transform .15s, opacity .15s;
+    }
+    .save-contact:hover, .save-contact:focus-visible { transform: translateY(-2px); opacity: .9; }
+    .save-contact svg { width: 20px; height: 20px; fill: currentColor; }
+
+    /* ===== 3. Easter egg ===== */
+    .avatar { cursor: default; user-select: none; -webkit-tap-highlight-color: transparent; transition: transform .1s; }
+    .avatar.tap { transform: scale(.92); }
+    .egg {
+      position: fixed; inset: 0; z-index: 10; display: none; place-items: center;
+      background: #0b0f0b; color: #39ff7a; text-shadow: 0 0 8px #39ff7a;
+      font-family: "Cascadia Code", Consolas, "Courier New", monospace; font-size: 18px; text-align: center; padding: 16px;
+    }
+    .egg.on { display: grid; }
+  </style>
+</head>
+<body>
+  <main>
+    <!-- To use a photo instead of initials: put photo.jpg in this folder and swap the div for:
+         <img class="avatar" src="photo.jpg" alt="Tom Ellery"> -->
+    <div class="avatar" id="avatar" aria-hidden="true">TE</div>
+    <h1>Tom Ellery</h1>
+    <p class="bio">SLC 📍 Build · Ride · Repeat</p>
+
+    <ul>
+      <li>
+        <a class="link" href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1.1.4 2.2.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1.1.4-2.2.4-1.3.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1.1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1.1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.1 0-3.5 0-4.7.1-1.1.1-1.7.2-2.1.4-.5.2-.9.4-1.3.8-.4.4-.6.8-.8 1.3-.2.4-.3 1-.4 2.1C2.6 9.9 2.6 10.3 2.6 12s0 2.1.1 3.3c.1 1.1.2 1.7.4 2.1.2.5.4.9.8 1.3.4.4.8.6 1.3.8.4.2 1 .3 2.1.4 1.2.1 1.6.1 4.7.1s3.5 0 4.7-.1c1.1-.1 1.7-.2 2.1-.4.5-.2.9-.4 1.3-.8.4-.4.6-.8.8-1.3.2-.4.3-1 .4-2.1.1-1.2.1-1.6.1-4.7s0-3.5-.1-4.7c-.1-1.1-.2-1.7-.4-2.1-.2-.5-.4-.9-.8-1.3-.4-.4-.8-.6-1.3-.8-.4-.2-1-.3-2.1-.4C15.5 4 15.1 4 12 4zm0 3.1a4.9 4.9 0 1 1 0 9.8 4.9 4.9 0 0 1 0-9.8zm0 8.1a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zm6.2-8.3a1.1 1.1 0 1 1-2.3 0 1.1 1.1 0 0 1 2.3 0z"/></svg>
+          <span>Instagram</span>
+        </a>
+      </li>
+      <li>
+        <a class="link" href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
+          <span>Facebook</span>
+        </a>
+      </li>
+      <li>
+        <a class="link" href="https://x.com/tomaellery" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 1.2h3.7l-8 9.2L24 22.8h-7.4l-5.8-7.6-6.6 7.6H.5l8.6-9.8L0 1.2h7.6l5.2 6.9 6.1-6.9zm-1.3 19.4h2L6.5 3.3H4.3l13.3 17.3z"/></svg>
+          <span>X</span>
+        </a>
+      </li>
+      <li>
+        <a class="link" href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>
+          <span>LinkedIn</span>
+        </a>
+      </li>
+      <li>
+        <a class="link" href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 1.5c.8 1.3 1.1 2.6 1.1 4.3 0 5.4-4.6 12.3-8.3 17.2H4.7L1.5 3.3l7.4-.7 1.8 14.3c1.7-2.7 3.7-7 3.7-10 0-1.6-.3-2.7-.7-3.6l6.7-1.8z"/></svg>
+          <span>Venmo</span>
+        </a>
+      </li>
+      <!-- Add more: copy one <li>…</li> block above and change the URL + name -->
+    </ul>
+
+    <!-- 2. Save contact: downloads a contact card that opens in the phone's Contacts app -->
+    <button class="save-contact" id="saveContact" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-8 1.7-8 5v1h11.1a6 6 0 0 1-.1-1c0-1.8.8-3.4 2-4.5-1.6-.4-3.4-.5-5-.5zm7 0v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2z"/></svg>
+      Save my contact
+    </button>
+
+    <footer>© <span id="year"></span> Tom Ellery</footer>
+  </main>
+
+  <!-- 1. Wasatch skyline: two layered ridges with snowy peaks -->
+  <div class="mountains" aria-hidden="true">
+    <svg viewBox="0 0 1440 180" preserveAspectRatio="xMidYMax slice">
+      <path fill="var(--ridge-back)" d="M0 180 L0 120 L90 80 L170 105 L260 45 L330 90 L410 60 L500 100 L590 30 L660 75 L740 55 L830 95 L920 40 L1000 85 L1080 50 L1170 92 L1260 35 L1340 80 L1440 60 L1440 180 Z"/>
+      <path fill="var(--snow)" d="M260 45 L240 57 L252 60 L266 52 L280 62 Z M590 30 L568 44 L582 46 L596 38 L612 48 Z M920 40 L900 52 L914 55 L926 47 L940 56 Z M1260 35 L1240 48 L1254 50 L1268 42 L1282 52 Z"/>
+      <path fill="var(--ridge-front)" d="M0 180 L0 150 L120 115 L220 140 L330 100 L430 135 L540 95 L650 130 L760 105 L870 140 L980 110 L1090 138 L1200 102 L1320 132 L1440 112 L1440 180 Z"/>
+    </svg>
+  </div>
+
+  <!-- 3. Easter egg overlay -->
+  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // ===== 2. Save contact =====
+    // Fill these in to include them on the card (leave "" to skip).
+    const CONTACT = {
+      name: "Tom Ellery",
+      first: "Tom",
+      last: "Ellery",
+      phone: "",
+      email: "",
+      note: "SLC 📍 Build · Ride · Repeat",
+      website: "https://tomellery.com",
+      socials: {
+        Instagram: "https://www.instagram.com/tom.a.ellery",
+        Facebook: "https://www.facebook.com/tom.a.ellery",
+        X: "https://x.com/tomaellery",
+        LinkedIn: "https://www.linkedin.com/in/thomas-ellery",
+      },
+    };
+    document.getElementById("saveContact").addEventListener("click", () => {
+      const c = CONTACT;
+      const lines = [
+        "BEGIN:VCARD", "VERSION:3.0",
+        `N:${c.last};${c.first};;;`, `FN:${c.name}`,
+        c.phone && `TEL;TYPE=CELL:${c.phone}`,
+        c.email && `EMAIL;TYPE=INTERNET:${c.email}`,
+        `URL:${c.website}`,
+        ...Object.entries(c.socials).map(([k, v]) => `X-SOCIALPROFILE;TYPE=${k.toLowerCase()}:${v}`),
+        `NOTE:${c.note}`,
+        "END:VCARD",
+      ].filter(Boolean);
+      const blob = new Blob([lines.join("\r\n")], { type: "text/vcard" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "Tom-Ellery.vcf";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+
+    // ===== 3. Easter egg: tap the TE 5 times quickly, or type "play" =====
+    const GAMES = ["7-terminal-runner.html", "8-terminal-flapper.html"];
+    const gameBase = location.pathname.includes("/options/") ? "" : "options/";
+    let taps = 0, tapTimer;
+    function launchEgg() {
+      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
+      egg.classList.add("on");
+      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
+      let i = 0;
+      text.style.whiteSpace = "pre";
+      (function type() {
+        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
+        else setTimeout(() => { location.href = gameBase + GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
+      })();
+    }
+    const avatar = document.getElementById("avatar");
+    avatar.addEventListener("click", () => {
+      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
+      taps++; clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => taps = 0, 1500);
+      if (taps >= 5) { taps = 0; launchEgg(); }
+    });
+    let typed = "";
+    addEventListener("keydown", e => {
+      typed = (typed + e.key.toLowerCase()).slice(-4);
+      if (typed === "play") launchEgg();
+    });
+  </script>
+</body>
+</html>
