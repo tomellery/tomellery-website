@@ -64,13 +64,24 @@
     a.link svg { width: 22px; height: 22px; flex-shrink: 0; fill: currentColor; }
     a.link span { flex: 1; text-align: center; margin-right: 34px; }
     footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+
+    /* Easter egg: tap the TE 5 times, or type "play" */
+    .avatar { cursor: default; user-select: none; -webkit-tap-highlight-color: transparent; transition: transform .1s; }
+    .avatar.tap { transform: scale(.92); }
+    .egg {
+      position: fixed; inset: 0; z-index: 10; display: none; place-items: center;
+      background: #0b0f0b; color: #39ff7a; text-shadow: 0 0 8px #39ff7a;
+      font-family: "Cascadia Code", Consolas, "Courier New", monospace; font-size: 18px;
+      text-align: center; white-space: pre; padding: 16px;
+    }
+    .egg.on { display: grid; }
   </style>
 </head>
 <body>
   <main>
     <!-- To use a photo instead of initials: put photo.jpg in this folder and swap the div for:
          <img class="avatar" src="photo.jpg" alt="Tom Ellery"> -->
-    <div class="avatar" aria-hidden="true">TE</div>
+    <div class="avatar" id="avatar" aria-hidden="true">TE</div>
     <h1>Tom Ellery</h1>
     <p class="bio">SLC 📍 Build · Ride · Repeat</p>
 
@@ -110,6 +121,38 @@
 
     <footer>© <span id="year"></span> Tom Ellery</footer>
   </main>
-  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+
+  <div class="egg" id="egg" role="status"><div id="eggText"></div></div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Easter egg: tap the TE 5 times quickly, or type "play", to launch a random game
+    const GAMES = ["options/7-terminal-runner.html", "options/8-terminal-flapper.html"];
+    function launchEgg() {
+      const egg = document.getElementById("egg"), text = document.getElementById("eggText");
+      if (egg.classList.contains("on")) return;
+      egg.classList.add("on");
+      const msg = "> secret found.\n> ACCESS GRANTED\n> loading game...";
+      let i = 0;
+      (function type() {
+        if (i < msg.length) { text.textContent += msg[i++]; setTimeout(type, 35); }
+        else setTimeout(() => { location.href = GAMES[Math.floor(Math.random() * GAMES.length)]; }, 600);
+      })();
+    }
+    const avatar = document.getElementById("avatar");
+    let taps = 0, tapTimer;
+    avatar.addEventListener("click", () => {
+      avatar.classList.add("tap"); setTimeout(() => avatar.classList.remove("tap"), 100);
+      taps++; clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => taps = 0, 1500);
+      if (taps >= 5) { taps = 0; launchEgg(); }
+    });
+    let typed = "";
+    addEventListener("keydown", e => {
+      typed = (typed + e.key.toLowerCase()).slice(-4);
+      if (typed === "play") launchEgg();
+    });
+  </script>
 </body>
 </html>
