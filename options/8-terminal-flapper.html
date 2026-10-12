@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tom Ellery</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #0b0f0b; color: #39ff7a; font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+    min-height: 100vh; padding: 32px 16px; font-size: 15px; line-height: 1.7; text-shadow: 0 0 6px #39ff7a66; }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  .dim { color: #1f8a44; }
+  #game { display: block; width: 100%; height: 360px; margin-top: 18px; border: 1px solid #1f8a44; border-radius: 4px;
+    touch-action: none; cursor: pointer; opacity: 0; transition: opacity .6s; }
+  #game.on { opacity: 1; }
+  .help { font-size: 13px; margin-top: 6px; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 24px; padding-top: 14px; border-top: 1px dashed #1f8a44; }
+  .links a { color: #b6ffcf; }
+</style></head>
+<body>
+  <div class="wrap">
+    <div id="out"></div>
+    <canvas id="game" aria-label="Flapping game. Press space or tap to flap."></canvas>
+    <div class="help dim">SPACE / ↑ / click / tap = flap</div>
+    <nav class="links" aria-label="Find me elsewhere">
+      <span class="dim">find me:</span>
+      <a href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">instagram</a>
+      <a href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">facebook</a>
+      <a href="https://x.com/tomaellery" target="_blank" rel="noopener">x</a>
+      <a href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">linkedin</a>
+      <a href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">venmo</a>
+    </nav>
+  </div>
+<script>
+  // ---- Intro: typed terminal lines ----
+  const lines = [
+    "$ ./build-website --awesome",
+    "> uploading pixels......... 64%",
+    "> packet lost. sending a carrier bug to fetch it",
+    "STATUS: under construction 🚧",
+    "Help the bug through the firewall:",
+  ];
+  const out = document.getElementById("out");
+  let li = 0, ci = 0, cur;
+  (function type() {
+    if (li >= lines.length) { canvas.classList.add("on"); return; }
+    if (ci === 0) { cur = document.createElement("div"); out.appendChild(cur); }
+    if (ci < lines[li].length) { cur.textContent += lines[li][ci++]; setTimeout(type, 26); }
+    else { li++; ci = 0; setTimeout(type, 280); }
+  })();
+
+  // ---- Game ----
+  const GREEN = "#39ff7a", DIM = "#1f8a44", BG = "#0b0f0b";
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 360;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    W = canvas.clientWidth; H = canvas.clientHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  addEventListener("resize", resize);
+  resize();
+
+  let hi = 0;
+  try { hi = parseInt(localStorage.getItem("flapperHi"), 10) || 0; } catch (e) {}
+
+  const GAP = 120, PIPE_W = 44, SPACING = 230, SPEED = 160, R = 10;
+  const bug = { x: 0, y: 0, vy: 0, flapT: 0 };
+  let state = "ready", pipes, score, last, stars;
+
+  function reset() {
+    bug.x = Math.max(60, W * 0.25); bug.y = H / 2; bug.vy = 0;
+    pipes = []; score = 0;
+    stars = Array.from({ length: 30 }, () => ({ x: Math.random() * W, y: Math.random() * H, c: Math.random() < 0.5 ? "0" : "1" }));
+  }
+  reset();
+
+  function flap() {
+    if (state === "ready") { state = "running"; last = performance.now(); }
+    else if (state === "over") { reset(); state = "ready"; return; }
+    bug.vy = -380; bug.flapT = 0.15;
+  }
+
+  function addPipe() {
+    const margin = 40;
+    const top = margin + Math.random() * (H - GAP - margin * 2);
+    pipes.push({ x: W + 10, top, passed: false });
+  }
+
+  function crash() {
+    state = "over";
+    if (score > hi) { hi = score; try { localStorage.setItem("flapperHi", hi); } catch (e) {} }
+  }
+
+  function update(dt) {
+    bug.vy += 1250 * dt;
+    bug.y += bug.vy * dt;
+    bug.flapT = Math.max(0, bug.flapT - dt);
+
+    const move = SPEED * dt;
+    pipes.forEach(p => p.x -= move);
+    pipes = pipes.filter(p => p.x + PIPE_W > -10);
+    stars.forEach(s => { s.x -= move * 0.3; if (s.x < 0) s.x += W; });
+    if (!pipes.length || W - pipes[pipes.length - 1].x > SPACING) addPipe();
+
+    if (bug.y - R < 0 || bug.y + R > H) return crash();
+    for (const p of pipes) {
+      const inX = bug.x + R > p.x && bug.x - R < p.x + PIPE_W;
+      const inGap = bug.y - R > p.top && bug.y + R < p.top + GAP;
+      if (inX && !inGap) return crash();
+      if (!p.passed && p.x + PIPE_W < bug.x) { p.passed = true; score++; }
+    }
+  }
+
+  function drawPipe(x, y0, y1, capAtBottom) {
+    ctx.font = "bold 14px monospace";
+    for (let y = y0 + 13; y <= y1; y += 14) ctx.fillText("|####|", x, y);
+    const capY = capAtBottom ? y1 : y0 + 13;
+    ctx.fillText("[====]", x - 3, capY);
+  }
+
+  function draw() {
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+
+    // drifting binary background
+    ctx.fillStyle = "#123d22"; ctx.font = "12px monospace";
+    stars.forEach(s => ctx.fillText(s.c, s.x, s.y));
+
+    ctx.shadowColor = GREEN; ctx.shadowBlur = 6; ctx.fillStyle = GREEN;
+    pipes.forEach(p => {
+      drawPipe(p.x, 0, p.top, true);
+      drawPipe(p.x, p.top + GAP, H + 14, false);
+    });
+
+    // the bug: wings up right after a flap, out while gliding
+    ctx.font = "bold 20px monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const tilt = Math.max(-0.5, Math.min(0.9, bug.vy / 600));
+    ctx.save(); ctx.translate(bug.x, bug.y); ctx.rotate(tilt);
+    ctx.fillText(bug.flapT > 0 ? "\\o/" : "-o-", 0, 0);
+    ctx.restore();
+
+    ctx.shadowBlur = 0; ctx.textBaseline = "alphabetic";
+    ctx.font = "bold 28px monospace"; ctx.fillText(String(score), W / 2, 44);
+    ctx.font = "12px monospace"; ctx.fillStyle = DIM; ctx.fillText("HI " + hi, W / 2, 62);
+
+    ctx.fillStyle = GREEN; ctx.font = "14px monospace";
+    if (state === "ready") ctx.fillText("press SPACE or tap to flap", W / 2, H / 2 + 50);
+    if (state === "over") {
+      ctx.fillStyle = "#0b0f0bee"; ctx.fillRect(W / 2 - 150, H / 2 - 34, 300, 60);
+      ctx.strokeStyle = DIM; ctx.strokeRect(W / 2 - 150, H / 2 - 34, 300, 60);
+      ctx.fillStyle = GREEN;
+      ctx.fillText("ERROR: packet dropped 💥", W / 2, H / 2 - 10);
+      ctx.fillStyle = DIM; ctx.fillText("press SPACE or tap to retry", W / 2, H / 2 + 12);
+    }
+    ctx.textAlign = "left";
+  }
+
+  function loop(now) {
+    if (state === "running") {
+      const dt = Math.min(0.04, (now - last) / 1000);
+      last = now;
+      update(dt);
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ---- Controls ----
+  addEventListener("keydown", e => {
+    if (e.code === "Space" || e.code === "ArrowUp") { e.preventDefault(); if (!e.repeat) flap(); }
+  });
+  canvas.addEventListener("pointerdown", e => { e.preventDefault(); flap(); });
+</script>
+</body></html>
