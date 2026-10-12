@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tom Ellery</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #111; color: #fff;
+    min-height: 100vh; display: grid; place-items: center; overflow: hidden; text-align: center; padding: 16px; }
+  .tape { position: fixed; left: -10%; width: 120%; height: 56px; display: flex; align-items: center; overflow: hidden;
+    background: repeating-linear-gradient(45deg, #ffcc00 0 28px, #111 28px 56px); box-shadow: 0 4px 20px #0008; }
+  .tape span { white-space: nowrap; font-weight: 900; letter-spacing: .15em; color: #111; background: #ffcc00;
+    padding: 4px 14px; animation: scroll 14s linear infinite; }
+  .t1 { top: 14%; transform: rotate(-6deg); }
+  .t2 { bottom: 14%; transform: rotate(5deg); }
+  .t2 span { animation-direction: reverse; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .cone { font-size: 84px; display: inline-block; animation: bob 1.6s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-14px) rotate(-6deg); } }
+  h1 { font-size: clamp(28px, 6vw, 48px); font-weight: 900; margin-top: 12px; text-transform: uppercase; }
+  p { color: #bbb; margin-top: 10px; }
+</style></head>
+<body>
+  <div class="tape t1"><span>🚧 UNDER CONSTRUCTION 🚧 UNDER CONSTRUCTION 🚧 UNDER CONSTRUCTION 🚧 UNDER CONSTRUCTION 🚧 UNDER CONSTRUCTION 🚧 UNDER CONSTRUCTION 🚧 UNDER CONSTRUCTION 🚧 UNDER CONSTRUCTION</span></div>
+  <main>
+    <div class="cone">🚧</div>
+    <h1>Hard hats required</h1>
+    <p>tomellery.com is getting an upgrade. Back soon.</p>
+  </main>
+  <div class="tape t2"><span>⚠️ KEEP OUT ⚠️ WORK ZONE ⚠️ KEEP OUT ⚠️ WORK ZONE ⚠️ KEEP OUT ⚠️ WORK ZONE ⚠️ KEEP OUT ⚠️ WORK ZONE ⚠️ KEEP OUT ⚠️ WORK ZONE ⚠️ KEEP OUT ⚠️ WORK ZONE</span></div>
+</body></html>

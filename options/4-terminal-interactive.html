@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tom Ellery</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #0b0f0b; color: #39ff7a; font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+    min-height: 100vh; padding: 32px 16px; font-size: 15px; line-height: 1.7; text-shadow: 0 0 6px #39ff7a66; }
+  .term { max-width: 680px; margin: 0 auto; }
+  a { color: #b6ffcf; }
+  .dim { color: #1f8a44; }
+  .row { display: flex; gap: 8px; }
+  input { flex: 1; background: none; border: none; outline: none; color: inherit; font: inherit; text-shadow: inherit; caret-color: #39ff7a; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+  .chips button { background: none; border: 1px solid #1f8a44; color: #39ff7a; font: inherit; font-size: 13px; padding: 2px 10px; border-radius: 4px; cursor: pointer; }
+  .chips button:hover { background: #39ff7a; color: #0b0f0b; }
+</style></head>
+<body>
+  <div class="term" id="term">
+    <div id="out"></div>
+    <div class="chips" id="chips"></div>
+    <div class="row"><span>guest@tomellery:~$</span><input id="in" autofocus autocomplete="off" spellcheck="false" aria-label="Type a command"></div>
+  </div>
+<script>
+  const links = {
+    instagram: "https://www.instagram.com/tom.a.ellery",
+    facebook: "https://www.facebook.com/tom.a.ellery",
+    x: "https://x.com/tomaellery",
+    linkedin: "https://www.linkedin.com/in/thomas-ellery",
+    venmo: "https://venmo.com/u/tomellery",
+  };
+  const out = document.getElementById("out");
+  const input = document.getElementById("in");
+  function print(html, cls) { const d = document.createElement("div"); if (cls) d.className = cls; d.innerHTML = html; out.appendChild(d); window.scrollTo(0, document.body.scrollHeight); }
+  const commands = {
+    help: () => print("Commands: <b>links</b>, <b>whoami</b>, <b>status</b>, <b>coffee</b>, <b>clear</b>, or type a site name like <b>instagram</b>"),
+    links: () => Object.entries(links).forEach(([k, v]) => print(`  ${k.padEnd(10, " ").replace(/ /g, "&nbsp;")} → <a href="${v}" target="_blank" rel="noopener">${v.replace("https://", "")}</a>`)),
+    whoami: () => print("Tom Ellery. Website currently under construction. Human currently caffeinated."),
+    status: () => print("[██████████████░░░░░░] 72% — building something cool 🚧"),
+    coffee: () => print("☕ Brewing... done. Productivity +10."),
+    clear: () => { out.innerHTML = ""; },
+    sudo: () => print("Nice try. 😏", "dim"),
+  };
+  function run(cmd) {
+    cmd = cmd.trim().toLowerCase();
+    print(`<span class="dim">guest@tomellery:~$</span> ${cmd.replace(/</g, "&lt;")}`);
+    if (!cmd) return;
+    if (commands[cmd]) return commands[cmd]();
+    if (cmd.startsWith("sudo")) return commands.sudo();
+    if (links[cmd]) { print(`Opening ${cmd}...`); window.open(links[cmd], "_blank", "noopener"); return; }
+    print(`command not found: ${cmd.replace(/</g, "&lt;")}. Try <b>help</b>.`);
+  }
+  input.addEventListener("keydown", e => { if (e.key === "Enter") { run(input.value); input.value = ""; } });
+  document.getElementById("term").addEventListener("click", () => input.focus());
+  const chips = document.getElementById("chips");
+  ["help", "links", "whoami", "status"].forEach(c => { const b = document.createElement("button"); b.textContent = c; b.onclick = () => run(c); chips.appendChild(b); });
+  print("tomellery.com v0.1 — 🚧 under construction 🚧");
+  print("Type <b>help</b> or tap a command below. Try <b>links</b> to find me elsewhere.", "dim");
+</script>
+</body></html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tom Ellery</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #050805; color: #39ff7a; font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+    min-height: 100vh; padding: 32px 16px; font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+  .screen { max-width: 640px; margin: 0 auto; text-shadow: 0 0 4px #39ff7a, 0 0 12px #39ff7a55; animation: flicker 4s infinite; }
+  body::after { content: ""; position: fixed; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, #0000 0 2px, #0006 2px 4px), radial-gradient(ellipse at center, #0000 60%, #000c 100%); }
+  @keyframes flicker { 0%, 100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: .85; } 94% { opacity: 1; } }
+  pre { white-space: pre-wrap; font: inherit; }
+  .menu { margin-top: 16px; display: none; }
+  .menu a { display: block; color: #39ff7a; text-decoration: none; padding: 2px 6px; }
+  .menu a:hover, .menu a:focus { background: #39ff7a; color: #050805; text-shadow: none; outline: none; }
+  .cursor { display: inline-block; width: 10px; height: 18px; background: #39ff7a; vertical-align: -3px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+</style></head>
+<body>
+  <div class="screen">
+    <pre id="boot"></pre>
+    <nav class="menu" id="menu" aria-label="Links">
+      <a href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">[1] INSTAGRAM</a>
+      <a href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">[2] FACEBOOK</a>
+      <a href="https://x.com/tomaellery" target="_blank" rel="noopener">[3] X</a>
+      <a href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">[4] LINKEDIN</a>
+      <a href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">[5] VENMO</a>
+      <p style="margin-top:12px">SELECT 1-5 OR CLICK <span class="cursor"></span></p>
+    </nav>
+  </div>
+<script>
+  const text = [
+    "ELLERY-OS BIOS v1.986",
+    "(C) TOMELLERY.COM INDUSTRIES",
+    "",
+    "MEMORY TEST ........ 640K OK",
+    "DETECTING VIBES .... OK",
+    "LOADING WEBSITE .... ERROR",
+    "",
+    "*** WEBSITE UNDER CONSTRUCTION ***",
+    "PLEASE STAND BY.",
+    "",
+    "MAIN MENU:",
+  ].join("\n");
+  const boot = document.getElementById("boot"), menu = document.getElementById("menu");
+  let i = 0;
+  (function type() {
+    if (i < text.length) { boot.textContent += text[i++]; setTimeout(type, text[i - 1] === "\n" ? 180 : 22); }
+    else menu.style.display = "block";
+  })();
+  const items = menu.querySelectorAll("a");
+  addEventListener("keydown", e => { const n = parseInt(e.key, 10); if (n >= 1 && n <= items.length && menu.style.display === "block") items[n - 1].click(); });
+</script>
+</body></html>

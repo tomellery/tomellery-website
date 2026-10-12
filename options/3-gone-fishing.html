@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tom Ellery</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; min-height: 100vh; overflow: hidden;
+    background: linear-gradient(#7fd3ff 0%, #bdeaff 55%, #1e88c9 55%, #0b5d91 100%); color: #08324f;
+    display: grid; place-items: center; text-align: center; padding: 16px; }
+  .sun { position: fixed; top: 8%; right: 10%; font-size: 64px; animation: spin 20s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .cloud { position: fixed; font-size: 48px; animation: drift linear infinite; }
+  .c1 { top: 12%; animation-duration: 40s; }
+  .c2 { top: 26%; animation-duration: 60s; animation-delay: -30s; font-size: 36px; }
+  @keyframes drift { from { left: -15%; } to { left: 110%; } }
+  .boat { position: fixed; top: calc(55% - 52px); font-size: 60px; animation: sail 18s ease-in-out infinite alternate; }
+  @keyframes sail { from { left: 8%; transform: rotate(-4deg); } to { left: 78%; transform: rotate(4deg); } }
+  .fish { position: fixed; font-size: 30px; animation: swim linear infinite; }
+  .f1 { top: 70%; animation-duration: 12s; }
+  .f2 { top: 82%; animation-duration: 17s; animation-delay: -6s; }
+  @keyframes swim { from { right: -10%; } to { right: 110%; } }
+  .card { position: relative; background: #ffffffd9; padding: 24px 28px; border-radius: 18px; box-shadow: 0 10px 30px #0003; max-width: 420px; }
+  h1 { font-size: 30px; font-weight: 800; }
+  p { margin-top: 8px; color: #2a5878; }
+  .links { display: flex; justify-content: center; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+  .links a { color: #08324f; font-weight: 600; text-decoration: none; border-bottom: 2px solid #1e88c9; }
+</style></head>
+<body>
+  <div class="sun">☀️</div><div class="cloud c1">☁️</div><div class="cloud c2">☁️</div>
+  <div class="boat">🚣</div><div class="fish f1">🐟</div><div class="fish f2">🐠</div>
+  <main class="card">
+    <h1>Gone fishin' 🎣</h1>
+    <p>The website's getting a makeover. Back soon. In the meantime, find me here:</p>
+    <div class="links">
+      <a href="https://www.instagram.com/tom.a.ellery" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://www.facebook.com/tom.a.ellery" target="_blank" rel="noopener">Facebook</a>
+      <a href="https://x.com/tomaellery" target="_blank" rel="noopener">X</a>
+      <a href="https://www.linkedin.com/in/thomas-ellery" target="_blank" rel="noopener">LinkedIn</a>
+    </div>
+  </main>
+</body></html>

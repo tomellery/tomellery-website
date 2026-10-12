@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tom Ellery</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #0b0f0b; color: #39ff7a; font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+    min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .term { width: 100%; max-width: 560px; font-size: 15px; line-height: 1.7; text-shadow: 0 0 6px #39ff7a88; }
+  .cursor { display: inline-block; width: 9px; height: 18px; background: #39ff7a; vertical-align: -3px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+</style></head>
+<body>
+  <div class="term"><div id="out"></div><span class="cursor"></span></div>
+<script>
+  const lines = [
+    "$ ssh tom@tomellery.com",
+    "> connected.",
+    "$ ./build-website --awesome",
+    "> mixing pixels............ ok",
+    "> polishing buttons........ ok",
+    "> adding vibes............. 87%",
+    "> brewing coffee........... please hold",
+    "",
+    "STATUS: under construction 🚧",
+    "ETA: soon™",
+  ];
+  const out = document.getElementById("out");
+  let i = 0, j = 0, cur;
+  function tick() {
+    if (i >= lines.length) return;
+    if (j === 0) {
+      cur = document.createElement("div");
+      out.appendChild(cur);
+      if (!lines[i]) cur.innerHTML = "&nbsp;";
+    }
+    if (j < lines[i].length) { cur.textContent += lines[i][j++]; setTimeout(tick, 35); }
+    else { i++; j = 0; setTimeout(tick, 380); }
+  }
+  tick();
+</script>
+</body></html>
