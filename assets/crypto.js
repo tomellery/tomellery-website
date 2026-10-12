@@ -4,9 +4,10 @@
 // Swipe or drag it to scroll; let go and it drifts again. Hover (computers) pauses it.
 (function () {
   // To add a coin: [ticker symbol, CoinGecko id]. "TOTAL" = total crypto market cap (from CoinGecko's global stats).
+  // The first few are what people see when they reach the band, so the favorites go first.
   const COINS = [
-    ["BTC", "bitcoin"], ["ETH", "ethereum"], ["SOL", "solana"], ["SUI", "sui"],
-    ["LTC", "litecoin"], ["DOGE", "dogecoin"], ["WIF", "dogwifcoin"], ["LINK", "chainlink"], ["TOTAL", "total"],
+    ["LINK", "chainlink"], ["TOTAL", "total"], ["BTC", "bitcoin"], ["ETH", "ethereum"],
+    ["SOL", "solana"], ["SUI", "sui"], ["LTC", "litecoin"], ["DOGE", "dogecoin"], ["WIF", "dogwifcoin"], ["BONK", "bonk"],
   ];
   const ids = COINS.map(c => c[1]).filter(id => id !== "total").join(",");
   const marketsUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
@@ -16,10 +17,19 @@
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g fill="#ff5a1f" stroke="#0d0d0d" stroke-width=".8">
       <ellipse cx="8" cy="11.5" rx="6" ry="2.5"/><ellipse cx="8" cy="8" rx="6" ry="2.5"/><ellipse cx="8" cy="4.5" rx="6" ry="2.5"/></g></svg>`);
 
+  // Tiny prices (like BONK) use the crypto-chart style $0.0₅347 = $0.00000347 (the small 5 = five zeros)
+  const SUB = "₀₁₂₃₄₅₆₇₈₉";
+  function tiny(n) {
+    const zeros = Math.ceil(-Math.log10(n)) - 1;               // zeros right after the decimal point
+    const digits = Math.round(n * Math.pow(10, zeros + 3));    // the next 3 significant digits
+    return "0.0" + String(zeros).split("").map(d => SUB[d]).join("") + digits;
+  }
   const price = n => "$" + (n >= 1e12 ? (n / 1e12).toFixed(2) + "T"
     : n >= 1e9 ? (n / 1e9).toFixed(1) + "B"
     : n >= 1000 ? Math.round(n).toLocaleString("en-US")
-    : n >= 1 ? n.toFixed(2) : n.toFixed(4));
+    : n >= 1 ? n.toFixed(2)
+    : n >= 0.0001 ? n.toFixed(4)
+    : tiny(n));
 
   function render(el, d) {
     const items = COINS.filter(([, id]) => d[id]).map(([sym, id]) => {
@@ -62,6 +72,12 @@
     }, { passive: true });
 
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Hold still at the start until the band is actually on screen, so people see the first coins
+    let seen = false;
+    new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting) && !seen) { seen = true; busyUntil = performance.now() + 2500; }
+    }, { threshold: .6 }).observe(el);
+    busyUntil = Infinity;
     (function step(now) {
       const dt = Math.min(.1, (now - last) / 1000); last = now;
       if (now > busyUntil) {
