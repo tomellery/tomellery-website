@@ -114,9 +114,16 @@
     .snow-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--line);
       font-size: 10px; font-weight: 700; letter-spacing: .22em; color: var(--dim); }
     .snow-head b { color: var(--white); }
-    .snow-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
-    .snow-cell { padding: 12px 4px 11px; text-align: center; border-bottom: 1px solid var(--line); }
-    .snow-cell:not(:nth-child(3n)) { border-right: 1px solid var(--line); }
+    /* A slowly drifting row of stacked cells; touch or hover to pause */
+    .snow-strip {
+      overflow: hidden; border-bottom: 1px solid var(--line);
+      mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    }
+    .snow-track { display: flex; width: max-content; animation: drift calc(var(--cells) * 4.5s) linear infinite; }
+    .snow-strip:hover .snow-track, .snow-strip:active .snow-track { animation-play-state: paused; }
+    @keyframes drift { to { transform: translateX(-50%); } }
+    .snow-cell { flex: 0 0 104px; padding: 12px 4px 11px; text-align: center; border-right: 1px solid var(--line); }
     .snow-cell small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .14em; color: var(--dim); white-space: nowrap; }
     .snow-cell b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; color: var(--white); }
     .snow-cell span { display: block; font-size: 10px; letter-spacing: .08em; color: var(--dim); }
@@ -159,8 +166,8 @@
 
     <!-- Local mountains snow report (filled in by assets/snow.js) -->
     <section class="snow-board" data-snow-wrap hidden aria-label="Snow report for local mountains">
-      <div class="snow-head"><span><b>❄ SNOW REPORT</b> · LAST 24 HRS</span><span>NEW · TEMP</span></div>
-      <div class="snow-grid" data-snow-grid></div>
+      <div class="snow-head"><span><b>❄ SNOW REPORT</b> · LAST 24 HRS</span><span>HOLD TO PAUSE</span></div>
+      <div class="snow-strip" data-snow-strip></div>
     </section>
 
     <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
@@ -181,7 +188,7 @@
     const tick = () => { clock.textContent = fmt.format(new Date()); };
     tick(); setInterval(tick, 15000);
   </script>
-  <script src="assets/snow.js?v=4"></script>
+  <script src="assets/snow.js?v=5"></script>
   <script src="assets/secrets.js?v=2"></script>
   <script src="assets/swipe.js?v=6"></script>
 </body>
