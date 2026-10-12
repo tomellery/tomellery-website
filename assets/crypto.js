@@ -1,16 +1,19 @@
 // Crypto ticker ribbon, like a stock ticker. Fills any element with data-crypto-ticker.
-// Prices from CoinGecko (free, no key), refreshed every minute. If it can't be reached, the ribbon stays hidden.
+// Prices from CoinGecko (free, no key), refreshed every 2 minutes. If it can't be reached, the ribbon stays hidden.
 // Swipe or drag it to scroll; let go and it drifts again. Hover (computers) pauses it.
 (function () {
-  // To add a coin: [ticker symbol, CoinGecko id]
+  // To add a coin: [ticker symbol, CoinGecko id]. "TOTAL" = total crypto market cap (from CoinGecko's global stats).
   const COINS = [
-    ["BTC", "bitcoin"], ["ETH", "ethereum"], ["SOL", "solana"], ["XRP", "ripple"], ["BNB", "binancecoin"],
-    ["DOGE", "dogecoin"], ["ADA", "cardano"], ["AVAX", "avalanche-2"], ["LINK", "chainlink"], ["LTC", "litecoin"],
+    ["BTC", "bitcoin"], ["ETH", "ethereum"], ["SOL", "solana"], ["SUI", "sui"],
+    ["LTC", "litecoin"], ["DOGE", "dogecoin"], ["WIF", "dogwifcoin"], ["TOTAL", "total"],
   ];
   const url = "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&include_24hr_change=true&ids="
-    + COINS.map(c => c[1]).join(",");
+    + COINS.map(c => c[1]).filter(id => id !== "total").join(",");
+  const globalUrl = "https://api.coingecko.com/api/v3/global";
 
-  const price = n => "$" + (n >= 1000 ? Math.round(n).toLocaleString("en-US")
+  const price = n => "$" + (n >= 1e12 ? (n / 1e12).toFixed(2) + "T"
+    : n >= 1e9 ? (n / 1e9).toFixed(1) + "B"
+    : n >= 1000 ? Math.round(n).toLocaleString("en-US")
     : n >= 1 ? n.toFixed(2) : n.toFixed(4));
 
   function render(el, d) {
@@ -66,12 +69,22 @@
     })(last);
   }
 
+  // Keep the last good numbers so a missed refresh (e.g. the free service being busy) never blanks a coin
+  let lastPrices = null, lastTotal = null;
   function update() {
-    fetch(url)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(d => document.querySelectorAll("[data-crypto-ticker]").forEach(el => render(el, d)))
-      .catch(() => {});
+    const getJSON = u => fetch(u).then(r => r.ok ? r.json() : Promise.reject(r.status));
+    Promise.all([getJSON(url).catch(() => null), getJSON(globalUrl).catch(() => null)])
+      .then(([d, g]) => {
+        if (d) lastPrices = d;
+        if (g && g.data) lastTotal = { usd: g.data.total_market_cap.usd, usd_24h_change: g.data.market_cap_change_percentage_24h_usd };
+        if (!lastPrices) return;
+        const all = Object.assign({}, lastPrices, lastTotal ? { total: lastTotal } : {});
+        document.querySelectorAll("[data-crypto-ticker]").forEach(el => render(el, all));
+        if (!lastTotal) setTimeout(retryTotal, 15000); // try TOTAL again soon if it was missed
+      });
   }
+  let retried = false;
+  function retryTotal() { if (!retried) { retried = true; update(); } }
   update();
-  setInterval(update, 60000);
+  setInterval(update, 120000);
 })();
