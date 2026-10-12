@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monogram Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&family=Space+Grotesk:wght@700&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #f6f5f2; --card: #fff; --text: #1a1a1a; --muted: #6b6b6b; --border: #e4e2dd; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #121212; --card: #1c1c1c; --text: #f2f2f2; --muted: #9a9a9a; --border: #2c2c2c; } }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 32px 16px; }
+  h1 { text-align: center; font-size: 22px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; max-width: 1000px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 16px; text-align: center; }
+  .card h2 { font-size: 18px; margin-top: 14px; }
+  .card p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .label { margin-top: 14px; font-weight: 700; }
+  .avatar { width: 96px; height: 96px; border-radius: 50%; margin: 0 auto; display: grid; place-items: center; }
+
+  .current { background: var(--text); color: var(--bg); font-size: 32px; font-weight: 600; }
+
+  .serif { background: var(--text); color: var(--bg); font-family: "Playfair Display", Georgia, serif; font-style: italic; font-size: 38px; }
+
+  .terminal { background: #0b0f0b; color: #39ff7a; font-family: "Cascadia Code", Consolas, monospace; font-size: 30px; font-weight: 700;
+    text-shadow: 0 0 8px #39ff7a; box-shadow: 0 0 0 2px #1f8a44, 0 0 18px #39ff7a44; }
+  .terminal span { animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .ring { font-family: "Space Grotesk", system-ui, sans-serif; font-size: 34px; color: var(--text); background: var(--card);
+    border: 3px solid transparent; background-image: linear-gradient(var(--card), var(--card)), linear-gradient(135deg, #ff7a59, #ffcc00, #39ff7a, #3fa9ff);
+    background-origin: border-box; background-clip: padding-box, border-box; }
+
+  .script { background: var(--text); color: var(--bg); font-family: "Caveat", cursive; font-size: 46px; }
+</style></head>
+<body>
+  <h1>Pick a "TE" style</h1>
+  <div class="grid">
+    <div class="card"><div class="avatar current">TE</div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">A. Current</div></div>
+    <div class="card"><div class="avatar serif">TE</div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">B. Classic Serif</div></div>
+    <div class="card"><div class="avatar terminal"><div>TE<span>_</span></div></div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">C. Terminal Green</div></div>
+    <div class="card"><div class="avatar ring">TE</div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">D. Gradient Ring</div></div>
+    <div class="card"><div class="avatar script">TE</div><h2>Tom Ellery</h2><p>Building things on the internet, one link at a time.</p><div class="label">E. Handwritten</div></div>
+  </div>
+</body></html>
