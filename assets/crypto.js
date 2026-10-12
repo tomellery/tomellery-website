@@ -47,7 +47,7 @@
 
   // Slow drift that loops; pauses while touched, dragged or hovered
   function drift(el) {
-    const SPEED = 30, RESUME = 2500;
+    const SPEED = 30, RESUME = 1500; // resume drifting this long (ms) after someone lets go
     let pos = el.scrollLeft, last = performance.now(), busyUntil = 0, dragging = false, dragX = 0, dragStart = 0;
     const half = () => el.scrollWidth / 2;
     const hold = () => { busyUntil = Infinity; };
@@ -75,7 +75,7 @@
     // Hold still at the start until the band is actually on screen, so people see the first coins
     let seen = false;
     new IntersectionObserver(entries => {
-      if (entries.some(e => e.isIntersecting) && !seen) { seen = true; busyUntil = performance.now() + 2500; }
+      if (entries.some(e => e.isIntersecting) && !seen) { seen = true; busyUntil = performance.now() + 1000; }
     }, { threshold: .6 }).observe(el);
     busyUntil = Infinity;
     (function step(now) {
