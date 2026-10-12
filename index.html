@@ -128,7 +128,7 @@
     document.getElementById("year").textContent = new Date().getFullYear();
 
     // Easter egg: tap the TE 5 times quickly, or type "play", to launch a random game
-    const GAMES = ["options/7-terminal-runner.html", "options/8-terminal-flapper.html"];
+    const GAMES = ["options/8-terminal-flapper.html"]; // runner (7) is saved for a different hidden game later
     function launchEgg() {
       const egg = document.getElementById("egg"), text = document.getElementById("eggText");
       if (egg.classList.contains("on")) return;

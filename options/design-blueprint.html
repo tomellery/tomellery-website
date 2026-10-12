@@ -202,7 +202,7 @@
       String(d.getMonth() + 1).padStart(2, "0") + "." + String(d.getDate()).padStart(2, "0") + "." + String(d.getFullYear()).slice(2);
 
     // Easter egg: tap the TE bubble 5 times quickly, or type "play"
-    const GAMES = ["7-terminal-runner.html", "8-terminal-flapper.html"];
+    const GAMES = ["8-terminal-flapper.html"]; // runner (7) is saved for a different hidden game later
     const gameBase = location.pathname.includes("/options/") ? "" : "options/";
     function launchEgg() {
       const egg = document.getElementById("egg"), text = document.getElementById("eggText");
