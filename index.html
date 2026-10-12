@@ -34,21 +34,44 @@
     .slide { flex: 0 0 100vw; width: 100vw; height: 100%; position: relative; background: #111214; }
     .slide iframe { display: block; width: 100%; height: 100%; border: 0; }
 
-    /* Dots */
+    /* Dots (each button has a big invisible tap area around the visible dot) */
     .dots {
-      position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 5;
-      display: flex; gap: 6px; padding: 7px 10px; border-radius: 99px;
-      background: rgba(10, 10, 10, .55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      position: fixed; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 5;
+      display: flex; padding: 0 6px; border-radius: 99px;
+      background: rgba(10, 10, 10, .6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
     }
-    .dots button {
-      width: 7px; height: 7px; padding: 0; border: 0; border-radius: 99px; cursor: pointer;
-      background: rgba(255, 255, 255, .4); transition: width .3s, background .3s;
+    .dots button { padding: 12px 6px; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+    .dots button i {
+      display: block; width: 9px; height: 9px; border-radius: 99px;
+      background: rgba(255, 255, 255, .45); transition: width .3s, background .3s;
     }
-    .dots button[aria-current="true"] { width: 20px; background: #ff5a1f; }
-    .dots button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .dots button[aria-current="true"] i { width: 24px; background: #ff5a1f; }
+    .dots button:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 99px; }
 
-    @media (prefers-reduced-motion: reduce) { .track, .dots button { transition: none; } }
+    /* Side arrows: shown on computers (mouse/trackpad), hidden on touch phones */
+    .arrow {
+      position: fixed; top: 50%; z-index: 5; width: 48px; height: 48px; margin-top: -24px; border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, .25); background: rgba(10, 10, 10, .55); color: #fff; cursor: pointer;
+      font: 26px/1 system-ui, sans-serif; display: none; place-items: center; padding-bottom: 3px;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background .15s, transform .15s;
+    }
+    .arrow:hover, .arrow:focus-visible { background: #ff5a1f; transform: scale(1.06); outline: none; }
+    .arrow.prev { left: 18px; }
+    .arrow.next { right: 18px; }
+    @media (hover: hover) and (pointer: fine) { .arrow { display: grid; } }
+
+    /* First-visit hint */
+    .hint {
+      position: fixed; left: 50%; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 5;
+      transform: translate(-50%, 10px); opacity: 0; pointer-events: none;
+      padding: 9px 16px; border-radius: 99px; background: #ff5a1f; color: #0d0d0d; white-space: nowrap;
+      font: 700 12px/1 "JetBrains Mono", Consolas, monospace; letter-spacing: .18em;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, .45); transition: opacity .4s, transform .4s;
+    }
+    .hint.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (prefers-reduced-motion: reduce) { .track, .dots button i, .hint { transition: none; } }
   </style>
 </head>
 <body>
@@ -56,9 +79,12 @@
     <div class="track" id="track"></div>
   </main>
   <nav class="dots" id="dots" aria-label="Choose a design"></nav>
+  <button class="arrow prev" id="prev" type="button" aria-label="Previous design">‹</button>
+  <button class="arrow next" id="next" type="button" aria-label="Next design">›</button>
+  <div class="hint" id="hint" aria-hidden="true">← SWIPE FOR MORE →</div>
 
   <script>window.TE_CAROUSEL = true;</script>
-  <script src="assets/swipe.js?v=3"></script>
+  <script src="assets/swipe.js?v=4"></script>
   <script>
     const designs = window.TE_ROTATION;
     const track = document.getElementById("track");
@@ -76,6 +102,7 @@
       const dot = document.createElement("button");
       dot.type = "button";
       dot.setAttribute("aria-label", `Show ${d.title}`);
+      dot.innerHTML = "<i></i>";
       dot.addEventListener("click", () => go(i));
       dotsEl.appendChild(dot);
     });
@@ -132,6 +159,24 @@
       if (e.key === "ArrowLeft") go(index - 1);
     });
     addEventListener("resize", () => place());
+
+    // Side arrow buttons (computers)
+    document.getElementById("prev").addEventListener("click", () => go(index - 1));
+    document.getElementById("next").addEventListener("click", () => go(index + 1));
+
+    // First visit: peek at the next design and show "swipe for more"
+    let seen = false;
+    try { seen = localStorage.getItem("te-swipe-hint") === "1"; localStorage.setItem("te-swipe-hint", "1"); } catch (e) {}
+    if (!seen && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const hint = document.getElementById("hint");
+      if (matchMedia("(hover: hover) and (pointer: fine)").matches) hint.textContent = "‹  MORE LOOKS  ›";
+      setTimeout(() => {
+        hint.classList.add("show");
+        place(-Math.round(innerWidth * .18));           // slide over a bit...
+        setTimeout(() => place(), 650);                 // ...and back
+        setTimeout(() => hint.classList.remove("show"), 4200);
+      }, 1400);
+    }
   </script>
 </body>
 </html>

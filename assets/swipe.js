@@ -62,6 +62,17 @@
   addEventListener("touchend", end, { passive: true });
   addEventListener("touchcancel", e => { if (embedded && axis === "x") send({ type: "release", dx: 0, ms: 9999 }); axis = null; });
 
+  // Trackpad: a two-finger sideways swipe
+  let wheelX = 0, wheelLock = 0;
+  addEventListener("wheel", e => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    const now = Date.now();
+    if (now < wheelLock) return;
+    wheelX += e.deltaX;
+    if (Math.abs(wheelX) > 80) { go(wheelX > 0 ? 1 : -1); wheelX = 0; wheelLock = now + 700; }
+    clearTimeout(window.__teWheelReset); window.__teWheelReset = setTimeout(() => wheelX = 0, 200);
+  }, { passive: true });
+
   // Keyboard: left/right arrows
   addEventListener("keydown", e => {
     if (e.target.closest && e.target.closest("input, textarea")) return;
