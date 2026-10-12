@@ -39,7 +39,11 @@
     const dir = step > 0 ? "left" : "right";
     try { sessionStorage.setItem("swipeDir", dir); } catch (e) {}
     document.body.classList.add("swipe-out-" + dir);
-    setTimeout(() => { location.href = prefix + PAGES[next]; }, 180);
+    // On the real site, link home as the plain folder ("tomellery.com/") so it matches the
+    // address people type and can't show a stale saved copy of "/index.html".
+    let target = prefix + PAGES[next];
+    if (PAGES[next] === "index.html" && location.protocol !== "file:") target = prefix || "./";
+    setTimeout(() => { location.href = target; }, 180);
   }
 
   // Touch: a quick, mostly-horizontal swipe
