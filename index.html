@@ -109,24 +109,22 @@
     .go .h { opacity: .55; }
     .go .a { font-family: var(--display); font-size: 22px; }
 
-    /* Ticker */
-    .ticker {
-      margin: 40px 0 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
-      overflow: hidden; white-space: nowrap; padding: 9px 0;
-      font-size: 11px; font-weight: 700; letter-spacing: .3em; color: var(--dim);
-      mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-      -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-    }
-    .ticker div { display: inline-block; animation: ticker 70s linear infinite; }
-    .ticker span { padding-right: 1.6em; }
-    .ticker b { color: var(--white); margin-right: .5em; }
-    .ticker em { font-style: normal; color: var(--orange); }
-    .ticker .label { color: var(--white); }
-    .ticker i { font-style: normal; color: var(--orange); padding-right: 1.6em; }
-    @keyframes ticker { to { transform: translateX(-50%); } }
+    /* Snow report board */
+    .snow-board { margin-top: 40px; }
+    .snow-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+      font-size: 10px; font-weight: 700; letter-spacing: .22em; color: var(--dim); }
+    .snow-head b { color: var(--white); }
+    .snow-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .snow-cell { padding: 12px 4px 11px; text-align: center; border-bottom: 1px solid var(--line); }
+    .snow-cell:not(:nth-child(3n)) { border-right: 1px solid var(--line); }
+    .snow-cell small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .14em; color: var(--dim); white-space: nowrap; }
+    .snow-cell b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; color: var(--white); }
+    .snow-cell span { display: block; font-size: 10px; letter-spacing: .08em; color: var(--dim); }
+    .snow-cell.fresh b { color: var(--orange); }
+    .snow-cell.fresh small { color: var(--white); }
 
     /* Footer */
-    footer { margin-top: auto; padding-top: 18px; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+    footer { margin-top: auto; padding-top: 28px; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
 
     @media (max-width: 380px) {
       .go .h { display: none; }
@@ -158,12 +156,13 @@
       TE.render("#links", (l, i) => `<li><a class="row" href="${l.url}" target="_blank" rel="noopener">
         <span class="n">${String(i + 1).padStart(2, "0")}</span><span class="name">${l.name}</span><span class="go"><span class="h">${l.handle}</span><span class="a">↗</span></span></a></li>`);
     </script>
-  </div>
 
-  <!-- Local mountains snow report (filled in by assets/snow.js) -->
-  <div class="ticker" data-snow-wrap hidden aria-label="Snow report for local mountains"><div data-snow-ticker></div></div>
+    <!-- Local mountains snow report (filled in by assets/snow.js) -->
+    <section class="snow-board" data-snow-wrap hidden aria-label="Snow report for local mountains">
+      <div class="snow-head"><span><b>❄ SNOW REPORT</b> · LAST 24 HRS</span><span>NEW · TEMP</span></div>
+      <div class="snow-grid" data-snow-grid></div>
+    </section>
 
-  <div class="wrap" style="min-height: 0">
     <footer><span>40.7608° N · 111.8910° W</span><span>© <span id="year"></span></span></footer>
   </div>
 
@@ -182,7 +181,7 @@
     const tick = () => { clock.textContent = fmt.format(new Date()); };
     tick(); setInterval(tick, 15000);
   </script>
-  <script src="assets/snow.js?v=3"></script>
+  <script src="assets/snow.js?v=4"></script>
   <script src="assets/secrets.js?v=2"></script>
   <script src="assets/swipe.js?v=6"></script>
 </body>

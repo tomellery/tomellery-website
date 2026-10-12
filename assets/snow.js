@@ -4,20 +4,22 @@
 //   <span data-snow></span>          -> Brighton, full:  "BRIGHTON · 6″ NEW · 24°F"
 //   <span data-snow="short"></span>  -> Brighton, short: "BRIGHTON · 6″ NEW" or "BRIGHTON · 38°F"
 //   <div data-snow-ticker></div>     -> every mountain, as a scrolling ticker
+//   <div data-snow-grid></div>       -> every mountain, as a conditions board (one cell each)
 //
 // Anything wrapped in data-snow-wrap stays hidden until the data arrives (and if it never does).
 (function () {
-  // Name, latitude, longitude, base elevation in meters. Brighton (home mountain) goes first.
+  // Name, latitude, longitude, base elevation in meters, short name for small spaces.
+  // Brighton (home mountain) goes first.
   const MOUNTAINS = [
-    ["Brighton",        40.598, -111.583, 2669],
-    ["Solitude",        40.620, -111.592, 2442],
-    ["Alta",            40.588, -111.638, 2600],
-    ["Snowbird",        40.581, -111.657, 2365],
-    ["Park City",       40.651, -111.508, 2103],
-    ["Deer Valley",     40.637, -111.478, 2003],
-    ["Snowbasin",       41.216, -111.857, 1951],
-    ["Powder Mountain", 41.379, -111.781, 2100],
-    ["Sundance",        40.393, -111.588, 1859],
+    ["Brighton",        40.598, -111.583, 2669, "Brighton"],
+    ["Solitude",        40.620, -111.592, 2442, "Solitude"],
+    ["Alta",            40.588, -111.638, 2600, "Alta"],
+    ["Snowbird",        40.581, -111.657, 2365, "Snowbird"],
+    ["Park City",       40.651, -111.508, 2103, "Park City"],
+    ["Deer Valley",     40.637, -111.478, 2003, "Deer Valley"],
+    ["Snowbasin",       41.216, -111.857, 1951, "Snowbasin"],
+    ["Powder Mountain", 41.379, -111.781, 2100, "Powder Mtn"],
+    ["Sundance",        40.393, -111.588, 1859, "Sundance"],
   ];
   const col = i => MOUNTAINS.map(m => m[i]).join(",");
   const url = "https://api.open-meteo.com/v1/forecast"
@@ -56,6 +58,16 @@
         }).join("");
         el.innerHTML = `<span class="label">❄ LAST 24 HRS</span><i>●</i>` + items;
         el.innerHTML += el.innerHTML; // doubled so the scroll loops seamlessly
+        reveal(el);
+      });
+
+      document.querySelectorAll("[data-snow-grid]").forEach(el => {
+        el.innerHTML = data.map((m, i) => `
+          <div class="snow-cell${m.inches > 0 ? " fresh" : ""}">
+            <small>${MOUNTAINS[i][4].toUpperCase()}</small>
+            <b>${m.inches}″</b>
+            <span>${m.temp}</span>
+          </div>`).join("");
         reveal(el);
       });
     })
