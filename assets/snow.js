@@ -36,7 +36,7 @@
   const col = i => MOUNTAINS.map(m => m[i]).join(",");
   const url = "https://api.open-meteo.com/v1/forecast"
     + `?latitude=${col(LAT)}&longitude=${col(LON)}&elevation=${col(ELEV)}`
-    + "&current=temperature_2m&hourly=snowfall&past_days=7&forecast_days=1"
+    + "&current=temperature_2m,snowfall,weather_code&hourly=snowfall&past_days=7&forecast_days=1"
     + "&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=auto";
 
   // New snow over the last 24 hours and the last 7 days, up to the current hour (in each mountain's local time)
@@ -54,6 +54,50 @@
   try { mode = localStorage.getItem("te-snow-mode") || "week"; } catch (e) {}
 
   const reveal = el => el.closest("[data-snow-wrap]")?.removeAttribute("hidden");
+
+  // ===== Secret: faint snow falls across the page when it's snowing at Brighton right now =====
+  // Only for visitors in dark mode. Preview it any time with ?snow in the address (e.g. tomellery.com/?snow).
+  const SNOW_CODES = [71, 73, 75, 77, 85, 86]; // weather codes for snow and snow showers
+  const forceSnow = /[?&]snow(=|&|$)/.test(location.search);
+  let snowing = false;
+  function letItSnow() {
+    if (snowing || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    snowing = true;
+    const c = document.createElement("canvas");
+    c.setAttribute("aria-hidden", "true");
+    c.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40;opacity:0;transition:opacity 3s";
+    document.body.appendChild(c);
+    const ctx = c.getContext("2d");
+    let W, H, flakes;
+    const flake = top => ({ x: Math.random() * W, y: top ? -10 : Math.random() * H, r: Math.random() * 2 + .7,
+      a: Math.random() * .4 + .3, vy: Math.random() * 35 + 18, p: Math.random() * 6, sway: Math.random() * 16 + 4 });
+    const size = () => {
+      const dpr = devicePixelRatio || 1;
+      W = innerWidth; H = innerHeight; c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      flakes = Array.from({ length: Math.round(W / 5) }, () => flake(false));
+    };
+    size(); addEventListener("resize", size);
+    requestAnimationFrame(() => { c.style.opacity = "1"; });
+    let last = performance.now();
+    (function fall(now) {
+      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      ctx.clearRect(0, 0, W, H);
+      flakes.forEach((f, i) => {
+        f.y += f.vy * dt; f.p += dt;
+        ctx.globalAlpha = f.a; ctx.fillStyle = "#fff";
+        ctx.beginPath(); ctx.arc(f.x + Math.sin(f.p) * f.sway, f.y, f.r, 0, 7); ctx.fill();
+        if (f.y > H + 10) flakes[i] = flake(true);
+      });
+      requestAnimationFrame(fall);
+    })(last);
+  }
+  function maybeSnow(isSnowingAtBrighton) {
+    const run = () => letItSnow();
+    const go = forceSnow || (isSnowingAtBrighton && matchMedia("(prefers-color-scheme: dark)").matches);
+    if (!go) return;
+    if (document.body) run(); else addEventListener("DOMContentLoaded", run);
+  }
+  if (forceSnow) maybeSnow(true);
 
   // Let people swipe/drag the strip; when nobody is touching it, it drifts slowly and loops.
   function drift(el) {
@@ -115,7 +159,12 @@
   fetch(url)
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
     .then(list => {
-      const data = (Array.isArray(list) ? list : [list]).map(summarize);
+      const all = Array.isArray(list) ? list : [list];
+      const data = all.map(summarize);
+
+      // Is it snowing at Brighton (first mountain) right now?
+      const now = all[0].current;
+      maybeSnow((now.snowfall || 0) > 0 || SNOW_CODES.includes(now.weather_code));
 
       // Brighton readouts
       const b = data[0];

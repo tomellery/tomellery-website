@@ -17,7 +17,7 @@
     const items = COINS.filter(([, id]) => d[id]).map(([sym, id]) => {
       const ch = d[id].usd_24h_change || 0;
       const dir = ch >= 0 ? "up" : "down";
-      return `<span class="coin"><b>${sym}</b> ${price(d[id].usd)} <em class="${dir}">${ch >= 0 ? "▲" : "▼"}${Math.abs(ch).toFixed(1)}%</em></span>`;
+      return `<div class="coin"><small>${sym}</small><b>${price(d[id].usd)}</b><em class="${dir}">${ch >= 0 ? "▲" : "▼"}${Math.abs(ch).toFixed(1)}%</em></div>`;
     }).join("");
     if (!items) return;
     const keep = el.querySelector(".crypto-track") ? el.scrollLeft : 0;

@@ -155,16 +155,17 @@
     /* Crypto ticker ribbon (stock-ticker style, filled by assets/crypto.js) */
     .crypto-ribbon { margin-top: 26px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #0d0d0d; }
     .crypto-ticker {
-      overflow-x: auto; scrollbar-width: none; cursor: grab; white-space: nowrap; padding: 11px 0;
+      overflow-x: auto; scrollbar-width: none; cursor: grab;
       mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
       -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
     }
     .crypto-ticker::-webkit-scrollbar { display: none; }
     .crypto-ticker.grabbing { cursor: grabbing; user-select: none; }
-    .crypto-track { display: inline-flex; }
-    .coin { padding: 0 22px; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--white); border-right: 1px solid var(--line); }
-    .coin b { color: var(--dim); margin-right: 6px; letter-spacing: .12em; }
-    .coin em { font-style: normal; margin-left: 6px; }
+    .crypto-track { display: flex; width: max-content; }
+    .coin { flex: 0 0 108px; padding: 11px 4px 10px; text-align: center; border-right: 1px solid var(--line); }
+    .coin small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .2em; color: var(--dim); }
+    .coin b { display: block; font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1.2; color: var(--white); letter-spacing: .01em; }
+    .coin em { display: block; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em; }
     .coin em.up { color: #3ddc84; }
     .coin em.down { color: #ff5c5c; }
 
@@ -318,8 +319,8 @@
       document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
     }));
   </script>
-  <script src="assets/snow.js?v=9"></script>
-  <script src="assets/crypto.js?v=1"></script>
+  <script src="assets/snow.js?v=12"></script>
+  <script src="assets/crypto.js?v=2"></script>
   <script src="assets/secrets.js?v=2"></script>
 </body>
 </html>
