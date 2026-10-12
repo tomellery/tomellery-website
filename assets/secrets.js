@@ -9,6 +9,12 @@
   };
   const HOLD_MS = 1000;
 
+  // Inside the carousel, games open in the whole tab, not just one slide
+  function topWindow() {
+    try { if (window.top.location.origin === location.origin) return window.top; } catch (e) {}
+    return window;
+  }
+
   function start() {
     const avatar = document.getElementById("avatar");
     if (!avatar) return;
@@ -41,7 +47,7 @@
       let i = 0;
       (function type() {
         if (i < msg.length) { egg.textContent += msg[i++]; setTimeout(type, 35); }
-        else setTimeout(() => { location.href = url; }, 600);
+        else setTimeout(() => { topWindow().location.href = url; }, 600);
       })();
     }
 
@@ -74,7 +80,9 @@
     avatar.addEventListener("contextmenu", e => e.preventDefault());
 
     // Coming back with the browser's back button: reset the overlay
-    addEventListener("pageshow", () => { egg.classList.remove("on"); egg.textContent = ""; });
+    const reset = () => { egg.classList.remove("on"); egg.textContent = ""; };
+    addEventListener("pageshow", reset);
+    if (topWindow() !== window) topWindow().addEventListener("pageshow", reset);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);

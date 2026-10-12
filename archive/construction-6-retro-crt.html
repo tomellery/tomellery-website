@@ -15,7 +15,9 @@
   .menu a:hover, .menu a:focus { background: #39ff7a; color: #050805; text-shadow: none; outline: none; }
   .cursor { display: inline-block; width: 10px; height: 18px; background: #39ff7a; vertical-align: -3px; animation: blink 1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
-</style></head>
+</style>  <link rel="icon" href="../assets/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+</head>
 <body>
   <div class="screen">
     <pre id="boot"></pre>
@@ -51,5 +53,5 @@
   const items = menu.querySelectorAll("a");
   addEventListener("keydown", e => { const n = parseInt(e.key, 10); if (n >= 1 && n <= items.length && menu.style.display === "block") items[n - 1].click(); });
 </script>
-  <script src="../assets/secrets.js?v=1"></script>
+  <script src="../assets/secrets.js?v=2"></script>
 </body></html>

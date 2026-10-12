@@ -122,7 +122,21 @@
       .run { font-size: 22px; }
       li { width: 92%; }
     }
+  
+    /* Live Brighton conditions board */
+    .conditions {
+      position: relative; z-index: 1; margin: -20px auto 34px; width: fit-content; max-width: 100%;
+      background: var(--green); color: #fff; border-radius: 4px; padding: 6px 12px;
+      font-size: 11px; font-weight: 700; letter-spacing: .14em; box-shadow: 0 8px 18px rgba(0, 0, 0, .4);
+    }
+    .conditions b { opacity: .75; margin-right: 6px; }
   </style>
+  <link rel="icon" href="../assets/icon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <meta property="og:title" content="Tom Ellery">
+  <meta property="og:description" content="SLC 📍 Build · Ride · Repeat">
+  <meta property="og:image" content="http://tomellery.com/assets/share.png">
+  <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
   <canvas id="snow" aria-hidden="true"></canvas>
@@ -142,6 +156,7 @@
     </div>
 
     <p class="bio-plate">SLC 📍 Build · Ride · Repeat</p>
+    <p class="conditions" data-snow-wrap hidden><b>TODAY</b><span data-snow></span></p>
 
     <ul id="links"></ul>
     <script src="../assets/links.js?v=1"></script>
@@ -187,7 +202,8 @@
     if (!reduceMotion) requestAnimationFrame(tick);
 
   </script>
-  <script src="../assets/secrets.js?v=1"></script>
-  <script src="../assets/swipe.js?v=1"></script>
+  <script src="../assets/snow.js?v=1"></script>
+  <script src="../assets/secrets.js?v=2"></script>
+  <script src="../assets/swipe.js?v=3"></script>
 </body>
 </html>
