@@ -99,7 +99,7 @@
   const reveal = el => el.closest("[data-snow-wrap]")?.removeAttribute("hidden");
 
   // ===== Secret: faint snow falls across the page when it's snowing at Brighton right now =====
-  // Only for visitors in dark mode. Preview it any time with ?snow in the address (e.g. tomellery.com/?snow).
+  // Dark mode only (hidden in light mode, including ?snow). Preview it any time with ?snow in the address (e.g. tomellery.com/?snow).
   const SNOW_CODES = [71, 73, 75, 77, 85, 86]; // weather codes for snow and snow showers
   const forceSnow = /[?&]snow(=|&|$)/.test(location.search);
   let snowing = false;
@@ -120,10 +120,17 @@
       flakes = Array.from({ length: Math.round(W / 5) }, () => flake(false));
     };
     size(); addEventListener("resize", size);
+    // Dark mode only: hide (and stop drawing) whenever the page is in light mode, even if it switches mid-visit
+    const html = document.documentElement;
+    const syncTheme = () => { c.hidden = html.dataset.theme === "light"; };
+    syncTheme();
+    new MutationObserver(syncTheme).observe(html, { attributes: true, attributeFilter: ["data-theme"] });
     requestAnimationFrame(() => { c.style.opacity = "1"; });
     let last = performance.now();
     (function fall(now) {
       const dt = Math.min(.05, (now - last) / 1000); last = now;
+      requestAnimationFrame(fall);
+      if (c.hidden) return;
       ctx.clearRect(0, 0, W, H);
       flakes.forEach((f, i) => {
         f.y += f.vy * dt; f.p += dt;
@@ -131,13 +138,11 @@
         ctx.beginPath(); ctx.arc(f.x + Math.sin(f.p) * f.sway, f.y, f.r, 0, 7); ctx.fill();
         if (f.y > H + 10) flakes[i] = flake(true);
       });
-      requestAnimationFrame(fall);
     })(last);
   }
   function maybeSnow(isSnowingAtBrighton) {
     const run = () => letItSnow();
-    const go = forceSnow || (isSnowingAtBrighton && document.documentElement.dataset.theme !== "light");
-    if (!go) return;
+    if (!forceSnow && !isSnowingAtBrighton) return;
     if (document.body) run(); else addEventListener("DOMContentLoaded", run);
   }
   if (forceSnow) maybeSnow(true);
