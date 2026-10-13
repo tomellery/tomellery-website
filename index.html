@@ -104,13 +104,19 @@
       margin: 44px 0 0;
     }
     h1 .line { display: block; overflow: hidden; padding-bottom: .02em; }
-    /* No load-in animations for now: everything is simply there when the page opens */
-    h1 .tom { display: block; }
-    h1 .ellery { position: relative; display: inline-block; color: transparent; -webkit-text-stroke: 1.5px var(--white); }
-    @keyframes draw { to { clip-path: inset(0 0 0 0); } } /* not used here, but the Halloween look (holiday.js) uses it */
+    h1 .tom { display: block; animation: rise .8s var(--ease) .15s both; }
+    h1 .ellery { position: relative; display: inline-block; color: transparent; -webkit-text-stroke: 1.5px var(--white);
+      clip-path: inset(0 100% 0 0); animation: draw 1s var(--ease) .55s forwards; }
+    h1 .ellery::after { /* the "pen" that draws the outline */
+      content: ""; position: absolute; top: 6%; bottom: 10%; left: 0; width: 3px; background: var(--orange);
+      opacity: 0; animation: pen 1s var(--ease) .55s forwards;
+    }
+    @keyframes rise { from { transform: translateY(105%); } to { transform: none; } }
+    @keyframes draw { to { clip-path: inset(0 0 0 0); } }
+    @keyframes pen { 0% { left: 0; opacity: 1; } 85% { left: 100%; opacity: 1; } 100% { left: 100%; opacity: 0; } }
 
-    .rule { height: 4px; width: 64px; background: var(--orange); margin: 22px 0 14px; }
-    @keyframes grow { from { transform: scaleX(0); } } /* not used here, but the Candy Cane look (holiday.js) uses it */
+    .rule { height: 4px; width: 64px; background: var(--orange); margin: 22px 0 14px; transform-origin: left; animation: grow .6s var(--ease) 1.4s both; }
+    @keyframes grow { from { transform: scaleX(0); } }
     .bio { font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
 
     /* NOW line */
@@ -119,9 +125,15 @@
     .now b::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--orange); animation: live 2s infinite; }
     @keyframes live { 0% { box-shadow: 0 0 0 0 rgba(255, 90, 31, .7); } 70% { box-shadow: 0 0 0 7px rgba(255, 90, 31, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 90, 31, 0); } }
 
+    .fade { animation: fadeUp .6s var(--ease) both; }
+    .d1 { animation-delay: 1.5s; } .d2 { animation-delay: 1.6s; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } }
+
     /* Links */
     ul { list-style: none; padding: 0; margin-top: 38px; border-top: 1px solid var(--line); }
-    li { border-bottom: 1px solid var(--line); }
+    li { border-bottom: 1px solid var(--line); animation: fadeUp .5s var(--ease) both; }
+    li:nth-child(1) { animation-delay: 1.65s; } li:nth-child(2) { animation-delay: 1.72s; } li:nth-child(3) { animation-delay: 1.79s; }
+    li:nth-child(4) { animation-delay: 1.86s; } li:nth-child(5) { animation-delay: 1.93s; } li:nth-child(n+6) { animation-delay: 2s; }
     a.row {
       display: grid; grid-template-columns: 34px 1fr auto; align-items: baseline; gap: 10px;
       padding: 16px 10px 14px; color: var(--white); text-decoration: none;
@@ -232,6 +244,8 @@
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; }
+      h1 .ellery { clip-path: none; }
+      h1 .ellery::after { display: none; }
     }
 
     /* Desktop + iPads held sideways: "poster" layout. The name fills the left half and stays put; the page scrolls on the right.
@@ -252,9 +266,11 @@
       .wrap > h1::after { /* small print at the bottom of the poster */
         content: "SALT LAKE CITY, UT  ·  40.7608° N  111.8910° W"; position: absolute; left: 56px; bottom: 30px;
         font: 500 10px var(--mono); letter-spacing: .2em; color: var(--dim); white-space: pre;
+        animation: fadeUp .6s var(--ease) 1.6s both;
       }
       .wrap > h1::before { /* the orange rule moves onto the poster */
         content: ""; position: absolute; left: 56px; top: 40px; width: 64px; height: 4px; background: var(--orange);
+        transform-origin: left; animation: grow .6s var(--ease) 1.4s both;
       }
       .wrap > .rule { display: none; }
       .bio { margin-top: 56px; }
@@ -278,8 +294,8 @@
 
     <h1 aria-label="Tom Ellery"><span class="line"><span class="tom">Tom</span></span><span class="line"><span class="ellery">Ellery</span></span></h1>
     <div class="rule" aria-hidden="true"></div>
-    <p class="bio">Build · Ride · Repeat</p>
-    <p class="now"><b>NOW</b><span id="now"></span></p>
+    <p class="bio fade d1">Build · Ride · Repeat</p>
+    <p class="now fade d2"><b>NOW</b><span id="now"></span></p>
 
     <ul id="links" aria-label="Find me"></ul>
     <script src="assets/links.js?v=1"></script>
@@ -399,7 +415,7 @@
     })();
   </script>
   <script src="assets/snow.js?v=20"></script>
-  <script src="assets/crypto.js?v=12"></script>
+  <script src="assets/crypto.js?v=13"></script>
   <script src="assets/holiday.js?v=3"></script>
   <script src="assets/secrets.js?v=2"></script>
 </body>
