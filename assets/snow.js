@@ -136,7 +136,7 @@
   }
   function maybeSnow(isSnowingAtBrighton) {
     const run = () => letItSnow();
-    const go = forceSnow || (isSnowingAtBrighton && matchMedia("(prefers-color-scheme: dark)").matches);
+    const go = forceSnow || (isSnowingAtBrighton && document.documentElement.dataset.theme !== "light");
     if (!go) return;
     if (document.body) run(); else addEventListener("DOMContentLoaded", run);
   }

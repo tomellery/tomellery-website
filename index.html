@@ -21,18 +21,20 @@
   <link rel="icon" href="assets/icon-32.png" sizes="32x32" type="image/png">
   <link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0a0a0a">
   <script>
-    // Follow the system light/dark setting (runs before paint so there's no flash)
+    // Dark by default. Light mode is a secret: tap the clock 3 times (or type "lights") and it's remembered.
+    // Runs before paint so there's no flash.
     (function () {
-      const mq = matchMedia("(prefers-color-scheme: light)");
       window.setTheme = t => {
         document.documentElement.dataset.theme = t;
         document.querySelector('meta[name="theme-color"]').content = t === "light" ? "#f2efe6" : "#0a0a0a";
+        try { t === "light" ? localStorage.setItem("te-theme", "light") : localStorage.removeItem("te-theme"); } catch (e) {}
       };
-      setTheme(mq.matches ? "light" : "dark");
-      mq.addEventListener("change", e => setTheme(e.matches ? "light" : "dark"));
+      let saved = null;
+      try { saved = localStorage.getItem("te-theme"); } catch (e) {}
+      setTheme(saved === "light" ? "light" : "dark");
     })();
   </script>
 
@@ -60,7 +62,7 @@
       --ease: cubic-bezier(.2, .8, .2, 1);
     }
     /* Light mode: --black becomes the paper and --white the ink.
-       data-theme is set from the system setting by the script below (and flipped by the temp toggle). */
+       data-theme is set by the script at the top (dark unless the secret light switch was used). */
     :root[data-theme="light"] {
       color-scheme: light;
       --black: #f2efe6;
@@ -205,10 +207,9 @@
       background: none; border: 1px solid var(--line); color: var(--white);
     }
     .menu-btn span { display: block; width: 18px; height: 2px; background: currentColor; box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor; }
-    /* TEMP light/dark toggle */
-    .theme-btn { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; cursor: pointer;
-      background: none; border: 1px solid var(--line); color: var(--white); font-size: 18px; line-height: 1; }
-    .theme-btn:hover, .theme-btn:focus-visible { border-color: var(--orange); color: var(--accent); outline: none; }
+    /* Secret light/dark switch on the clock: no visible hint, just a soft fade when it flips */
+    #clock { cursor: default; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    html.te-fading, html.te-fading * { transition: background-color .5s, color .5s, border-color .5s, -webkit-text-stroke-color .5s !important; }
     .menu-btn:hover, .menu-btn:focus-visible { border-color: var(--orange); color: var(--accent); outline: none; }
 
     .menu {
@@ -255,7 +256,6 @@
       <div class="right-group">
       <div class="right">SALT LAKE CITY, UT<br><b id="clock">--:--</b> LOCAL
         <span data-snow-wrap hidden><br><span class="snow" data-snow="short"></span></span></div>
-      <button class="theme-btn" id="themeBtn" type="button"></button><!-- TEMP light/dark toggle -->
       <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span></button>
       </div>
     </div>
@@ -318,19 +318,24 @@
     const tick = () => { clock.textContent = fmt.format(new Date()); };
     tick(); setInterval(tick, 15000);
 
-    // TEMP light/dark toggle
-    const themeBtn = document.getElementById("themeBtn");
-    const showTheme = () => {
-      const light = document.documentElement.dataset.theme === "light";
-      themeBtn.textContent = light ? "☾︎" : "☀︎"; // ︎ keeps iOS from drawing an emoji
-      themeBtn.setAttribute("aria-label", light ? "Switch to dark mode" : "Switch to light mode");
-    };
-    themeBtn.addEventListener("click", () => {
-      setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
-      showTheme();
+    // Secret light/dark switch: tap the clock 3 times quickly, or type "lights". Do it again to go back to dark.
+    function flipTheme() {
+      const html = document.documentElement;
+      html.classList.add("te-fading");
+      setTheme(html.dataset.theme === "light" ? "dark" : "light");
+      setTimeout(() => html.classList.remove("te-fading"), 600);
+    }
+    let clockTaps = 0, clockTimer;
+    clock.addEventListener("click", () => {
+      clockTaps++; clearTimeout(clockTimer); clockTimer = setTimeout(() => clockTaps = 0, 800);
+      if (clockTaps >= 3) { clockTaps = 0; flipTheme(); }
     });
-    matchMedia("(prefers-color-scheme: light)").addEventListener("change", showTheme);
-    showTheme();
+    let typedTheme = "";
+    addEventListener("keydown", e => {
+      if (e.key.length !== 1) return;
+      typedTheme = (typedTheme + e.key.toLowerCase()).slice(-6);
+      if (typedTheme === "lights") { typedTheme = ""; flipTheme(); }
+    });
 
     // Menu open/close
     const menu = document.getElementById("menu"), menuBtn = document.getElementById("menuBtn");
@@ -349,7 +354,7 @@
       document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
     }));
   </script>
-  <script src="assets/snow.js?v=18"></script>
+  <script src="assets/snow.js?v=19"></script>
   <script src="assets/crypto.js?v=10"></script>
   <script src="assets/holiday.js?v=3"></script>
   <script src="assets/secrets.js?v=2"></script>
