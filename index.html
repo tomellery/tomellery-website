@@ -247,6 +247,35 @@
       h1 .ellery { clip-path: none; }
       h1 .ellery::after { display: none; }
     }
+
+    /* Desktop + iPads held sideways: "poster" layout. The name fills the left half and stays put; the page scrolls on the right.
+       Phones and upright iPads keep the single column above. Sizes for the name are set by the fitName script at the bottom. */
+    .fitbox { display: block; }
+    @media (min-width: 1024px) and (orientation: landscape) {
+      body { padding: 0; }
+      .wrap { max-width: none; margin: 0; min-height: 100vh; padding: 28px 56px 28px calc(50vw + 56px); }
+      .wrap > * { width: 100%; max-width: 560px; }
+      .wrap > h1 {
+        position: fixed; left: 0; top: 0; width: 50vw; height: 100vh; height: 100dvh; max-width: none; margin: 0; padding: 72px 56px 84px;
+        display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--line);
+      }
+      .fitbox { transform-origin: center; }
+      .wrap > h1 .line { padding-bottom: 0; margin-right: -56px; padding-right: 56px; } /* the Y's tip pokes a little past the text width */
+      .wrap > h1 .tom, .wrap > h1 .ellery { padding-bottom: .035em; } /* room for the bottom of the letters at this size */
+      h1 .ellery { -webkit-text-stroke-width: 2px; }
+      .wrap > h1::after { /* small print at the bottom of the poster */
+        content: "SALT LAKE CITY, UT  ·  40.7608° N  111.8910° W"; position: absolute; left: 56px; bottom: 30px;
+        font: 500 10px var(--mono); letter-spacing: .2em; color: var(--dim); white-space: pre;
+        animation: fadeUp .6s var(--ease) 1.6s both;
+      }
+      .wrap > h1::before { /* the orange rule moves onto the poster */
+        content: ""; position: absolute; left: 56px; top: 40px; width: 64px; height: 4px; background: var(--orange);
+        transform-origin: left; animation: grow .6s var(--ease) 1.4s both;
+      }
+      .wrap > .rule { display: none; }
+      .bio { margin-top: 56px; }
+      .crypto-ribbon { margin-left: 0; margin-right: 0; }
+    }
   </style>
 </head>
 <body>
@@ -353,6 +382,34 @@
       setMenu(false);
       document.querySelector(a.getAttribute("href")).scrollIntoView({ behavior: "smooth", block: "start" });
     }));
+  </script>
+  <script>
+    // Poster layout (desktop + sideways iPads): ELLERY spans the full width of the left half and TOM spans 80% of it,
+    // then the name stretches a little taller (up to 1.2x) to fill the height.
+    (function fitName() {
+      const TOM_SHARE = .8;
+      const mq = matchMedia("(min-width: 1024px) and (orientation: landscape)");
+      const h1 = document.querySelector("h1");
+      const box = document.createElement("span");
+      box.className = "fitbox";
+      h1.querySelectorAll(".line").forEach(l => box.appendChild(l));
+      h1.appendChild(box);
+      const words = [h1.querySelector(".tom"), h1.querySelector(".ellery")];
+      const textWidth = el => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width; };
+      function fit() {
+        words.forEach(w => w.style.fontSize = ""); box.style.transform = "";
+        if (!mq.matches) return;
+        const cs = getComputedStyle(h1);
+        const W = h1.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const H = h1.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        words.forEach((w, i) => { w.style.fontSize = "100px"; w.style.fontSize = (100 * W * (i ? 1 : TOM_SHARE) / textWidth(w)).toFixed(2) + "px"; });
+        box.style.transform = `scaleY(${Math.min(1.2, Math.max(1, H / box.offsetHeight)).toFixed(3)})`;
+      }
+      fit();
+      document.fonts && document.fonts.ready.then(fit);
+      addEventListener("resize", fit);
+      mq.addEventListener ? mq.addEventListener("change", fit) : mq.addListener(fit); // rotating an iPad
+    })();
   </script>
   <script src="assets/snow.js?v=20"></script>
   <script src="assets/crypto.js?v=10"></script>
