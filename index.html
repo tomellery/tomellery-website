@@ -104,16 +104,17 @@
       margin: 44px 0 0;
     }
     h1 .line { display: block; overflow: hidden; padding-bottom: .02em; }
-    h1 .tom { display: block; animation: rise .8s var(--ease) .15s both; }
+    h1 .tom { display: block; } /* no entrance animation: it stuttered on iPhones, so TOM is just there */
     h1 .ellery { position: relative; display: inline-block; color: transparent; -webkit-text-stroke: 1.5px var(--white);
-      clip-path: inset(0 100% 0 0); animation: draw 1s var(--ease) .55s forwards; }
-    h1 .ellery::after { /* the "pen" that draws the outline */
-      content: ""; position: absolute; top: 6%; bottom: 10%; left: 0; width: 3px; background: var(--orange);
-      opacity: 0; animation: pen 1s var(--ease) .55s forwards;
+      clip-path: inset(0 100% 0 0); animation: draw 1s var(--ease) .3s forwards; }
+    h1 .ellery::after { /* the "pen" that draws the outline: a 3px orange edge on a full-width layer that slides across
+                           (sliding with transform is smooth on phones; animating "left" was not) */
+      content: ""; position: absolute; top: 6%; bottom: 10%; left: 0; width: 100%;
+      background: linear-gradient(to left, var(--orange) 3px, transparent 3px);
+      opacity: 0; transform: translateX(-100%); animation: pen 1s var(--ease) .3s forwards;
     }
-    @keyframes rise { from { transform: translateY(105%); } to { transform: none; } }
     @keyframes draw { to { clip-path: inset(0 0 0 0); } }
-    @keyframes pen { 0% { left: 0; opacity: 1; } 85% { left: 100%; opacity: 1; } 100% { left: 100%; opacity: 0; } }
+    @keyframes pen { 0% { transform: translateX(-100%); opacity: 1; } 85% { transform: none; opacity: 1; } 100% { transform: none; opacity: 0; } }
 
     .rule { height: 4px; width: 64px; background: var(--orange); margin: 22px 0 14px; transform-origin: left; animation: grow .6s var(--ease) 1.4s both; }
     @keyframes grow { from { transform: scaleX(0); } }
@@ -275,6 +276,9 @@
       .wrap > .rule { display: none; }
       .bio { margin-top: 56px; }
       .crypto-ribbon { margin-left: 0; margin-right: 0; }
+      /* Hold the ribbon's space while prices load, so the snow report never jumps down; then fade it in */
+      .wrap > .crypto-ribbon { transition: opacity .5s; }
+      .wrap > .crypto-ribbon[hidden] { display: block; visibility: hidden; opacity: 0; height: 73.4px; }
     }
   </style>
 </head>

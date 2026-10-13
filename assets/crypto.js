@@ -114,8 +114,8 @@
           markets.forEach(m => { lastCoins[m.id] = { price: m.current_price, change: m.price_change_percentage_24h, image: m.image }; });
         }
         if (g && g.data) lastTotal = { price: g.data.total_market_cap.usd, change: g.data.market_cap_change_percentage_24h_usd, image: TOTAL_ICON };
-        // Prices didn't come through: try again soon (15s, 30s, 60s) instead of waiting for the next 2-minute refresh
-        if (!fresh && misses < 3) setTimeout(update, 15000 * Math.pow(2, misses++));
+        // Prices didn't come through: try again soon (3s, 10s, 30s) instead of waiting for the next refresh
+        if (!fresh && misses < 3) setTimeout(update, [3000, 10000, 30000][misses++]);
         if (fresh) {
           misses = 0;
           try { localStorage.setItem(CACHE, JSON.stringify({ t: Date.now(), coins: lastCoins, total: lastTotal })); } catch (e) {}
