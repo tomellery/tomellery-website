@@ -1,5 +1,5 @@
 // Crypto ticker band, like a stock ticker. Fills any element with data-crypto-ticker.
-// Prices, 24h change and coin logos from CoinGecko (free, no key), refreshed every 2 minutes.
+// Prices, 24h change and coin logos from CoinGecko (free, no key), refreshed every 15 minutes.
 // If it can't be reached, the band stays hidden; a missed refresh keeps the last good numbers.
 // Swipe or drag it to scroll; let go and it drifts again. Hover (computers) pauses it.
 (function () {
@@ -94,14 +94,15 @@
   // They're also remembered in this browser for up to an hour, so the band shows up right away on the next visit
   // (even if CoinGecko is busy), and the live numbers replace them as soon as they arrive.
   const CACHE = "te-crypto", CACHE_MAX_AGE = 60 * 60 * 1000;
-  let lastCoins = null, lastTotal = null, retried = false, misses = 0;
+  const REFRESH = 15 * 60 * 1000; // new prices every 15 minutes
+  let lastCoins = null, lastTotal = null, retried = false, misses = 0, savedAge = Infinity;
   const showAll = () => {
     const all = Object.assign({}, lastCoins, lastTotal ? { total: lastTotal } : {});
     document.querySelectorAll("[data-crypto-ticker]").forEach(el => render(el, all));
   };
   try {
     const saved = JSON.parse(localStorage.getItem(CACHE) || "null");
-    if (saved && Date.now() - saved.t < CACHE_MAX_AGE && saved.coins) { lastCoins = saved.coins; lastTotal = saved.total; showAll(); }
+    if (saved && Date.now() - saved.t < CACHE_MAX_AGE && saved.coins) { lastCoins = saved.coins; lastTotal = saved.total; savedAge = Date.now() - saved.t; showAll(); }
   } catch (e) {}
   function update() {
     const getJSON = u => fetch(u).then(r => r.ok ? r.json() : Promise.reject(r.status));
@@ -124,6 +125,7 @@
         if (!lastTotal && !retried) { retried = true; setTimeout(update, 15000); } // try TOTAL again soon if it was missed
       });
   }
-  update();
-  setInterval(update, 120000);
+  // Prices this browser got in the last 15 minutes are still current: wait until they're due instead of asking again
+  const start = () => { update(); setInterval(update, REFRESH); };
+  if (savedAge < REFRESH) setTimeout(start, REFRESH - savedAge); else start();
 })();
