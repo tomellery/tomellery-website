@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mt. Ellery Trail Map (DRAFT)</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="../assets/icon-32.png" sizes="32x32" type="image/png">
+  <meta name="color-scheme" content="dark">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* DRAFT: "Mt. Ellery" trail map, the desktop idea. Rough pass: layout, runs, hover, click. Not published. */
+    :root {
+      --black: #0a0a0a; --white: #f2efe6; --dim: rgba(242, 239, 230, .45); --faint: rgba(242, 239, 230, .25);
+      --line: rgba(242, 239, 230, .14); --ribbon: #0d0d0d; --orange: #ff5a1f; --accent: #ff5a1f; --on-orange: #0a0a0a;
+      --green: #3ddc84; --blue: #3d8bff;
+      --display: "Anton", Impact, "Arial Narrow", sans-serif; --mono: "JetBrains Mono", Consolas, monospace;
+      --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      --ease: cubic-bezier(.2, .8, .2, 1);
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html { background: var(--black); }
+    body { font-family: var(--mono); color: var(--white); background: var(--noise), var(--black); min-height: 100vh; overflow-x: hidden; }
+
+    /* ---------- The map: one screen ---------- */
+    .map { position: relative; height: 100vh; min-height: 640px; }
+    .map > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+    /* Corners */
+    .corner { position: absolute; z-index: 2; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+    .title { top: 28px; left: 32px; display: flex; gap: 16px; align-items: flex-start; }
+    .badge { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; background: var(--white); color: var(--black); font: 400 21px var(--display); }
+    .title h1 { font: 400 clamp(54px, 6vw, 92px)/.86 var(--display); text-transform: uppercase; color: var(--white); letter-spacing: -.005em; }
+    .title h1 span { color: transparent; -webkit-text-stroke: 1.5px var(--white); }
+    .title p { margin-top: 10px; line-height: 1.7; }
+    .title p b { color: var(--white); }
+    .conditions { top: 30px; right: 32px; text-align: right; line-height: 1.7; }
+    .conditions b { color: var(--white); }
+    .conditions .snow { color: var(--accent); }
+    .legend { right: 32px; top: 112px; display: grid; gap: 7px; justify-items: end; }
+    .legend h2 { font-size: 10px; letter-spacing: .3em; color: var(--white); margin-bottom: 2px; }
+    .legend div { display: flex; align-items: center; gap: 10px; flex-direction: row-reverse; }
+    .legend svg { width: 22px; height: 16px; flex-shrink: 0; }
+    .legend .groom { margin-top: 8px; max-width: 260px; line-height: 1.6; text-align: right; }
+    .legend .groom b { color: var(--white); }
+    .credit { left: 32px; bottom: 26px; line-height: 1.7; }
+
+    /* Mountain linework */
+    .ridge { fill: var(--ribbon); stroke: var(--white); stroke-width: 1.6; stroke-linejoin: round; }
+    .hatch line { stroke: var(--white); stroke-opacity: .1; stroke-width: 1; }
+    .trees path { fill: var(--white); fill-opacity: .16; }
+    .ground { stroke: var(--line); stroke-width: 1; }
+    .peak text, .lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .22em; fill: var(--dim); }
+    .peak circle { fill: var(--white); }
+
+    /* Runs */
+    .run { cursor: pointer; outline: none; }
+    .run .hit { fill: none; stroke: transparent; stroke-width: 26; }
+    .run .line { fill: none; stroke: var(--white); stroke-width: 2.4; stroke-linecap: round; stroke-opacity: .85; }
+    .run .lit { fill: none; stroke: var(--orange); stroke-width: 4.5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .55s var(--ease); }
+    .run:hover .lit, .run:focus-visible .lit { stroke-dashoffset: 0; }
+    .run .name { font-family: var(--display); font-size: 38px; fill: var(--white); text-transform: uppercase; transition: fill .2s; }
+    .run .handle { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; fill: var(--dim); transition: fill .2s; }
+    .run:hover .name, .run:focus-visible .name { fill: var(--orange); }
+    .run:hover .handle, .run:focus-visible .handle { fill: var(--white); }
+    .run .tag { opacity: 0; transition: opacity .2s; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .2em; fill: var(--orange); }
+    .run:hover .tag, .run:focus-visible .tag { opacity: 1; }
+    .skier { fill: var(--orange); }
+
+    /* Labels get a dark outline so they read cleanly where they cross ridge lines (like a printed trail map) */
+    .run text, .lift text, .base-link text, .peak text { paint-order: stroke; stroke: var(--ribbon); stroke-width: 6px; stroke-linejoin: round; }
+
+    /* Symbols */
+    .sym-green { fill: var(--green); }
+    .sym-blue { fill: var(--blue); }
+    .sym-black { fill: var(--black); stroke: var(--white); stroke-width: 1.5; }
+
+    /* Lifts */
+    .lift .cable { stroke: var(--white); stroke-width: 1.2; stroke-opacity: .7; }
+    .lift .tower { stroke: var(--white); stroke-width: 1.2; stroke-opacity: .7; }
+    .lift.closed .cable { stroke-dasharray: 5 6; stroke-opacity: .35; }
+    .lift.closed .tower { stroke-opacity: .35; }
+    .lift .lname { font-family: var(--display); font-size: 22px; fill: var(--white); text-transform: uppercase; }
+    .lift.closed .lname { fill: var(--faint); }
+    .lift .status { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .22em; }
+    .lift.closed .status { fill: var(--orange); }
+    .lift.open .status { fill: var(--green); }
+    a.lift { cursor: pointer; outline: none; }
+    a.lift:hover .lname, a.lift:focus-visible .lname { fill: var(--orange); }
+    a.lift:hover .cable, a.lift:focus-visible .cable { stroke: var(--orange); stroke-opacity: 1; }
+
+    /* Base area */
+    .lodge rect, .lodge path { fill: var(--black); stroke: var(--white); stroke-width: 1.4; }
+    .base-link { cursor: pointer; outline: none; }
+    .base-link .bname { font-family: var(--display); font-size: 20px; fill: var(--white); text-transform: uppercase; transition: fill .2s; }
+    .base-link:hover .bname, .base-link:focus-visible .bname { fill: var(--orange); }
+    .you circle { fill: var(--orange); }
+    .you .ring { fill: none; stroke: var(--orange); stroke-width: 1.5; transform-box: fill-box; transform-origin: center; animation: ping 2s infinite; }
+    .you text { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .25em; fill: var(--orange); }
+    @keyframes ping { from { transform: scale(.6); opacity: 1; } to { transform: scale(2.4); opacity: 0; } }
+
+    /* ---------- Lodge board (below the map) ---------- */
+    .lodge-board { max-width: 1100px; margin: 0 auto; padding: 40px 32px 60px; }
+    .snow-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+      font-size: 10px; font-weight: 700; letter-spacing: .22em; color: var(--dim); }
+    .snow-head b { color: var(--white); }
+    .snow-pages { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .snow-page h3 { font-size: 10px; font-weight: 700; letter-spacing: .3em; color: var(--accent); padding: 12px 0 0; }
+    .snow-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .snow-grid .snow-cell:not(:nth-child(3n)) { border-right: 1px solid var(--line); }
+    .snow-dots { display: none; }
+    .snow-note { text-align: center; font-size: 9px; letter-spacing: .14em; line-height: 1.6; color: var(--dim); padding-top: 8px; }
+    .snow-cell { padding: 12px 4px 11px; text-align: center; border-bottom: 1px solid var(--line); }
+    .snow-cell small { display: block; font-size: 9px; font-weight: 700; letter-spacing: .14em; color: var(--dim); white-space: nowrap; }
+    .snow-cell b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; color: var(--white); }
+    .snow-cell span { display: block; font-size: 10px; letter-spacing: .08em; color: var(--dim); }
+    .snow-cell.fresh b, .snow-cell em.today.fresh { color: var(--accent); }
+    .snow-cell.fresh small { color: var(--white); }
+    .snow-cell em.today { display: block; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--dim); margin: 1px 0 2px; }
+    .snow-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+    .snow-switch button { background: none; border: 0; color: var(--dim); font: 700 10px var(--mono); letter-spacing: .12em; padding: 6px 9px; cursor: pointer; }
+    .snow-switch button[aria-pressed="true"] { background: var(--orange); color: var(--on-orange); }
+    footer { display: flex; justify-content: space-between; max-width: 1100px; margin: 0 auto; padding: 0 32px 26px; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
+
+    /* Phones keep the current home page; this draft is computers only */
+    .phone-note { display: none; padding: 40px 20px; line-height: 1.7; font-size: 12px; color: var(--dim); }
+    .phone-note a { color: var(--accent); }
+    @media (max-width: 1023px) {
+      .map, .lodge-board, footer { display: none; }
+      .phone-note { display: block; }
+    }
+    .draft { position: fixed; left: 50%; transform: translateX(-50%); top: 12px; z-index: 60; background: #ffd400; color: #0d0d0d; padding: 5px 10px; font: 700 10px var(--mono); letter-spacing: .16em; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="draft">DRAFT · TRAIL MAP</div>
+  <p class="phone-note">The Mt. Ellery trail map is a desktop-only draft. Phones keep the <a href="../">current home page</a>.</p>
+
+  <main class="map" aria-label="Mt. Ellery trail map: Tom Ellery's links">
+    <svg id="map" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet" role="img" aria-labelledby="mapTitle">
+      <title id="mapTitle">A trail map of Mt. Ellery. Each run is one of Tom's links.</title>
+      <g id="hatch" class="hatch"></g>
+      <path id="ridge" class="ridge"/>
+      <g id="hatchFront" class="hatch"></g>
+      <g id="trees" class="trees"></g>
+      <line class="ground" x1="0" y1="792" x2="1600" y2="792"/>
+      <g id="lifts"></g>
+      <g id="runs"></g>
+      <g id="base"></g>
+    </svg>
+
+    <div class="corner title">
+      <div class="badge" aria-hidden="true">TE</div>
+      <div>
+        <h1>Mt.<br><span>Ellery</span></h1>
+        <p><b>TOM ELLERY</b> · OFFICIAL TRAIL MAP<br>SALT LAKE CITY, UT · BUILD · RIDE · REPEAT</p>
+      </div>
+    </div>
+
+    <div class="corner conditions">
+      <b id="clock">--:--</b> LOCAL<br>
+      MT. ELLERY IS <b>OPEN</b><br>
+      <span data-snow-wrap hidden><span class="snow" data-snow="short"></span></span>
+    </div>
+
+    <div class="corner legend">
+      <h2>TRAIL DIFFICULTY</h2>
+      <div><svg viewBox="0 0 22 16"><circle class="sym-green" cx="8" cy="8" r="6"/></svg>EASIEST</div>
+      <div><svg viewBox="0 0 22 16"><rect class="sym-blue" x="2" y="2" width="12" height="12"/></svg>MORE DIFFICULT</div>
+      <div><svg viewBox="0 0 22 16"><path class="sym-black" d="M8 1 L15 8 L8 15 L1 8Z"/></svg>MOST DIFFICULT</div>
+      <div><svg viewBox="0 0 22 16"><path class="sym-black" d="M6 2 L11 8 L6 14 L1 8Z M16 2 L21 8 L16 14 L11 8Z"/></svg>EXPERTS ONLY</div>
+      <p class="groom">GROOMING REPORT · <b id="now"></b></p>
+    </div>
+
+    <div class="corner credit">40.7608° N · 111.8910° W<br>HOVER A RUN · CLICK TO DROP IN</div>
+  </main>
+
+  <section class="lodge-board" id="snow" data-snow-wrap hidden aria-label="Snow report">
+    <div class="snow-head"><span><b>❄ BASE LODGE · SNOW REPORT</b></span>
+      <span class="snow-switch" role="group" aria-label="Snow totals"><button type="button" data-snow-mode="day">24 HR</button><button type="button" data-snow-mode="week">7 DAY</button><button type="button" data-snow-mode="season">SEASON</button></span></div>
+    <div data-snow-boards></div>
+  </section>
+  <footer><span>MT. ELLERY · SALT LAKE CITY, UT</span><span>© <span id="year"></span></span></footer>
+
+  <script src="../assets/links.js?v=1"></script>
+  <script>
+    const NOW = "Building in SLC · Waiting on snow";
+    document.getElementById("now").textContent = NOW.toUpperCase();
+    document.getElementById("year").textContent = new Date().getFullYear();
+    const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Denver", hour: "numeric", minute: "2-digit" });
+    const clock = document.getElementById("clock");
+    const tick = () => { clock.textContent = fmt.format(new Date()); };
+    tick(); setInterval(tick, 15000);
+
+    // ============================================================
+    //  The mountain. Everything is drawn from these numbers (viewBox is 1600 x 900).
+    // ============================================================
+    const NS = "http://www.w3.org/2000/svg";
+    const BASE_Y = 792;
+    const RIDGE = [[0, 792], [0, 770], [120, 712], [250, 590], [370, 470], [470, 410], [560, 448], [660, 318], [780, 168],
+      [860, 214], [960, 296], [1060, 256], [1170, 318], [1300, 474], [1440, 650], [1600, 748], [1600, 792]];
+
+    // Runs: one per link (ids match assets/links.js). Path = the line down the mountain; label = where the name sits.
+    const RUNS = [
+      { id: "linkedin",  level: "double", path: "M780 172 C772 290 818 400 772 520 S730 690 770 790", label: [752, 370, "end"], tag: "EXPERTS ONLY · SUITS REQUIRED" },
+      { id: "x",         level: "blue",   path: "M960 300 C944 400 1012 470 968 580 S904 720 888 790", label: [930, 520, "end"], tag: "CAN GET CHOPPY" },
+      { id: "instagram", level: "green",  path: "M470 414 C520 500 438 560 520 636 S640 726 700 790", label: [540, 520, "start"], tag: "EASY RIDING · GREAT VIEWS" },
+      { id: "facebook",  level: "green",  path: "M250 594 C318 646 276 704 410 738 S560 770 630 790", label: [180, 680, "start"], tag: "THE FAMILY RUN" },
+    ];
+    // Lifts: from the base up to the ridge
+    const LIFTS = [
+      { name: "Projects Lift", status: "CLOSED · OPENING SOON", from: [1110, 790], to: [1062, 262], closed: true },
+      { name: "Other Looks Express", status: "OPEN · OTHER VERSIONS OF THIS SITE", from: [1310, 790], to: [1246, 410], href: "../gallery/" },
+    ];
+
+    const el = (tag, attrs, parent) => {
+      const n = document.createElementNS(NS, tag);
+      for (const k in attrs) n.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(n);
+      return n;
+    };
+    const $ = id => document.getElementById(id);
+
+    // Seeded random, so the trees land in the same place every visit
+    let seed = 1818;
+    const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+
+    // Ridge outline
+    $("ridge").setAttribute("d", "M" + RIDGE.map(p => p.join(" ")).join(" L") + "Z");
+    const ridgeY = x => {
+      for (let i = 1; i < RIDGE.length; i++) {
+        const [x0, y0] = RIDGE[i - 1], [x1, y1] = RIDGE[i];
+        if (x >= x0 && x <= x1 && x1 > x0) return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+      }
+      return BASE_Y;
+    };
+    const slope = x => ridgeY(x + 2) - ridgeY(x - 2);
+
+    // Shading: short fall lines on the shady (right-facing) slopes
+    for (let x = 10; x < 1590; x += 7) {
+      if (slope(x) <= 0) continue;
+      const y = ridgeY(x) + 3, len = 26 + rand() * 70;
+      el("line", { x1: x, y1: y, x2: x - len * .28, y2: Math.min(BASE_Y - 4, y + len) }, $("hatchFront"));
+    }
+
+    // Runs (drawn first so trees can stay off them)
+    const runPts = [];
+    RUNS.forEach(r => {
+      const link = TE.links.find(l => l.id === r.id);
+      const a = el("a", { class: "run", "data-id": r.id, href: link.url, target: "_blank", rel: "noopener", "aria-label": `${link.name}, ${link.handle}` }, $("runs"));
+      el("path", { class: "hit", d: r.path }, a);
+      const line = el("path", { class: "line", d: r.path }, a);
+      el("path", { class: "lit", d: r.path, pathLength: 1 }, a);
+      const L = line.getTotalLength();
+      for (let s = 0; s <= L; s += 10) { const p = line.getPointAtLength(s); runPts.push([p.x, p.y]); }
+
+      // Label: symbol, name, handle, and a little joke on hover
+      const [lx, ly, anchor] = r.label, g = el("g", {}, a);
+      const name = el("text", { class: "name", x: lx, y: ly, "text-anchor": anchor }, g); name.textContent = link.name;
+      const handle = el("text", { class: "handle", x: lx, y: ly + 20, "text-anchor": anchor }, g); handle.textContent = link.handle + " ↗";
+      const tag = el("text", { class: "tag", x: lx, y: ly + 38, "text-anchor": anchor }, g); tag.textContent = r.tag;
+      const w = name.getComputedTextLength(), sx = anchor === "end" ? lx - w - 26 : lx - 26, sy = ly - 14;
+      symbol(r.level, sx + 10, sy, g);
+      // Small symbol at the top of the run too, like a real map
+      const top = line.getPointAtLength(0);
+      symbol(r.level, top.x, top.y - 16, a, .7);
+
+      // Click: a skier drops in, then the link opens
+      a.addEventListener("click", e => {
+        if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        e.preventDefault();
+        const dot = el("circle", { class: "skier", r: 6 }, $("runs"));
+        const t0 = performance.now(), dur = 520;
+        (function go(now) {
+          const p = Math.min(1, (now - t0) / dur), e2 = p * p; // speeds up on the way down
+          const pt = line.getPointAtLength(L * e2);
+          dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+          if (p < 1) requestAnimationFrame(go);
+          else { window.open(link.url, "_blank", "noopener"); dot.remove(); }
+        })(t0);
+      });
+    });
+
+    function symbol(level, x, y, parent, scale = 1) {
+      const g = el("g", { transform: `translate(${x} ${y}) scale(${scale})` }, parent);
+      if (level === "green") el("circle", { class: "sym-green", r: 9 }, g);
+      if (level === "blue") el("rect", { class: "sym-blue", x: -8.5, y: -8.5, width: 17, height: 17 }, g);
+      if (level === "black") el("path", { class: "sym-black", d: "M0 -10 L10 0 L0 10 L-10 0Z" }, g);
+      if (level === "double") el("path", { class: "sym-black", d: "M-7 -10 L1 0 L-7 10 L-15 0Z M9 -10 L17 0 L9 10 L1 0Z" }, g);
+    }
+
+    // Lifts: a cable with towers
+    LIFTS.forEach(l => {
+      const g = l.href ? el("a", { class: "lift open", href: l.href, "aria-label": `${l.name} (other versions of this site)` }, $("lifts"))
+                       : el("g", { class: "lift closed", "aria-label": `${l.name}, ${l.status}` }, $("lifts"));
+      const [x0, y0] = l.from, [x1, y1] = l.to, len = Math.hypot(x1 - x0, y1 - y0);
+      const ux = (x1 - x0) / len, uy = (y1 - y0) / len;
+      el("line", { class: "cable", x1: x0, y1: y0, x2: x1, y2: y1 }, g);
+      el("line", { class: "hit", x1: x0, y1: y0, x2: x1, y2: y1, stroke: "transparent", "stroke-width": 20 }, g);
+      for (let s = 0; s <= len; s += 64) {
+        const cx = x0 + ux * s, cy = y0 + uy * s;
+        el("line", { class: "tower", x1: cx - uy * 7, y1: cy + ux * 7, x2: cx + uy * 7, y2: cy - ux * 7 }, g);
+      }
+      // Label near the top of the lift
+      const tx = x1 + 18, ty = y1 + 116;
+      const n = el("text", { class: "lname", x: tx, y: ty }, g); n.textContent = l.name;
+      const s = el("text", { class: "status", x: tx, y: ty + 16 }, g); s.textContent = l.status;
+      for (let d = 0; d < len; d += 10) runPts.push([x0 + ux * d, y0 + uy * d]);
+    });
+
+    // Trees: little triangles below the treeline, kept off the runs and lifts
+    for (let i = 0; i < 2600; i++) {
+      const x = 20 + rand() * 1560, y = 300 + rand() * 480, top = ridgeY(x);
+      if (y < top + 70 || y > BASE_Y - 10) continue;
+      if (y < 470 && rand() < .7) continue; // thinner up high
+      if (runPts.some(([px, py]) => Math.abs(px - x) < 20 && Math.abs(py - y) < 20)) continue;
+      const s = 2.5 + rand() * 2.5;
+      el("path", { d: `M${x} ${y - s * 1.8} L${x + s} ${y} L${x - s} ${y}Z` }, $("trees"));
+    }
+
+    // Summit marker
+    const peak = el("g", { class: "peak" }, $("base"));
+    el("circle", { cx: 780, cy: 168, r: 3 }, peak);
+    const pt = el("text", { x: 796, y: 150 }, peak); pt.textContent = "ELLERY PEAK · 10,518 FT";
+
+    // Base area: lodge (snow report), ticket window (Venmo), you are here
+    const venmo = TE.links.find(l => l.id === "venmo");
+    const base = $("base");
+    const lodge = el("a", { class: "base-link", href: "#snow", "aria-label": "Base lodge: snow report" }, base);
+    const lg = el("g", { class: "lodge", transform: "translate(800 760)" }, lodge);
+    el("path", { d: "M-34 0 L0 -26 L34 0Z" }, lg);
+    el("rect", { x: -26, y: 0, width: 52, height: 30 }, lg);
+    el("rect", { x: -6, y: 12, width: 12, height: 18 }, lg);
+    const ln = el("text", { class: "bname", x: 800, y: 822, "text-anchor": "middle" }, lodge); ln.textContent = "Base Lodge";
+    const ls = el("text", { class: "lbl", x: 800, y: 840, "text-anchor": "middle" }, lodge); ls.textContent = "SNOW REPORT ↓";
+
+    const tw = el("a", { class: "base-link", href: venmo.url, target: "_blank", rel: "noopener", "aria-label": `Venmo, ${venmo.handle}` }, base);
+    const tg = el("g", { class: "lodge", transform: "translate(990 772)" }, tw);
+    el("rect", { x: -16, y: 0, width: 32, height: 20 }, tg);
+    el("rect", { x: -8, y: 5, width: 16, height: 8 }, tg);
+    const tn = el("text", { class: "bname", x: 990, y: 822, "text-anchor": "middle" }, tw); tn.textContent = "Ticket Window";
+    const ts = el("text", { class: "lbl", x: 990, y: 840, "text-anchor": "middle" }, tw); ts.textContent = "VENMO " + venmo.handle.toUpperCase() + " ↗";
+
+    const you = el("g", { class: "you", transform: "translate(690 812)" }, base);
+    el("circle", { class: "ring", r: 6 }, you);
+    el("circle", { r: 5 }, you);
+    const yt = el("text", { x: -14, y: 4, "text-anchor": "end" }, you); yt.textContent = "YOU ARE HERE";
+  </script>
+  <script src="../assets/snow.js?v=19"></script>
+</body>
+</html>
