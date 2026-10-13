@@ -90,20 +90,37 @@
     })(last);
   }
 
-  // Keep the last good numbers so a missed refresh (e.g. the free service being busy) never blanks a coin
-  let lastCoins = null, lastTotal = null, retried = false;
+  // Keep the last good numbers so a missed refresh (e.g. the free service being busy) never blanks a coin.
+  // They're also remembered in this browser for up to an hour, so the band shows up right away on the next visit
+  // (even if CoinGecko is busy), and the live numbers replace them as soon as they arrive.
+  const CACHE = "te-crypto", CACHE_MAX_AGE = 60 * 60 * 1000;
+  let lastCoins = null, lastTotal = null, retried = false, misses = 0;
+  const showAll = () => {
+    const all = Object.assign({}, lastCoins, lastTotal ? { total: lastTotal } : {});
+    document.querySelectorAll("[data-crypto-ticker]").forEach(el => render(el, all));
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem(CACHE) || "null");
+    if (saved && Date.now() - saved.t < CACHE_MAX_AGE && saved.coins) { lastCoins = saved.coins; lastTotal = saved.total; showAll(); }
+  } catch (e) {}
   function update() {
     const getJSON = u => fetch(u).then(r => r.ok ? r.json() : Promise.reject(r.status));
     Promise.all([getJSON(marketsUrl).catch(() => null), getJSON(globalUrl).catch(() => null)])
       .then(([markets, g]) => {
-        if (Array.isArray(markets) && markets.length) {
+        const fresh = Array.isArray(markets) && markets.length;
+        if (fresh) {
           lastCoins = {};
           markets.forEach(m => { lastCoins[m.id] = { price: m.current_price, change: m.price_change_percentage_24h, image: m.image }; });
         }
         if (g && g.data) lastTotal = { price: g.data.total_market_cap.usd, change: g.data.market_cap_change_percentage_24h_usd, image: TOTAL_ICON };
+        // Prices didn't come through: try again soon (15s, 30s, 60s) instead of waiting for the next 2-minute refresh
+        if (!fresh && misses < 3) setTimeout(update, 15000 * Math.pow(2, misses++));
+        if (fresh) {
+          misses = 0;
+          try { localStorage.setItem(CACHE, JSON.stringify({ t: Date.now(), coins: lastCoins, total: lastTotal })); } catch (e) {}
+        }
         if (!lastCoins) return;
-        const all = Object.assign({}, lastCoins, lastTotal ? { total: lastTotal } : {});
-        document.querySelectorAll("[data-crypto-ticker]").forEach(el => render(el, all));
+        showAll();
         if (!lastTotal && !retried) { retried = true; setTimeout(update, 15000); } // try TOTAL again soon if it was missed
       });
   }
