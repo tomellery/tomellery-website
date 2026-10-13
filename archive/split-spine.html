@@ -272,16 +272,52 @@
         max-width: none; margin: 0; min-height: 100vh; padding: 28px var(--room) 28px calc(var(--spine, 200px) + var(--room)); }
       .crypto-ribbon { margin-left: 0; margin-right: 0; }
     }
-    /* Wide screens: links on the left, snow report on the right, crypto ticker across the bottom */
+    /* ----- Right side, organized (computers) ----- */
+    @media (min-width: 1024px) {
+      /* Header: one clean line. The spine is the logo, so the TE badge steps aside */
+      .wrap > .bar { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+      .bar .badge { display: none; }
+      .bar .right-group { flex: 1; justify-content: space-between; }
+      .bar .right { display: flex; align-items: baseline; gap: 12px; text-align: left; line-height: 1; }
+      .bar .right br { display: none; }
+      .bar .right [data-snow-wrap]:not([hidden]) { display: inline-flex; align-items: baseline; gap: 12px; }
+      .bar .right [data-snow-wrap]::before { content: "·"; color: var(--faint); }
+
+      /* Intro: full width, a size up */
+      .wrap > .rule { margin: 40px 0 16px; }
+      .bio { font-size: 16px; letter-spacing: .2em; }
+      .now { font-size: 13px; margin-top: 12px; }
+
+      /* Matching column headings: FIND ME over the links, SNOW REPORT over the board */
+      .wrap > ul, .wrap > .snow-board { margin-top: 48px; }
+      ul#links { border-top: 0; }
+      ul#links::before { content: "FIND ME"; display: flex; align-items: center; height: 34px; border-bottom: 1px solid var(--line);
+        font-size: 10px; font-weight: 700; letter-spacing: .22em; color: var(--white); }
+      .snow-head { height: 34px; padding-bottom: 0; }
+      a.row { padding: 19px 10px 17px; }
+      .name { font-size: 40px; }
+
+      /* Snow: both groups stacked (no swiping), cells a little tighter */
+      .snow-pages { display: block; overflow: visible; }
+      .snow-dots { display: none; }
+      .snow-page h3 { padding-top: 14px; }
+      .snow-cell { padding: 7px 4px 6px; }
+      .snow-cell b { font-size: 22px; line-height: 1.1; }
+      .snow-page h3 { padding-bottom: 2px; }
+
+      .wrap > .crypto-ribbon { margin-top: 48px; }
+      footer { padding-top: 22px; }
+    }
+    /* Wide screens: links and snow side by side, everything else full width */
     @media (min-width: 1280px) {
-      .wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 64px; align-content: start; }
-      .wrap > .bar, .wrap > .crypto-ribbon, .wrap > footer { grid-column: 1 / -1; }
-      .wrap > .rule, .wrap > .bio, .wrap > .now, .wrap > ul { grid-column: 1; }
-      .wrap > .bar { margin-bottom: 40px; }
-      .wrap > .rule { margin-top: 0; }
-      .wrap > .snow-board { grid-column: 2; grid-row: 2 / span 4; align-self: start; margin-top: 0; }
-      .wrap > .crypto-ribbon { margin-top: 40px; }
-      footer { padding-top: 40px; }
+      .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 64px; align-content: start; }
+      .wrap > * { grid-column: 1 / -1; }
+      .wrap > ul { grid-column: 1; grid-row: 5; }
+      .wrap > .snow-board { grid-column: 2; grid-row: 5; align-self: start; }
+      /* The link rows stretch so both columns end at the same line */
+      .wrap > ul { align-self: stretch; display: flex; flex-direction: column; }
+      .wrap > ul > li { flex: 1; display: flex; }
+      .wrap > ul a.row { flex: 1; align-content: center; }
     }
   </style>
 </head>

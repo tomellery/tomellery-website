@@ -274,6 +274,9 @@
       }
       .wrap > .rule { display: none; }
       .bio { margin-top: 56px; }
+      .draft-ctl { position: fixed; right: 16px; bottom: 16px; z-index: 60; display: flex; align-items: center; gap: 4px; background: #ffd400; color: #0d0d0d; padding: 4px 4px 4px 10px; font: 700 10px var(--mono); letter-spacing: .14em; }
+      .draft-ctl button { font: inherit; border: 0; background: #0d0d0d; color: #ffd400; padding: 5px 8px; cursor: pointer; }
+      .draft-ctl button[aria-pressed="true"] { background: #ff5a1f; color: #0d0d0d; }
       .crypto-ribbon { margin-left: 0; margin-right: 0; }
     }
   </style>
@@ -398,6 +401,7 @@
       h1.querySelectorAll(".line").forEach(l => box.appendChild(l));
       h1.appendChild(box);
       const words = [h1.querySelector(".tom"), h1.querySelector(".ellery")];
+      let tomShare = .8;
       const textWidth = el => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width; };
       function fit() {
         words.forEach(w => w.style.fontSize = ""); box.style.transform = "";
@@ -405,12 +409,24 @@
         const cs = getComputedStyle(h1);
         const W = h1.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
         const H = h1.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-        words.forEach(w => { w.style.fontSize = "100px"; w.style.fontSize = (100 * W / textWidth(w)).toFixed(2) + "px"; });
-        box.style.transform = `scaleY(${Math.min(1.4, Math.max(1, H / box.offsetHeight)).toFixed(3)})`;
+        // ELLERY spans the full width; TOM spans a share of it (so it doesn't shout over the rest)
+        words.forEach((w, i) => { w.style.fontSize = "100px"; w.style.fontSize = (100 * W * (i ? 1 : tomShare) / textWidth(w)).toFixed(2) + "px"; });
+        box.style.transform = `scaleY(${Math.min(1.2, Math.max(1, H / box.offsetHeight)).toFixed(3)})`;
       }
       fit();
       document.fonts && document.fonts.ready.then(fit);
       addEventListener("resize", fit);
+
+      // DRAFT ONLY: try different TOM sizes
+      if (mq.matches) {
+        const ctl = document.createElement("div");
+        ctl.className = "draft-ctl";
+        ctl.innerHTML = "<span>DRAFT · TOM</span>" + [.7, .8, .9, 1].map(v => `<button type=\"button\" data-v=\"${v}\">${Math.round(v * 100)}%</button>`).join("");
+        document.body.appendChild(ctl);
+        const mark = () => ctl.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === tomShare));
+        ctl.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { tomShare = +b.dataset.v; mark(); fit(); }));
+        mark();
+      }
     })();
   </script>
 </body>
