@@ -69,9 +69,10 @@
   loadHi("runner", n => { if (n > hi) hi = n; });
 
   const player = { x: 40, y: 0, vy: 0, duck: false, w: 18 };
-  let state = "ready", obstacles, dots, speed, score, nextGap, last;
+  let state = "ready", obstacles, dots, speed, score, nextGap, last, newHiAt = 0;
 
   function reset() {
+    newHiAt = 0;
     player.y = GROUND; player.vy = 0; player.duck = false;
     obstacles = []; speed = 300; score = 0; nextGap = 400;
     dots = Array.from({ length: 24 }, () => ({ x: Math.random() * W, y: GROUND + 6 + Math.random() * 18 }));
@@ -119,7 +120,10 @@
       if (p.x + 3 < o.x + o.w && p.x + p.w - 3 > o.x && p.y + 3 < o.y + o.h && p.y + p.h > o.y + 2) {
         state = "over";
         const s = Math.floor(score);
-        if (s > hi) { hi = s; saveHi("runner", s, n => { if (n > hi) hi = n; }); }
+        if (s > hi) {
+          hi = s; newHiAt = performance.now();
+          saveHi("runner", s, n => { if (n > hi) { hi = n; newHiAt = 0; } });
+        }
       }
     }
   }
@@ -164,6 +168,7 @@
     if (state === "over") {
       ctx.fillText("ERROR: website crashed 💥", W / 2, H / 2 - 18);
       ctx.fillStyle = DIM; ctx.fillText("press SPACE or tap to reboot", W / 2, H / 2 + 4);
+      if (newHiAt) drawNewHi(ctx, W / 2, H / 2 - 48, newHiAt);
     }
     ctx.textAlign = "left";
   }
