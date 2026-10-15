@@ -1,17 +1,10 @@
 // Crypto ticker band, like a stock ticker. Fills any element with data-crypto-ticker.
-// Prices, 24h change and coin logos from CoinGecko (free, no key), refreshed every 15 minutes.
-// If it can't be reached, the band stays hidden; a missed refresh keeps the last good numbers.
+// Prices, 24h change and coin logos come from CoinGecko by way of the site's Cloudflare Worker (worker/scores.js),
+// which asks CoinGecko every 15 minutes and hands every visitor the same saved answer.
+// The coin list is in assets/feeds.json. If prices can't be reached, the band stays hidden.
 // Swipe or drag it to scroll; let go and it drifts again. Hover (computers) pauses it.
 (function () {
-  // To add a coin: [ticker symbol, CoinGecko id]. "TOTAL" = total crypto market cap (from CoinGecko's global stats).
-  // The first few are what people see when they reach the band, so the favorites go first.
-  const COINS = [
-    ["LINK", "chainlink"], ["TOTAL", "total"], ["BTC", "bitcoin"], ["ETH", "ethereum"],
-    ["SOL", "solana"], ["SUI", "sui"], ["LTC", "litecoin"], ["DOGE", "dogecoin"], ["WIF", "dogwifcoin"], ["BONK", "bonk"],
-  ];
-  const ids = COINS.map(c => c[1]).filter(id => id !== "total").join(",");
-  const marketsUrl = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
-  const globalUrl = "https://api.coingecko.com/api/v3/global";
+  const API = "https://tomellery-scores.tomellery1818.workers.dev/crypto";
   // Icon for TOTAL (a small stack of coins)
   const TOTAL_ICON = "data:image/svg+xml;utf8," + encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g fill="#ff5a1f" stroke="#0d0d0d" stroke-width=".8">
@@ -31,11 +24,11 @@
     : n >= 0.0001 ? n.toFixed(4)
     : tiny(n));
 
-  function render(el, d) {
-    const items = COINS.filter(([, id]) => d[id]).map(([sym, id]) => {
-      const c = d[id], ch = c.change || 0, dir = ch >= 0 ? "up" : "down";
-      const logo = c.image ? `<img src="${c.image}" alt="" width="14" height="14" decoding="async">` : "";
-      return `<div class="coin"><small>${logo}${sym}</small><b>${price(c.price)}</b><em class="${dir}">${ch >= 0 ? "▲" : "▼"}${Math.abs(ch).toFixed(1)}%</em></div>`;
+  function render(el, coins) {
+    const items = coins.map(c => {
+      const ch = c.change || 0, dir = ch >= 0 ? "up" : "down", image = c.id === "total" ? TOTAL_ICON : c.image;
+      const logo = image ? `<img src="${image}" alt="" width="14" height="14" decoding="async">` : "";
+      return `<div class="coin"><small>${logo}${c.sym}</small><b>${price(c.price)}</b><em class="${dir}">${ch >= 0 ? "▲" : "▼"}${Math.abs(ch).toFixed(1)}%</em></div>`;
     }).join("");
     if (!items) return;
     const keep = el.querySelector(".crypto-track") ? el.scrollLeft : 0;
@@ -90,42 +83,28 @@
     })(last);
   }
 
-  // Keep the last good numbers so a missed refresh (e.g. the free service being busy) never blanks a coin.
-  // They're also remembered in this browser for up to an hour, so the band shows up right away on the next visit
-  // (even if CoinGecko is busy), and the live numbers replace them as soon as they arrive.
+  // The last prices are remembered in this browser for up to an hour, so the band shows up right away on the next visit,
+  // and the Worker's numbers replace them as soon as they arrive. A missed refresh keeps the last good numbers.
   const CACHE = "te-crypto", CACHE_MAX_AGE = 60 * 60 * 1000;
-  const REFRESH = 15 * 60 * 1000; // new prices every 15 minutes
-  let lastCoins = null, lastTotal = null, retried = false, misses = 0, savedAge = Infinity;
-  const showAll = () => {
-    const all = Object.assign({}, lastCoins, lastTotal ? { total: lastTotal } : {});
-    document.querySelectorAll("[data-crypto-ticker]").forEach(el => render(el, all));
-  };
+  const REFRESH = 15 * 60 * 1000; // the Worker gets new prices every 15 minutes
+  let misses = 0;
+  const showAll = coins => document.querySelectorAll("[data-crypto-ticker]").forEach(el => render(el, coins));
   try {
     const saved = JSON.parse(localStorage.getItem(CACHE) || "null");
-    if (saved && Date.now() - saved.t < CACHE_MAX_AGE && saved.coins) { lastCoins = saved.coins; lastTotal = saved.total; savedAge = Date.now() - saved.t; showAll(); }
+    if (saved && Date.now() - saved.t < CACHE_MAX_AGE && Array.isArray(saved.coins)) showAll(saved.coins);
   } catch (e) {}
   function update() {
-    const getJSON = u => fetch(u).then(r => r.ok ? r.json() : Promise.reject(r.status));
-    Promise.all([getJSON(marketsUrl).catch(() => null), getJSON(globalUrl).catch(() => null)])
-      .then(([markets, g]) => {
-        const fresh = Array.isArray(markets) && markets.length;
-        if (fresh) {
-          lastCoins = {};
-          markets.forEach(m => { lastCoins[m.id] = { price: m.current_price, change: m.price_change_percentage_24h, image: m.image }; });
-        }
-        if (g && g.data) lastTotal = { price: g.data.total_market_cap.usd, change: g.data.market_cap_change_percentage_24h_usd, image: TOTAL_ICON };
-        // Prices didn't come through: try again soon (3s, 10s, 30s) instead of waiting for the next refresh
-        if (!fresh && misses < 3) setTimeout(update, [3000, 10000, 30000][misses++]);
-        if (fresh) {
-          misses = 0;
-          try { localStorage.setItem(CACHE, JSON.stringify({ t: Date.now(), coins: lastCoins, total: lastTotal })); } catch (e) {}
-        }
-        if (!lastCoins) return;
-        showAll();
-        if (!lastTotal && !retried) { retried = true; setTimeout(update, 15000); } // try TOTAL again soon if it was missed
-      });
+    fetch(API)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(feed => {
+        if (!feed.coins || !feed.coins.length) return Promise.reject("empty");
+        misses = 0;
+        try { localStorage.setItem(CACHE, JSON.stringify({ t: feed.t, coins: feed.coins })); } catch (e) {}
+        showAll(feed.coins);
+      })
+      // Didn't come through: try again soon (3s, 10s, 30s) instead of waiting for the next refresh
+      .catch(() => { if (misses < 3) setTimeout(update, [3000, 10000, 30000][misses++]); });
   }
-  // Prices this browser got in the last 15 minutes are still current: wait until they're due instead of asking again
-  const start = () => { update(); setInterval(update, REFRESH); };
-  if (savedAge < REFRESH) setTimeout(start, REFRESH - savedAge); else start();
+  update();
+  setInterval(update, REFRESH);
 })();
