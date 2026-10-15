@@ -36,7 +36,9 @@ function reply(req, body, status = 200, cache = "no-store") {
   });
 }
 
-const getJSON = (url, init) => fetch(url, init).then(r => r.ok ? r.json() : Promise.reject(new Error(url + " → " + r.status)));
+// Workers send no User-Agent by default, and some services (CoinGecko) turn those requests away
+const HEADERS = { "User-Agent": "tomellery.com (personal site)", "Accept": "application/json" };
+const getJSON = url => fetch(url, { headers: HEADERS }).then(r => r.ok ? r.json() : Promise.reject(new Error(url.split("?")[0] + " → " + r.status)));
 const config = () => getJSON(CONFIG_URL + "?t=" + Date.now());
 
 // ===== Crypto: prices, 24h change and logos from CoinGecko (free, no key) =====
@@ -44,11 +46,12 @@ async function refreshCrypto(env) {
   const { coins } = await config();
   const ids = coins.map(c => c[1]).filter(id => id !== "total").join(",");
   const old = JSON.parse(await env.SCORES.get("feed:crypto") || "null");
+  let why = "";
   const [markets, global] = await Promise.all([
-    getJSON(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`).catch(() => null),
+    getJSON(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`).catch(e => { why = e.message; return null; }),
     getJSON("https://api.coingecko.com/api/v3/global").catch(() => null),
   ]);
-  if (!Array.isArray(markets) || !markets.length) throw new Error("CoinGecko prices didn't come through");
+  if (!Array.isArray(markets) || !markets.length) throw new Error("CoinGecko prices didn't come through: " + why);
   const byId = Object.fromEntries(markets.map(m => [m.id, { price: m.current_price, change: m.price_change_percentage_24h, image: m.image }]));
   if (global && global.data) byId.total = { price: global.data.total_market_cap.usd, change: global.data.market_cap_change_percentage_24h_usd };
   else if (old) { const t = old.coins.find(c => c.id === "total"); if (t) byId.total = t; }   // keep the last TOTAL if it was missed
@@ -137,7 +140,7 @@ async function feed(req, env, ctx, key, refresh) {
   const saved = await env.SCORES.get(key);
   if (!saved) {
     try { return reply(req, await refresh(env), 200, "public, max-age=60"); }
-    catch (e) { return reply(req, { error: "not available yet" }, 503); }
+    catch (e) { return reply(req, { error: "not available yet", why: e.message }, 503); }
   }
   if (Date.now() - JSON.parse(saved).t > FRESH + 5 * 60 * 1000) ctx.waitUntil(refresh(env).catch(() => {}));
   return reply(req, saved, 200, "public, max-age=60");
