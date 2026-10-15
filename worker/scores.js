@@ -9,6 +9,7 @@
   //
   // The coin and mountain lists live on the site in assets/feeds.json, so they're edited in one place.
   
+  const VERSION = 4;   // bump when the code changes, so it's easy to tell which copy Cloudflare is running
   const CONFIG_URL = "https://tomellery.com/assets/feeds.json";
   const FRESH = 15 * 60 * 1000;            // refresh prices and snow this often
   const SEASON_FRESH = 60 * 60 * 1000;     // snow sensors post once a day, so hourly is plenty
@@ -38,8 +39,10 @@
   
   // Workers send no User-Agent by default, and some services turn those requests away
   const HEADERS = { "User-Agent": "tomellery.com (personal site)", "Accept": "application/json" };
+  // A failed request says which address, the status, and the start of the reply (to tell who turned it away)
   const getJSON = (url, extra = {}) => fetch(url, { headers: { ...HEADERS, ...extra } })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error(url.split("?")[0] + " → " + r.status)));
+    .then(async r => r.ok ? r.json() : Promise.reject(new Error(url.split("?")[0] + " → " + r.status + " "
+      + (await r.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160))));
   const config = () => getJSON(CONFIG_URL + "?t=" + Date.now());
 
   // ===== Crypto: prices, 24h change and logos from CoinGecko =====
@@ -50,11 +53,13 @@
     const { coins } = await config();
     const ids = coins.map(c => c[1]).filter(id => id !== "total").join(",");
     const old = JSON.parse(await env.SCORES.get("feed:crypto") || "null");
+    // The key goes both as a header and in the address; CoinGecko accepts either
     const key = env.COINGECKO_KEY ? { "x-cg-demo-api-key": env.COINGECKO_KEY } : {};
-    let why = env.COINGECKO_KEY ? "" : "(no COINGECKO_KEY secret set) ";
+    const q = env.COINGECKO_KEY ? "&x_cg_demo_api_key=" + encodeURIComponent(env.COINGECKO_KEY) : "";
+    let why = env.COINGECKO_KEY ? "(key set) " : "(no COINGECKO_KEY secret set) ";
     const [markets, global] = await Promise.all([
-      getJSON(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`, key).catch(e => { why += e.message; return null; }),
-      getJSON("https://api.coingecko.com/api/v3/global", key).catch(() => null),
+      getJSON(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h${q}`, key).catch(e => { why += e.message; return null; }),
+      getJSON("https://api.coingecko.com/api/v3/global?" + q.slice(1), key).catch(() => null),
     ]);
     if (!Array.isArray(markets) || !markets.length) throw new Error("CoinGecko prices didn't come through: " + why);
     const byId = Object.fromEntries(markets.map(m => [m.id, { price: m.current_price, change: m.price_change_percentage_24h, image: m.image }]));
@@ -145,7 +150,7 @@
     const saved = await env.SCORES.get(key);
     if (!saved) {
       try { return reply(req, await refresh(env), 200, "public, max-age=60"); }
-      catch (e) { return reply(req, { error: "not available yet", why: e.message }, 503); }
+      catch (e) { return reply(req, { error: "not available yet", why: e.message, v: VERSION }, 503); }
     }
     if (Date.now() - JSON.parse(saved).t > FRESH + 5 * 60 * 1000) ctx.waitUntil(refresh(env).catch(() => {}));
     return reply(req, saved, 200, "public, max-age=60");
@@ -156,6 +161,7 @@
       if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
       const path = new URL(req.url).pathname;
   
+      if (req.method === "GET" && path === "/version") return reply(req, { v: VERSION });
       if (req.method === "GET" && path === "/crypto") return feed(req, env, ctx, "feed:crypto", refreshCrypto);
       if (req.method === "GET" && path === "/snow") return feed(req, env, ctx, "feed:snow", refreshSnow);
   
