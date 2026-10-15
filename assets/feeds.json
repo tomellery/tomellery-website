@@ -1,0 +1,29 @@
+{
+  "_how": "The lists behind the crypto band and the snow boards. The Cloudflare Worker (worker/scores.js) reads this file, so changes show up on the site within about 15 minutes of being pushed.",
+  "_coins": "[ticker symbol, CoinGecko id]. TOTAL = total crypto market cap. The first few are what people see first, so favorites go first.",
+  "coins": [
+    ["LINK", "chainlink"], ["TOTAL", "total"], ["BTC", "bitcoin"], ["ETH", "ethereum"],
+    ["SOL", "solana"], ["SUI", "sui"], ["LTC", "litecoin"], ["DOGE", "dogecoin"], ["WIF", "dogwifcoin"], ["BONK", "bonk"]
+  ],
+  "_mountains": "[board, name, short name, state, latitude, longitude, mid-mountain elevation in meters, nearest SNOTEL sensor or null]. Mid-mountain, not the base: early and late in the season the bases often get rain while the slopes above get snow. Each board shows up to 9 (a 3x3). Brighton (home mountain) goes first.",
+  "mountains": [
+    ["Utah",    "Brighton",           "Brighton",     "UT", 40.598, -111.583, 2926, "366:UT:SNTL"],
+    ["Utah",    "Solitude",           "Solitude",     "UT", 40.620, -111.592, 2804, "366:UT:SNTL"],
+    ["Utah",    "Alta",               "Alta",         "UT", 40.588, -111.638, 2957, "1308:UT:SNTL"],
+    ["Utah",    "Snowbird",           "Snowbird",     "UT", 40.581, -111.657, 2865, "766:UT:SNTL"],
+    ["Utah",    "Park City",          "Park City",    "UT", 40.651, -111.508, 2560, "814:UT:SNTL"],
+    ["Utah",    "Deer Valley",        "Deer Valley",  "UT", 40.637, -111.478, 2469, "814:UT:SNTL"],
+    ["Utah",    "Snowbasin",          "Snowbasin",    "UT", 41.216, -111.857, 2408, "1300:UT:SNTL"],
+    ["Utah",    "Powder Mountain",    "Powder Mtn",   "UT", 41.379, -111.781, 2500, "1300:UT:SNTL"],
+    ["Utah",    "Sundance",           "Sundance",     "UT", 40.393, -111.588, 2195, "820:UT:SNTL"],
+    ["The OGs", "Bear Mountain",      "Bear Mtn",     "CA", 34.227, -116.860, 2430, null],
+    ["The OGs", "Mammoth Mountain",   "Mammoth",      "CA", 37.651, -119.027, 2896, null],
+    ["The OGs", "Palisades Tahoe",    "Palisades",    "CA", 39.197, -120.235, 2317, "784:CA:SNTL"],
+    ["The OGs", "Big Sky",            "Big Sky",      "MT", 45.286, -111.401, 2713, "590:MT:SNTL"],
+    ["The OGs", "Jackson Hole",       "Jackson Hole", "WY", 43.588, -110.828, 2560, "689:WY:SNTL"],
+    ["The OGs", "Whistler Blackcomb", "Whistler",     "BC", 50.115, -122.948, 1500, null],
+    ["The OGs", "Vail",               "Vail",         "CO", 39.640, -106.374, 2987, "842:CO:SNTL"],
+    ["The OGs", "Telluride",          "Telluride",    "CO", 37.937, -107.812, 3200, "1344:CO:SNTL"],
+    ["The OGs", "Mt. Baker",          "Mt. Baker",    "WA", 48.857, -121.665, 1310, "909:WA:SNTL"]
+  ]
+}
