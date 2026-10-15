@@ -1,5 +1,7 @@
-// Live conditions for the mountains (weather model data from open-meteo.com, free, no key needed).
-// This is mountain weather, not the resorts' official snow reports.
+// Live conditions for the mountains. This is mountain weather, not the resorts' official snow reports.
+// The numbers come ready-made from the site's Cloudflare Worker (worker/scores.js), which refreshes them every 15 minutes:
+// 24h / 7-day snow and temperature from the open-meteo.com weather model, SEASON from SNOTEL snow sensors.
+// The mountain list is in assets/feeds.json.
 //
 //   <span data-snow></span>               -> Brighton, full:  "BRIGHTON · 6″ NEW · 24°F"
 //   <span data-snow="short"></span>       -> Brighton, short: "BRIGHTON · 6″ NEW" or "BRIGHTON · 38°F"
@@ -10,86 +12,7 @@
 //
 // Anything wrapped in data-snow-wrap stays hidden until the data arrives (and if it never does).
 (function () {
-  // To add a mountain: board, name, short name (for small spaces), state, latitude, longitude, mid-mountain elevation in meters.
-  // (Mid-mountain, not the base: early and late in the season the bases often get rain while the slopes above get snow.)
-  // Each board shows up to 9 (a 3x3). Brighton (home mountain) goes first.
-  const MOUNTAINS = [
-    ["Utah",     "Brighton",          "Brighton",     "UT", 40.598, -111.583, 2926],
-    ["Utah",     "Solitude",          "Solitude",     "UT", 40.620, -111.592, 2804],
-    ["Utah",     "Alta",              "Alta",         "UT", 40.588, -111.638, 2957],
-    ["Utah",     "Snowbird",          "Snowbird",     "UT", 40.581, -111.657, 2865],
-    ["Utah",     "Park City",         "Park City",    "UT", 40.651, -111.508, 2560],
-    ["Utah",     "Deer Valley",       "Deer Valley",  "UT", 40.637, -111.478, 2469],
-    ["Utah",     "Snowbasin",         "Snowbasin",    "UT", 41.216, -111.857, 2408],
-    ["Utah",     "Powder Mountain",   "Powder Mtn",   "UT", 41.379, -111.781, 2500],
-    ["Utah",     "Sundance",          "Sundance",     "UT", 40.393, -111.588, 2195],
-    ["The OGs",  "Bear Mountain",     "Bear Mtn",     "CA", 34.227, -116.860, 2430],
-    ["The OGs",  "Mammoth Mountain",  "Mammoth",      "CA", 37.651, -119.027, 2896],
-    ["The OGs",  "Palisades Tahoe",   "Palisades",    "CA", 39.197, -120.235, 2317],
-    ["The OGs",  "Big Sky",           "Big Sky",      "MT", 45.286, -111.401, 2713],
-    ["The OGs",  "Jackson Hole",      "Jackson Hole", "WY", 43.588, -110.828, 2560],
-    ["The OGs",  "Whistler Blackcomb","Whistler",     "BC", 50.115, -122.948, 1500],
-    ["The OGs",  "Vail",              "Vail",         "CO", 39.640, -106.374, 2987],
-    ["The OGs",  "Telluride",         "Telluride",    "CO", 37.937, -107.812, 3200],
-    ["The OGs",  "Mt. Baker",         "Mt. Baker",    "WA", 48.857, -121.665, 1310],
-  ];
-  const [BOARD, NAME, SHORT, STATE, LAT, LON, ELEV] = [0, 1, 2, 3, 4, 5, 6];
-  const col = i => MOUNTAINS.map(m => m[i]).join(",");
-  const url = "https://api.open-meteo.com/v1/forecast"
-    + `?latitude=${col(LAT)}&longitude=${col(LON)}&elevation=${col(ELEV)}`
-    + "&current=temperature_2m,snowfall,weather_code&hourly=snowfall&past_days=7&forecast_days=1"
-    + "&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=auto";
-
-  // New snow over the last 24 hours and the last 7 days, up to the current hour (in each mountain's local time)
-  function summarize(d) {
-    const hour = d.current.time.slice(0, 13);
-    let end = d.hourly.time.findIndex(t => t.slice(0, 13) === hour);
-    if (end === -1) end = d.hourly.time.length - 1;
-    const sum = hours => Math.round(d.hourly.snowfall.slice(Math.max(0, end - hours + 1), end + 1).reduce((a, b) => a + (b || 0), 0));
-    return { inches: sum(24), week: sum(24 * 7), temp: Math.round(d.current.temperature_2m) + "°F" };
-  }
-
-  // ===== Season totals (estimated) from SNOTEL, the government snow sensors at the mountains =====
-  // Weather models badly undercount mountain snow over a season, so SEASON uses real measured precipitation
-  // from the nearest SNOTEL sensor, counting only days cold enough to snow (avg <= 34°F), times a 12:1 snow ratio.
-  // Mountains without a sensor nearby show "—".
-  const SNOTEL = {
-    "Brighton": "366:UT:SNTL", "Solitude": "366:UT:SNTL", "Alta": "1308:UT:SNTL", "Snowbird": "766:UT:SNTL",
-    "Park City": "814:UT:SNTL", "Deer Valley": "814:UT:SNTL", "Snowbasin": "1300:UT:SNTL", "Powder Mountain": "1300:UT:SNTL",
-    "Sundance": "820:UT:SNTL", "Palisades Tahoe": "784:CA:SNTL", "Big Sky": "590:MT:SNTL", "Jackson Hole": "689:WY:SNTL",
-    "Vail": "842:CO:SNTL", "Telluride": "1344:CO:SNTL", "Mt. Baker": "909:WA:SNTL",
-  };
-  const SNOW_RATIO = 12, COLD_F = 34;
-  let season = null;               // inches per mountain (same order as MOUNTAINS), null = no sensor
-  const onSeason = [];             // things to redraw once season numbers arrive
-  (function loadSeason() {
-    const today = new Date(), y = today.getFullYear();
-    const startYear = today.getMonth() >= 9 ? y : y - 1;                 // season starts Oct 1
-    const iso = d => d.toISOString().slice(0, 10);
-    const begin = iso(new Date(Date.UTC(startYear, 8, 30)));             // Sep 30, so Oct 1's increase counts
-    const triplets = [...new Set(Object.values(SNOTEL))];
-    fetch("https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/data?stationTriplets=" + triplets.join(",")
-      + `&elements=PREC,TAVG&duration=DAILY&beginDate=${begin}&endDate=${iso(today)}`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(stations => {
-        const total = {};
-        stations.forEach(st => {
-          const el = {};
-          st.data.forEach(e => { el[e.stationElement.elementCode] = Object.fromEntries(e.values.map(v => [v.date, v.value])); });
-          const P = el.PREC || {}, T = el.TAVG || {}, days = Object.keys(P).sort();
-          let water = 0;
-          for (let i = 1; i < days.length; i++) {
-            const a = P[days[i - 1]], b = P[days[i]], t = T[days[i]];
-            if (a == null || b == null || t == null) continue;
-            if (t <= COLD_F) water += Math.max(0, b - a);
-          }
-          total[st.stationTriplet] = Math.round(water * SNOW_RATIO);
-        });
-        season = MOUNTAINS.map(m => SNOTEL[m[NAME]] in total ? total[SNOTEL[m[NAME]]] : null);
-        onSeason.forEach(fn => fn());
-      })
-      .catch(() => { season = MOUNTAINS.map(() => null); onSeason.forEach(fn => fn()); });
-  })();
+  const API = "https://tomellery-scores.tomellery1818.workers.dev/snow";
 
   // Which number the boards show (default "week"): "day" (big = last 24 hours), "week" (big = last 7 days, "+X TODAY" below)
   // or "season" (big = estimated season total, "+X 7 DAYS" below).
@@ -101,7 +24,6 @@
 
   // ===== Secret: faint snow falls across the page when it's snowing at Brighton right now =====
   // Dark mode only (hidden in light mode, including ?snow). Preview it any time with ?snow in the address (e.g. tomellery.com/?snow).
-  const SNOW_CODES = [71, 73, 75, 77, 85, 86]; // weather codes for snow and snow showers
   const forceSnow = /[?&]snow(=|&|$)/.test(location.search);
   let snowing = false;
   function letItSnow() {
@@ -192,41 +114,39 @@
       requestAnimationFrame(step);
     })(last);
   }
-  const seasonCell = (m, i) => {
-    const v = season ? season[i] : undefined;   // undefined = still loading, null = no sensor nearby
-    // The 7-day number comes from a different source (weather model), so never show a season smaller than it
-    const big = v === undefined ? "…" : v === null ? "—" : Math.max(v, m.week) + "″";
+  const seasonCell = m => {
+    // null = no snow sensor nearby. The 7-day number comes from a different source (weather model),
+    // so never show a season smaller than it.
+    const big = m.season == null ? "—" : Math.max(m.season, m.week) + "″";
     // Orange = fresh: the season number lights up when the mountain got snow this week
     return `
     <div class="snow-cell${m.week > 0 ? " fresh" : ""}">
-      <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
+      <small>${m.short.toUpperCase()}</small>
       <b>${big}</b>
       <em class="today${m.week > 0 ? " fresh" : ""}">+${m.week}″ 7 DAYS</em>
       <span>${m.temp}</span>
     </div>`;
   };
-  const cell = (m, i, view = "day") => view === "season" ? seasonCell(m, i) : view === "week" ? `
+  const cell = (m, view = "day") => view === "season" ? seasonCell(m) : view === "week" ? `
     <div class="snow-cell${m.week > 0 ? " fresh" : ""}">
-      <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
+      <small>${m.short.toUpperCase()}</small>
       <b>${m.week}″</b>
       <em class="today${m.inches > 0 ? " fresh" : ""}">+${m.inches}″ TODAY</em>
       <span>${m.temp}</span>
     </div>` : `
     <div class="snow-cell${m.inches > 0 ? " fresh" : ""}">
-      <small>${MOUNTAINS[i][SHORT].toUpperCase()}</small>
+      <small>${m.short.toUpperCase()}</small>
       <b>${m.inches}″</b>
       <span>${m.temp}</span>
     </div>`;
 
-  fetch(url)
+  fetch(API)
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    .then(list => {
-      const all = Array.isArray(list) ? list : [list];
-      const data = all.map(summarize);
+    .then(feed => {
+      const data = feed.mountains;
 
       // Let it snow on the page only while it's actually snowing at Brighton (first mountain) right now
-      const now = all[0].current;
-      maybeSnow((now.snowfall || 0) > 0 || SNOW_CODES.includes(now.weather_code));
+      maybeSnow(feed.snowingAtHome);
 
       // Brighton readouts
       const b = data[0];
@@ -239,7 +159,7 @@
 
       // Swipeable row of stacked cells that slowly drifts on its own (doubled so the loop is seamless)
       document.querySelectorAll("[data-snow-strip]").forEach(el => {
-        const row = data.map((m, i) => cell(m, i)).join("");
+        const row = data.map(m => cell(m)).join("");
         el.innerHTML = `<div class="snow-track">${row}${row}</div>`;
         reveal(el);
         drift(el);
@@ -247,7 +167,7 @@
 
       // Swipeable 3x3 boards, one per group, with dots
       document.querySelectorAll("[data-snow-boards]").forEach(el => {
-        const groups = [...new Set(MOUNTAINS.map(m => m[BOARD]))];
+        const groups = [...new Set(data.map(m => m.board))];
         el.innerHTML = `<div class="snow-pages">${groups.map(g => `
           <section class="snow-page" aria-label="${g}">
             <h3>${g.toUpperCase()}</h3>
@@ -257,12 +177,11 @@
           <p class="snow-note" hidden>SEASON = ESTIMATE SINCE OCT 1 FROM SNOTEL SNOW SENSORS · NOT OFFICIAL RESORT TOTALS</p>`;
         const fill = () => {
           el.querySelectorAll(".snow-grid").forEach(grid => {
-            grid.innerHTML = data.map((m, i) => MOUNTAINS[i][BOARD] === grid.dataset.board ? cell(m, i, mode) : "").join("");
+            grid.innerHTML = data.map(m => m.board === grid.dataset.board ? cell(m, mode) : "").join("");
           });
           el.querySelector(".snow-note").hidden = mode !== "season";
         };
         fill();
-        onSeason.push(() => { if (mode === "season") fill(); });
         document.querySelectorAll("[data-snow-mode]").forEach(btn => {
           btn.setAttribute("aria-pressed", btn.dataset.snowMode === mode);
           btn.addEventListener("click", () => {
@@ -288,15 +207,15 @@
       // Board
       document.querySelectorAll("[data-snow-grid]").forEach(el => {
         const localOnly = el.dataset.snowGrid === "local";
-        el.innerHTML = data.map((m, i) => (!localOnly || MOUNTAINS[i][BOARD] === "Utah") ? cell(m, i) : "").join("");
+        el.innerHTML = data.map(m => (!localOnly || m.board === "Utah") ? cell(m) : "").join("");
         reveal(el);
       });
 
       // One-line ticker
       document.querySelectorAll("[data-snow-ticker]").forEach(el => {
-        const items = data.map((m, i) => {
+        const items = data.map(m => {
           const snow = m.inches > 0 ? `<em>${m.inches}″ NEW</em>` : "NO NEW SNOW";
-          return `<span><b>${MOUNTAINS[i][NAME].toUpperCase()}</b> ${snow} · ${m.temp}</span><i>●</i>`;
+          return `<span><b>${m.name.toUpperCase()}</b> ${snow} · ${m.temp}</span><i>●</i>`;
         }).join("");
         el.innerHTML = `<span class="label">❄ LAST 24 HRS</span><i>●</i>` + items;
         el.innerHTML += el.innerHTML;
