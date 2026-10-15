@@ -30,6 +30,7 @@
       <a href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">venmo</a>
     </nav>
   </div>
+<script src="../assets/scores.js"></script>
 <script>
   // ---- Intro: typed terminal lines ----
   const lines = [
@@ -64,7 +65,7 @@
   resize();
 
   let hi = 0;
-  try { hi = parseInt(localStorage.getItem("flapperHi"), 10) || 0; } catch (e) {}
+  loadHi("flapper", n => { if (n > hi) hi = n; });
 
   const GAP = 120, PIPE_W = 44, SPACING = 230, SPEED = 160, R = 10;
   const bug = { x: 0, y: 0, vy: 0, flapT: 0 };
@@ -91,7 +92,7 @@
 
   function crash() {
     state = "over";
-    if (score > hi) { hi = score; try { localStorage.setItem("flapperHi", hi); } catch (e) {} }
+    if (score > hi) { hi = score; saveHi("flapper", score, n => { if (n > hi) hi = n; }); }
   }
 
   function update(dt) {

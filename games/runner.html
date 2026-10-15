@@ -30,6 +30,7 @@
       <a href="https://venmo.com/u/tomellery" target="_blank" rel="noopener">venmo</a>
     </nav>
   </div>
+<script src="../assets/scores.js"></script>
 <script>
   // ---- Intro: typed terminal lines ----
   const lines = [
@@ -65,7 +66,7 @@
   resize();
 
   let hi = 0;
-  try { hi = parseInt(localStorage.getItem("runnerHi"), 10) || 0; } catch (e) {}
+  loadHi("runner", n => { if (n > hi) hi = n; });
 
   const player = { x: 40, y: 0, vy: 0, duck: false, w: 18 };
   let state = "ready", obstacles, dots, speed, score, nextGap, last;
@@ -118,7 +119,7 @@
       if (p.x + 3 < o.x + o.w && p.x + p.w - 3 > o.x && p.y + 3 < o.y + o.h && p.y + p.h > o.y + 2) {
         state = "over";
         const s = Math.floor(score);
-        if (s > hi) { hi = s; try { localStorage.setItem("runnerHi", hi); } catch (e) {} }
+        if (s > hi) { hi = s; saveHi("runner", s, n => { if (n > hi) hi = n; }); }
       }
     }
   }
