@@ -10,27 +10,28 @@
 //
 // Anything wrapped in data-snow-wrap stays hidden until the data arrives (and if it never does).
 (function () {
-  // To add a mountain: board, name, short name (for small spaces), state, latitude, longitude, base elevation in meters.
+  // To add a mountain: board, name, short name (for small spaces), state, latitude, longitude, mid-mountain elevation in meters.
+  // (Mid-mountain, not the base: early and late in the season the bases often get rain while the slopes above get snow.)
   // Each board shows up to 9 (a 3x3). Brighton (home mountain) goes first.
   const MOUNTAINS = [
-    ["Utah",     "Brighton",          "Brighton",     "UT", 40.598, -111.583, 2669],
-    ["Utah",     "Solitude",          "Solitude",     "UT", 40.620, -111.592, 2442],
-    ["Utah",     "Alta",              "Alta",         "UT", 40.588, -111.638, 2600],
-    ["Utah",     "Snowbird",          "Snowbird",     "UT", 40.581, -111.657, 2365],
-    ["Utah",     "Park City",         "Park City",    "UT", 40.651, -111.508, 2103],
-    ["Utah",     "Deer Valley",       "Deer Valley",  "UT", 40.637, -111.478, 2003],
-    ["Utah",     "Snowbasin",         "Snowbasin",    "UT", 41.216, -111.857, 1951],
-    ["Utah",     "Powder Mountain",   "Powder Mtn",   "UT", 41.379, -111.781, 2100],
-    ["Utah",     "Sundance",          "Sundance",     "UT", 40.393, -111.588, 1859],
-    ["The OGs",  "Bear Mountain",     "Bear Mtn",     "CA", 34.227, -116.860, 2195],
-    ["The OGs",  "Mammoth Mountain",  "Mammoth",      "CA", 37.651, -119.027, 2424],
-    ["The OGs",  "Palisades Tahoe",   "Palisades",    "CA", 39.197, -120.235, 1890],
-    ["The OGs",  "Big Sky",           "Big Sky",      "MT", 45.286, -111.401, 2286],
-    ["The OGs",  "Jackson Hole",      "Jackson Hole", "WY", 43.588, -110.828, 1924],
-    ["The OGs",  "Whistler Blackcomb","Whistler",     "BC", 50.115, -122.948, 1100],
-    ["The OGs",  "Vail",              "Vail",         "CO", 39.640, -106.374, 2476],
-    ["The OGs",  "Telluride",         "Telluride",    "CO", 37.937, -107.812, 2659],
-    ["The OGs",  "Mt. Baker",         "Mt. Baker",    "WA", 48.857, -121.665, 1080],
+    ["Utah",     "Brighton",          "Brighton",     "UT", 40.598, -111.583, 2926],
+    ["Utah",     "Solitude",          "Solitude",     "UT", 40.620, -111.592, 2804],
+    ["Utah",     "Alta",              "Alta",         "UT", 40.588, -111.638, 2957],
+    ["Utah",     "Snowbird",          "Snowbird",     "UT", 40.581, -111.657, 2865],
+    ["Utah",     "Park City",         "Park City",    "UT", 40.651, -111.508, 2560],
+    ["Utah",     "Deer Valley",       "Deer Valley",  "UT", 40.637, -111.478, 2469],
+    ["Utah",     "Snowbasin",         "Snowbasin",    "UT", 41.216, -111.857, 2408],
+    ["Utah",     "Powder Mountain",   "Powder Mtn",   "UT", 41.379, -111.781, 2500],
+    ["Utah",     "Sundance",          "Sundance",     "UT", 40.393, -111.588, 2195],
+    ["The OGs",  "Bear Mountain",     "Bear Mtn",     "CA", 34.227, -116.860, 2430],
+    ["The OGs",  "Mammoth Mountain",  "Mammoth",      "CA", 37.651, -119.027, 2896],
+    ["The OGs",  "Palisades Tahoe",   "Palisades",    "CA", 39.197, -120.235, 2317],
+    ["The OGs",  "Big Sky",           "Big Sky",      "MT", 45.286, -111.401, 2713],
+    ["The OGs",  "Jackson Hole",      "Jackson Hole", "WY", 43.588, -110.828, 2560],
+    ["The OGs",  "Whistler Blackcomb","Whistler",     "BC", 50.115, -122.948, 1500],
+    ["The OGs",  "Vail",              "Vail",         "CO", 39.640, -106.374, 2987],
+    ["The OGs",  "Telluride",         "Telluride",    "CO", 37.937, -107.812, 3200],
+    ["The OGs",  "Mt. Baker",         "Mt. Baker",    "WA", 48.857, -121.665, 1310],
   ];
   const [BOARD, NAME, SHORT, STATE, LAT, LON, ELEV] = [0, 1, 2, 3, 4, 5, 6];
   const col = i => MOUNTAINS.map(m => m[i]).join(",");
