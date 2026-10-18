@@ -626,7 +626,7 @@
   const dim = alpha => A.dim(ctx, W, H, alpha);
 
   function drawScoreAdvance(top) {
-    A.text(ctx, '- SCORE ADVANCE TABLE -', W / 2, top, { size: 10, color: C.cyan });
+    A.text(ctx, '- POINTS -', W / 2, top, { size: 10, color: C.cyan });
     ['drone', 'wasp', 'commander'].forEach((type, i) => {
       const y = top + 44 + i * 40;
       const t = TYPES[type];

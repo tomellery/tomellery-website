@@ -120,6 +120,8 @@
       pump: (stage = 1) => tone(260 + stage * 90, 0.08, { slide: 120, vol: 0.07 }),
       zap: () => { tone(1800, 0.3, { type: 'sawtooth', slide: -1400, vol: 0.05 }); tone(90, 0.3, { type: 'square', vol: 0.04 }); },
       step: () => tone(180, 0.03, { vol: 0.025 }),
+      munch: (alt = 0) => tone(alt ? 520 : 360, 0.07, { type: 'triangle', slide: alt ? -180 : 180, vol: 0.07 }),
+      gulp: () => { tone(260, 0.22, { slide: 1100, vol: 0.07 }); tone(1320, 0.08, { type: 'triangle', delay: 0.18, vol: 0.06 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
       eat: () => { tone(880, 0.05); tone(1320, 0.06, { delay: 0.04 }); },
@@ -287,7 +289,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -357,6 +359,57 @@
       onChange(fn) { listeners.push(fn); },
     };
   })();
+
+  // ---------- Grid pathfinding ----------
+  // Breadth-first search over a cols x rows grid of cells, for chasers, demo players and
+  // anything else that needs the shortest way through a maze. open(c, r) says which cells
+  // can be walked; wrapX lets paths leave one side and come back in the other (tunnels).
+  // stopAt(c, r), if given, ends the search at the nearest cell it returns true for.
+
+  const NEIGHBOURS = [[0, -1], [-1, 0], [0, 1], [1, 0]];
+
+  function gridSearch(cols, rows, open, from, { wrapX = false, stopAt = null } = {}) {
+    const dist = new Int16Array(cols * rows).fill(-1);
+    const prev = new Int32Array(cols * rows).fill(-1);
+    const queue = [from.r * cols + from.c];
+    dist[queue[0]] = 0;
+    let found = null;
+    for (let qi = 0; qi < queue.length; qi++) {
+      const i = queue[qi];
+      const c = i % cols;
+      const r = (i - c) / cols;
+      if (stopAt && qi > 0 && stopAt(c, r)) {
+        found = { c, r };
+        break;
+      }
+      for (const [dc, dr] of NEIGHBOURS) {
+        const nc = wrapX ? (c + dc + cols) % cols : c + dc;
+        const nr = r + dr;
+        if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+        const n = nr * cols + nc;
+        if (dist[n] !== -1 || !open(nc, nr)) continue;
+        dist[n] = dist[i] + 1;
+        prev[n] = i;
+        queue.push(n);
+      }
+    }
+    return {
+      found,
+      // Steps from the start, or -1 if the search never reached that cell.
+      dist: (c, r) => (c < 0 || r < 0 || c >= cols || r >= rows ? -1 : dist[r * cols + c]),
+      // The cells after the start, up to and including `to`; null if it wasn't reached.
+      pathTo(to) {
+        let i = to.r * cols + to.c;
+        if (dist[i] === -1) return null;
+        const path = [];
+        while (dist[i] > 0) {
+          path.push({ c: i % cols, r: Math.floor(i / cols) });
+          i = prev[i];
+        }
+        return path.reverse();
+      },
+    };
+  }
 
   // ---------- Canvas drawing helpers ----------
 
@@ -553,7 +606,7 @@
   window.Arcade = {
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
-    sound, createInput, scores,
+    sound, createInput, scores, gridSearch,
     text, roundRect, dim, triangle, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
