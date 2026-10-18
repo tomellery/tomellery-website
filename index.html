@@ -316,12 +316,10 @@
     @keyframes na-flicker { 0% { filter: brightness(.2); } 20% { filter: brightness(1.4); } 35% { filter: brightness(.25); } 55% { filter: brightness(1.2); } 70% { filter: brightness(.5); } 85%, 100% { filter: none; } }
     .na-coin {
       position: absolute; right: 0; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity .15s;
-      font-family: var(--mono); font-style: normal; font-size: 10px; letter-spacing: .2em; color: var(--pink); text-shadow: 0 0 8px var(--pink);
+      font-family: var(--mono); font-style: normal; font-size: 10px; line-height: 1.5; letter-spacing: .2em; text-align: center; color: var(--pink); text-shadow: 0 0 8px var(--pink);
     }
     .neon-item:hover .na-coin, .neon-item:focus-visible .na-coin, .neon-item.lit .na-coin { opacity: 1; transition-delay: .45s; animation: na-blink 1s steps(1) .45s infinite; }
     @keyframes na-blink { 50% { opacity: 0; } }
-    /* Narrow screens: no room beside the sign, so INSERT COIN sits under its right end */
-    @media (max-width: 520px) { .na-coin { top: auto; bottom: 2px; transform: none; font-size: 8px; } }
     :root[data-theme="light"] .neon-item { --pink: #e0006b; --cyan: #0094b3; }
     @media (prefers-reduced-motion: reduce) {
       .na-w, .na-p, .neon-item:hover .na-w, .neon-item:hover .na-p, .neon-item:focus-visible .na-w, .neon-item.lit .na-w, .neon-item:focus-visible .na-p, .neon-item.lit .na-p { transition-delay: 0s; animation: none; }
@@ -425,7 +423,7 @@
       <a href="#snow" data-close><small>02</small>Snow Report</a>
       <div class="soon" aria-disabled="true"><small>03</small>Projects <i>SOON</i></div>
       <a href="gallery/"><small>04</small>Other Looks</a>
-      <a href="arcade/" class="neon-item" aria-label="Neon Arcade"><small aria-hidden="true">05</small><span class="na" aria-hidden="true"><span class="na-l" style="--i:0"><span class="na-w">N</span><span class="na-p">N</span></span><span class="na-l" style="--i:1"><span class="na-w">E</span><span class="na-p">E</span></span><span class="na-l" style="--i:2"><span class="na-w">O</span><span class="na-p">O</span></span><span class="na-l" style="--i:3"><span class="na-w">N</span><span class="na-p">N</span></span><span class="na-gap"> </span><span class="na-l na-c" style="--i:5"><span class="na-w">A</span><span class="na-p">A</span></span><span class="na-l na-c" style="--i:6"><span class="na-w">R</span><span class="na-p">R</span></span><span class="na-l na-c" style="--i:7"><span class="na-w">C</span><span class="na-p">C</span></span><span class="na-l na-c" style="--i:8"><span class="na-w">A</span><span class="na-p">A</span></span><span class="na-l na-c" style="--i:9"><span class="na-w">D</span><span class="na-p">D</span></span><span class="na-l na-c" style="--i:10"><span class="na-w">E</span><span class="na-p">E</span></span></span><em class="na-coin" aria-hidden="true">INSERT COIN</em></a>
+      <a href="arcade/" class="neon-item" aria-label="Neon Arcade"><small aria-hidden="true">05</small><span class="na" aria-hidden="true"><span class="na-l" style="--i:0"><span class="na-w">N</span><span class="na-p">N</span></span><span class="na-l" style="--i:1"><span class="na-w">E</span><span class="na-p">E</span></span><span class="na-l" style="--i:2"><span class="na-w">O</span><span class="na-p">O</span></span><span class="na-l" style="--i:3"><span class="na-w">N</span><span class="na-p">N</span></span><span class="na-gap"> </span><span class="na-l na-c" style="--i:5"><span class="na-w">A</span><span class="na-p">A</span></span><span class="na-l na-c" style="--i:6"><span class="na-w">R</span><span class="na-p">R</span></span><span class="na-l na-c" style="--i:7"><span class="na-w">C</span><span class="na-p">C</span></span><span class="na-l na-c" style="--i:8"><span class="na-w">A</span><span class="na-p">A</span></span><span class="na-l na-c" style="--i:9"><span class="na-w">D</span><span class="na-p">D</span></span><span class="na-l na-c" style="--i:10"><span class="na-w">E</span><span class="na-p">E</span></span></span><em class="na-coin" aria-hidden="true">INSERT<br>COIN</em></a>
       <a href="boards/"><small>06</small>Game Room</a>
     </nav>
     <div class="menu-foot"><span>SALT LAKE CITY, UT</span><span>BUILD · RIDE · REPEAT</span></div>
