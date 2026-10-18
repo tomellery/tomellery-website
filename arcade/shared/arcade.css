@@ -203,6 +203,10 @@ body.arcade::before {
   color: var(--pink);
 }
 .home-marquee h1 span { color: var(--cyan); }
+/* On phones the title is half the size, so the glow shrinks with it; at full strength it hazes the letters together */
+@media (max-width: 600px) {
+  .home-marquee h1.neon { text-shadow: 0 0 2px currentColor, 0 0 5px currentColor, 0 0 11px currentColor; }
+}
 .home-marquee .insert-coin { margin: 24px 0 0; font-size: 12px; color: var(--yellow); }
 
 .game-grid {
