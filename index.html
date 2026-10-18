@@ -267,7 +267,8 @@
     .na-p {
       position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.6, .9); opacity: 0;
       font-family: var(--pixel); font-size: .44em; line-height: 1; color: var(--pink-or-cyan);
-      text-shadow: 0 0 4px currentColor, 0 0 12px currentColor, 0 0 26px currentColor;
+      /* see-through glow sized to the letters: crisp edges, big halo (same as the arcade page title) */
+      text-shadow: 0 0 .15em color-mix(in srgb, currentColor 65%, transparent), 0 0 .55em color-mix(in srgb, currentColor 65%, transparent), 0 0 1.3em color-mix(in srgb, currentColor 55%, transparent), 0 0 2em color-mix(in srgb, currentColor 30%, transparent);
     }
     .neon-item:hover .na-w, .neon-item:focus-visible .na-w, .neon-item.lit .na-w { opacity: 0; transform: scaleY(.6); transition-delay: calc(var(--i) * var(--step) + 40ms); }
     .neon-item:hover .na-p, .neon-item:focus-visible .na-p, .neon-item.lit .na-p {
