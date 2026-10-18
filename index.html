@@ -253,6 +253,77 @@
     .menu nav a:hover, .menu nav a:focus-visible { color: var(--accent); outline: none; }
     .menu nav .soon { color: var(--faint); cursor: default; }
     .menu nav .soon i { font-style: normal; font-family: var(--mono); font-size: 10px; letter-spacing: .2em; color: var(--accent); border: 1px solid var(--accent); padding: 3px 6px; align-self: center; }
+    /* Neon Arcade item: on hover each white letter flickers into the arcade's pink/cyan pixel sign, left to right,
+       and flips back right to left when the mouse leaves. The pixel font loads when the menu opens (see setMenu). */
+    .neon-item { position: relative; --pink: #ff2e88; --cyan: #29f0ff; --pixel: "Press Start 2P", monospace; --step: 45ms; }
+    .menu nav a.neon-item:hover, .menu nav a.neon-item:focus-visible { color: var(--white); }
+    .neon-item small { visibility: hidden; }  /* keeps the letters lined up with the numbered items */
+    .na { display: inline-flex; }
+    .na-gap { width: .22em; }
+    .na-l { position: relative; display: inline-block; --pink-or-cyan: var(--pink); }
+    .na-l.na-c { --pink-or-cyan: var(--cyan); }
+    .na-w, .na-p { transition: opacity .12s linear, transform .2s var(--ease); transition-delay: calc((10 - var(--i)) * var(--step)); }
+    .na-w { display: inline-block; }
+    .na-p {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.6, .9); opacity: 0;
+      font-family: var(--pixel); font-size: .44em; line-height: 1; color: var(--pink-or-cyan);
+      text-shadow: 0 0 4px currentColor, 0 0 12px currentColor, 0 0 26px currentColor;
+    }
+    .neon-item:hover .na-w, .neon-item:focus-visible .na-w { opacity: 0; transform: scaleY(.6); transition-delay: calc(var(--i) * var(--step) + 40ms); }
+    .neon-item:hover .na-p, .neon-item:focus-visible .na-p {
+      opacity: 1; transform: translate(-50%, -50%) scale(1, 1.55); transition-delay: calc(var(--i) * var(--step));
+      animation: na-flicker .32s steps(1) both; animation-delay: calc(var(--i) * var(--step));
+    }
+    /* Easter egg (assets/neon-egg.js): hover on the sign for --burnout and a random letter sputters out,
+       then a little 8-bit repairman walks over and fixes it. Moving off the sign resets it. */
+    .neon-item { --burnout: 60s; }
+    .neon-item:hover .na-p.na-dying, .neon-item:focus-visible .na-p.na-dying {
+      animation: na-flicker .32s steps(1) both, na-burnout 4s steps(1) forwards;
+      animation-delay: calc(var(--i) * var(--step)), 0s;
+    }
+    .neon-item:hover .na-p.na-fixing, .neon-item:focus-visible .na-p.na-fixing {
+      animation: na-flicker .32s steps(1) both, na-relight 1.2s steps(1) forwards;
+      animation-delay: calc(var(--i) * var(--step)), 0s;
+    }
+    @keyframes na-relight {
+      0% { filter: brightness(.25); } 15% { filter: brightness(1.3); } 22% { filter: brightness(.25); } 40% { filter: brightness(1.2); }
+      46% { filter: brightness(.35); } 62% { filter: brightness(1.4); } 100% { filter: none; }
+    }
+    /* The repairman's stage: clipped to this row, so he appears out of the lines above and below and the sides */
+    .na-stage { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 2; }
+    .na-dude { position: absolute; bottom: 2px; left: 0; width: 22px; }
+    .na-rope { position: absolute; top: 0; width: 2px; background: repeating-linear-gradient(#c9a36b 0 3px, #8a6a3e 3px 6px); }
+    .na-hole, .na-cover { position: absolute; bottom: -1px; width: 24px; pointer-events: none; }
+    .na-hole { height: 3px; background: #000; z-index: 1; }
+    .na-cover { height: 4px; z-index: 3; background: repeating-linear-gradient(90deg, #8a9098 0 3px, #5b6168 3px 5px); }
+    .na-dude svg { display: block; width: 100%; height: auto; }
+    .na-dude.face-left svg { transform: scaleX(-1); }
+    .na-dude.hop { animation: na-hop .35s steps(3); }
+    @keyframes na-hop { 50% { transform: translateY(-6px); } }
+    .na-spark {
+      position: absolute; width: 3px; height: 3px; background: #ffe14d; box-shadow: 0 0 4px #ffe14d; pointer-events: none; z-index: 3;
+      animation: na-spark .4s ease-out forwards;
+    }
+    @keyframes na-spark { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+    @keyframes na-burnout {
+      0% { filter: none; } 10% { filter: brightness(.4); } 12% { filter: none; } 30% { filter: brightness(.3); } 31% { filter: none; }
+      33% { filter: brightness(.2); } 35% { filter: none; } 55% { filter: brightness(.15); } 56% { filter: brightness(.9); } 58% { filter: brightness(.1); }
+      62% { filter: none; } 75% { filter: brightness(.12); } 76% { filter: brightness(.6); } 78% { filter: brightness(.1); } 85% { filter: brightness(.5); }
+      86%, 100% { filter: brightness(.25); }
+    }
+    /* Flicker on brightness, not opacity, so the fade-out can still run its right-to-left wave */
+    @keyframes na-flicker { 0% { filter: brightness(.2); } 20% { filter: brightness(1.4); } 35% { filter: brightness(.25); } 55% { filter: brightness(1.2); } 70% { filter: brightness(.5); } 85%, 100% { filter: none; } }
+    .na-coin {
+      position: absolute; right: 0; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity .15s;
+      font-family: var(--mono); font-style: normal; font-size: 10px; letter-spacing: .2em; color: var(--pink); text-shadow: 0 0 8px var(--pink);
+    }
+    .neon-item:hover .na-coin, .neon-item:focus-visible .na-coin { opacity: 1; transition-delay: .45s; animation: na-blink 1s steps(1) .45s infinite; }
+    @keyframes na-blink { 50% { opacity: 0; } }
+    :root[data-theme="light"] .neon-item { --pink: #e0006b; --cyan: #0094b3; }
+    @media (prefers-reduced-motion: reduce) {
+      .na-w, .na-p, .neon-item:hover .na-w, .neon-item:hover .na-p, .neon-item:focus-visible .na-w, .neon-item:focus-visible .na-p { transition-delay: 0s; animation: none; }
+      .neon-item:hover .na-coin, .neon-item:focus-visible .na-coin { animation: none; }
+    }
     .menu-foot { max-width: 560px; width: 100%; margin: 0 auto; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
     body.menu-open { overflow: hidden; }
 
@@ -351,7 +422,7 @@
       <a href="#snow" data-close><small>02</small>Snow Report</a>
       <div class="soon" aria-disabled="true"><small>03</small>Projects <i>SOON</i></div>
       <a href="gallery/"><small>04</small>Other Looks</a>
-      <a href="arcade/"><small>05</small>Retro Arcade</a>
+      <a href="arcade/" class="neon-item" aria-label="Neon Arcade"><small aria-hidden="true">05</small><span class="na" aria-hidden="true"><span class="na-l" style="--i:0"><span class="na-w">N</span><span class="na-p">N</span></span><span class="na-l" style="--i:1"><span class="na-w">E</span><span class="na-p">E</span></span><span class="na-l" style="--i:2"><span class="na-w">O</span><span class="na-p">O</span></span><span class="na-l" style="--i:3"><span class="na-w">N</span><span class="na-p">N</span></span><span class="na-gap"> </span><span class="na-l na-c" style="--i:5"><span class="na-w">A</span><span class="na-p">A</span></span><span class="na-l na-c" style="--i:6"><span class="na-w">R</span><span class="na-p">R</span></span><span class="na-l na-c" style="--i:7"><span class="na-w">C</span><span class="na-p">C</span></span><span class="na-l na-c" style="--i:8"><span class="na-w">A</span><span class="na-p">A</span></span><span class="na-l na-c" style="--i:9"><span class="na-w">D</span><span class="na-p">D</span></span><span class="na-l na-c" style="--i:10"><span class="na-w">E</span><span class="na-p">E</span></span></span><em class="na-coin" aria-hidden="true">INSERT COIN</em></a>
     </nav>
     <div class="menu-foot"><span>SALT LAKE CITY, UT</span><span>BUILD · RIDE · REPEAT</span></div>
   </div>
@@ -392,7 +463,19 @@
 
     // Menu open/close
     const menu = document.getElementById("menu"), menuBtn = document.getElementById("menuBtn");
+    // The arcade's pixel font, for the Neon Arcade hover; fetched the first time the menu opens
+    let pixelFont = false;
+    function loadPixelFont() {
+      if (pixelFont) return;
+      pixelFont = true;
+      const l = document.createElement("link");
+      l.rel = "stylesheet";
+      l.href = "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
+      l.onload = () => document.fonts && document.fonts.load('16px "Press Start 2P"', "NEOARCD").catch(() => {});
+      document.head.appendChild(l);
+    }
     function setMenu(open) {
+      if (open) loadPixelFont();
       menu.classList.toggle("open", open);
       document.body.classList.toggle("menu-open", open);
       menuBtn.setAttribute("aria-expanded", open);
@@ -440,5 +523,6 @@
   <script src="assets/holiday.js?v=3"></script>
   <script src="assets/secrets.js?v=2"></script>
   <script src="assets/snowdump.js?v=13"></script>
+  <script src="assets/neon-egg.js?v=5"></script>
 </body>
 </html>
