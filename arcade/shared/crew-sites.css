@@ -1,0 +1,93 @@
+/* Construction sites on the coming-soon cabinets (crew-sites.js).
+   The cabinet stays dimmed like before, but the crew and their gear are at full brightness. */
+.game-card.soon.cs-site { opacity: 1; }
+.game-card.soon.cs-site > :not(.cs-stage):not(.cs-tape) { opacity: 0.4; }
+
+.cs-stage { position: absolute; overflow: hidden; pointer-events: none; border-radius: 4px; z-index: 1; }
+.cs-tape {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 7px; border-radius: 0 0 9px 9px; pointer-events: none;
+  background: repeating-linear-gradient(-45deg, #ffe14d 0 6px, #111 6px 12px); opacity: 0.85;
+}
+
+/* The crew */
+.cs-actor { position: absolute; width: 20px; z-index: 2; }
+.cs-look { display: block; }
+.cs-actor svg { display: block; width: 100%; height: auto; }
+.cs-actor.face-left svg { transform: scaleX(-1); }
+.cs-actor.cs-sooty svg { filter: brightness(0.3) sepia(0.6); }
+.cs-stars {
+  position: absolute; width: 2px; height: 2px; background: #ffe14d;
+  box-shadow: 6px -2px 0 #ffe14d, 12px 0 0 #ffe14d; animation: cs-stars 0.5s steps(2) infinite;
+}
+@keyframes cs-stars { 50% { transform: translate(2px, -2px); box-shadow: 6px 1px 0 #ffe14d, 11px -2px 0 #ffe14d; } }
+
+/* Sparks off a wrench */
+.cs-spark {
+  position: absolute; width: 3px; height: 3px; background: #ffe14d; box-shadow: 0 0 4px #ffe14d; z-index: 3;
+  animation: cs-spark 0.4s ease-out forwards;
+}
+@keyframes cs-spark { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+
+/* BARREL CLIMB: ladder and barrel */
+.cs-ladder {
+  position: absolute; width: 12px; border-left: 2px solid #c9a36b; border-right: 2px solid #c9a36b; z-index: 1;
+  background: repeating-linear-gradient(to top, transparent 0 4px, #c9a36b 4px 6px);
+}
+.cs-barrel {
+  position: absolute; width: 10px; height: 10px; border-radius: 2px; z-index: 3;
+  background: #b5651d; box-shadow: inset 0 2px 0 #7a3e10, inset 0 -2px 0 #7a3e10, inset 2px 0 0 #d9893f;
+  animation: cs-roll 0.4s steps(4) infinite;
+}
+@keyframes cs-roll { to { transform: rotate(360deg); } }
+
+/* BLAST ZONE: plunger box, charge, poof */
+.cs-plunger { position: absolute; width: 12px; height: 9px; background: #e02424; box-shadow: inset 0 -2px 0 #8a1010; }
+.cs-plunger::before { content: ""; position: absolute; left: 5px; bottom: 9px; width: 2px; height: 7px; background: #c3cad4; transition: height 0.1s; }
+.cs-plunger::after { content: ""; position: absolute; left: 2px; bottom: 15px; width: 8px; height: 2px; background: #c3cad4; transition: bottom 0.1s; }
+.cs-plunger.down::before { height: 2px; }
+.cs-plunger.down::after { bottom: 10px; }
+.cs-bomb { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: #2a2a2a; box-shadow: 0 0 0 1px #555; }
+.cs-bomb::after { content: ""; position: absolute; top: -3px; left: 5px; width: 2px; height: 2px; background: #ffe14d; animation: blink 0.3s steps(1) infinite; }
+.cs-poof {
+  position: absolute; width: 28px; height: 28px; z-index: 3;
+  background: radial-gradient(circle, #fff 0 22%, #ffe14d 23% 42%, #ff9f1c 43% 60%, transparent 61%);
+  animation: cs-poof 0.6s ease-out forwards;
+}
+@keyframes cs-poof { 0% { transform: scale(0.2); } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+.cs-flash { position: absolute; inset: 0; background: #fff; z-index: 4; animation: cs-flash 0.25s forwards; }
+@keyframes cs-flash { from { opacity: 0.5; } to { opacity: 0; } }
+
+/* CUBE HOPPER: cubes */
+.cs-cube, .cs-pile { position: absolute; background: linear-gradient(135deg, #ff2e88 50%, #29f0ff 50%) 0 0 / 8px 8px; }
+.cs-cube { width: 8px; height: 8px; z-index: 3; }
+.cs-cube.placed { animation: cs-placed 0.5s steps(4) forwards; }
+@keyframes cs-placed { 50% { box-shadow: 0 0 8px #fff; } to { opacity: 0; } }
+.cs-pile { width: 8px; height: 16px; }
+
+/* PIXEL HERO: platform planks */
+.cs-plank { position: absolute; height: 4px; background: #2bcf63; box-shadow: inset 0 -1px 0 #1a7a3a, inset -1px 0 0 #1a7a3a; z-index: 1; }
+.cs-plank.falling { transition: transform 0.6s ease-in, opacity 0.6s; transform: translateY(40px) rotate(var(--spin, 0deg)); opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-barrel, .cs-stars, .cs-bomb::after { animation: none; }
+}
+
+/* Mishaps: poses, bubbles, dust, Bones' pieces, a falling wrench */
+.cs-look { transform-origin: 50% 55%; }
+.cs-bubble {
+  position: absolute; z-index: 4; padding: 2px 2px 1px; border-radius: 2px; line-height: 1;
+  font: 7px "Press Start 2P", monospace; color: #07060f; background: #fff;
+  animation: cs-pop 0.15s steps(2);
+}
+.cs-bubble::after { content: ""; position: absolute; left: 2px; bottom: -2px; width: 2px; height: 2px; background: #fff; }
+.cs-bubble.z { background: none; color: #8a85b3; animation: cs-z 0.85s linear forwards; }
+.cs-bubble.z::after { display: none; }
+@keyframes cs-pop { from { transform: scale(0.4); } }
+@keyframes cs-z { to { transform: translate(6px, -10px); opacity: 0; } }
+.cs-dust {
+  position: absolute; width: 3px; height: 3px; background: #8a85b3; z-index: 3;
+  animation: cs-spark 0.45s ease-out forwards;
+}
+.cs-bone { position: absolute; width: 4px; height: 2px; background: #ecebe4; z-index: 3; }
+.cs-wrench { position: absolute; width: 6px; height: 2px; background: #c3cad4; z-index: 3; animation: cs-roll 0.3s steps(4) infinite; }
+.cs-bomb.rolling { animation: cs-roll 0.4s steps(4) infinite; }
