@@ -92,6 +92,7 @@
   let clock = 0;
   let demo = true;
   let hiScore = A.scores.best(GAME_ID);
+  A.scores.onChange(() => { hiScore = A.scores.best(GAME_ID); });
 
   let wave = 1;
   let score = 0;

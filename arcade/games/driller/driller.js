@@ -103,6 +103,7 @@
   let stateTime = 0;
   let clock = 0;
   let hiScore = A.scores.best(GAME_ID);
+  A.scores.onChange(() => { hiScore = A.scores.best(GAME_ID); });
 
   let round = 1;
   let score = 0;

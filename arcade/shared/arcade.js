@@ -278,22 +278,64 @@
     };
   }
 
-  // ---------- High scores (top 5 per game, stored in this browser) ----------
+  // ---------- High scores (top 5 per game, shared by everyone via the site's Worker) ----------
+  // A copy of the shared tables is kept in this browser so scores show instantly and the games work offline.
+  // A score that couldn't be sent is kept as "pending" and sent again on the next visit.
 
   const scores = (() => {
+    const API = 'https://tomellery-scores.tomellery1818.workers.dev/arcade';
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
     const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30 };
-    const key = id => 'arcade:scores:' + id;
+    const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
+    const listeners = [];
 
+    const read = (key, fallback) => {
+      try { return JSON.parse(store.get(key)) || fallback; } catch (e) { return fallback; }
+    };
+    let shared = read(SHARED, {});
+    let pending = read(PENDING, []);
+    const top = entries => entries.slice().sort((a, b) => b.score - a.score).slice(0, SIZE);
+
+    // Real scores, topped up with the made-up starting table until five real ones exist.
     function list(id) {
-      try {
-        const saved = JSON.parse(store.get(key(id)));
-        if (Array.isArray(saved) && saved.length) return saved;
-      } catch (e) { /* corrupt entry: fall back to the seed table */ }
-      return SEED.map(([name, score]) => ({ name, score: score * (SEED_SCALE[id] || 1) }));
+      const real = (shared[id] || []).concat(pending.filter(p => p.game === id));
+      const seed = SEED.map(([name, score]) => ({ name, score: score * (SEED_SCALE[id] || 1) }));
+      return top(real.concat(seed));
     }
+
+    function received(tables) {
+      if (!tables || typeof tables !== 'object') return;
+      shared = tables;
+      store.set(SHARED, JSON.stringify(shared));
+      listeners.forEach(fn => fn());
+    }
+
+    function send(entry) {
+      return fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry),
+      }).then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then(tables => {
+          pending = pending.filter(p => p !== entry);
+          store.set(PENDING, JSON.stringify(pending));
+          received(tables);
+        });
+    }
+
+    // Get the latest tables, after first sending anything left over from last time.
+    // One at a time: the Worker rewrites the whole table on each score, so sends at the same moment would clash.
+    function sync() {
+      return pending.slice().reduce((chain, entry) => chain.then(() => send(entry)), Promise.resolve())
+        .catch(() => { /* still offline: try again next visit */ })
+        .then(() => fetch(API, { cache: 'no-store' }))
+        .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then(received)
+        .catch(() => { /* offline or Worker down: keep showing the saved copy */ });
+    }
+    sync();
 
     return {
       list,
@@ -302,13 +344,17 @@
         const table = list(id);
         return score > 0 && (table.length < SIZE || score > table[table.length - 1].score);
       },
-      // Returns the rank (0-based) the new score landed at.
+      // Returns the rank (0-based) the new score landed at. It shows right away and is sent in the background.
       add(id, name, score) {
-        const entry = { name, score };
-        const top = list(id).concat(entry).sort((a, b) => b.score - a.score).slice(0, SIZE);
-        store.set(key(id), JSON.stringify(top));
-        return top.indexOf(entry);
+        const entry = { game: id, name, score };
+        pending.push(entry);
+        store.set(PENDING, JSON.stringify(pending));
+        const rank = list(id).indexOf(entry);
+        send(entry).catch(() => { /* sent again on the next visit */ });
+        return rank;
       },
+      // Runs whenever fresh tables arrive from the Worker.
+      onChange(fn) { listeners.push(fn); },
     };
   })();
 

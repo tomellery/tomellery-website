@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="shared/arcade.css">
+  <link rel="stylesheet" href="shared/arcade.css?v=2">
 </head>
 <body class="arcade">
   <nav class="home-back"><a class="chip" href="../">&#9664; TOMELLERY.COM</a></nav>
@@ -174,11 +174,13 @@
 
   <footer class="home-footer">ORIGINAL GAMES &middot; NO ROMS &middot; MADE WITH HTML5</footer>
 
-  <script src="shared/arcade.js"></script>
+  <script src="shared/arcade.js?v=2"></script>
   <script>
-    document.querySelectorAll('[data-hi]').forEach(el => {
+    const showHi = () => document.querySelectorAll('[data-hi]').forEach(el => {
       el.textContent = Arcade.pad(Arcade.scores.best(el.dataset.hi));
     });
+    showHi();
+    Arcade.scores.onChange(showHi);
     const ready = document.querySelectorAll('a.game-card').length;
     document.getElementById('ready-count').textContent = '- ' + ready + '/10 READY';
   </script>

@@ -40,6 +40,7 @@
   let clock = 0;
   let demo = true;
   let hiScore = A.scores.best(GAME_ID);
+  A.scores.onChange(() => { hiScore = A.scores.best(GAME_ID); });
 
   let snake, dir, turns, grow, food, bonus, score, level, eaten, tickMs, tickAcc;
   const fx = A.createEffects();

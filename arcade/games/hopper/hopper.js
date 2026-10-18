@@ -66,6 +66,7 @@
   let stateTime = 0;
   let clock = 0;
   let hiScore = A.scores.best(GAME_ID);
+  A.scores.onChange(() => { hiScore = A.scores.best(GAME_ID); });
 
   let lanes, player, bays, star, starTimer, furthest, timeLeft;
   let level = 1;

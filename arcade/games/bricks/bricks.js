@@ -77,6 +77,7 @@
   let clock = 0;
   let demo = true;
   let hiScore = A.scores.best(GAME_ID);
+  A.scores.onChange(() => { hiScore = A.scores.best(GAME_ID); });
 
   let stage, score, lives, bricks, balls, powers, paddle;
   let pointerX = null;

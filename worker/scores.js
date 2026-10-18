@@ -4,12 +4,14 @@
   //
   //   GET  /?game=flapper                    → { "hi": 12 }
   //   POST /  {"game":"flapper","score":15}  → { "hi": 15 }  (only ever goes up)
+  //   GET  /arcade                          → { "snake": [{ "name": "TOM", "score": 1200 }, ...], ... }  top 5 per game
+  //   POST /arcade {"game":"snake","name":"TOM","score":1200}  → the same, with the new score in it
   //   GET  /crypto                           → prices, refreshed every 15 minutes
   //   GET  /snow                             → snow for every mountain, refreshed every 15 minutes
   //
   // The coin and mountain lists live on the site in assets/feeds.json, so they're edited in one place.
   
-  const VERSION = 4;   // bump when the code changes, so it's easy to tell which copy Cloudflare is running
+  const VERSION = 5;   // bump when the code changes, so it's easy to tell which copy Cloudflare is running
   const CONFIG_URL = "https://tomellery.com/assets/feeds.json";
   const FRESH = 15 * 60 * 1000;            // refresh prices and snow this often
   const SEASON_FRESH = 60 * 60 * 1000;     // snow sensors post once a day, so hourly is plenty
@@ -17,6 +19,27 @@
   // Highest believable score per game; anything above is ignored.
   const GAMES = { flapper: 500, runner: 50000 };
   
+  // Neon Arcade (tomellery.com/arcade/): one shared top-5 table per game, all kept under one KV key.
+  // Any short lowercase game id is accepted, so a new game needs no change here.
+  const ARCADE_KEY = "arcade:tables", ARCADE_SIZE = 5, ARCADE_MAX = 999999;
+  const ARCADE_GAME = /^[a-z]{3,12}$/, ARCADE_NAME = /^[A-Z0-9]{3}$/;
+
+  async function arcade(req, env) {
+    const tables = JSON.parse(await env.SCORES.get(ARCADE_KEY) || "{}");
+    if (req.method === "GET") return reply(req, tables);
+    let data;
+    try { data = await req.json(); } catch (e) { return reply(req, { error: "bad json" }, 400); }
+    const { game, name, score } = data || {};
+    if (!ARCADE_GAME.test(game || "")) return reply(req, { error: "unknown game" }, 400);
+    if (!ARCADE_NAME.test(name || "")) return reply(req, { error: "bad name" }, 400);
+    if (!Number.isInteger(score) || score <= 0 || score > ARCADE_MAX) return reply(req, { error: "bad score" }, 400);
+    const table = tables[game] || [];
+    if (table.length >= ARCADE_SIZE && score <= table[table.length - 1].score) return reply(req, tables);
+    tables[game] = table.concat({ name, score }).sort((a, b) => b.score - a.score).slice(0, ARCADE_SIZE);
+    await env.SCORES.put(ARCADE_KEY, JSON.stringify(tables));
+    return reply(req, tables);
+  }
+
   const ORIGINS = ["https://tomellery.com", "https://www.tomellery.com"];
   
   function cors(req) {
@@ -164,6 +187,7 @@
       if (req.method === "GET" && path === "/version") return reply(req, { v: VERSION });
       if (req.method === "GET" && path === "/crypto") return feed(req, env, ctx, "feed:crypto", refreshCrypto);
       if (req.method === "GET" && path === "/snow") return feed(req, env, ctx, "feed:snow", refreshSnow);
+      if (path === "/arcade") return arcade(req, env);
   
       if (req.method === "GET") {
         const game = new URL(req.url).searchParams.get("game");
