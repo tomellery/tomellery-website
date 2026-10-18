@@ -8,6 +8,7 @@
 //                 (pushed too early, a charge that rolls back at them)
 //   PIXEL HERO    one builds a platform, the other test-jumps it
 //                 (it gives way, he overshoots it, the builder hammers his own foot)
+// A third crew member per site roams the page between cabinets (see "Roamers" at the bottom).
 // Everywhere: trips, faceplants, a hammered thumb, and naps on the job until the Boss walks by.
 // About half the work goes wrong; a hover or tap on a cabinet always sets off a mishap.
 // Personalities: the Boss never works, he only turns up to catch nappers. Gramps is slow and naps the most.
@@ -35,18 +36,16 @@
   const TRAITS = { Gramps: { pace: 0.55, naps: 3 } };
   const trait = m => TRAITS[m.name] || { pace: 1, naps: 0 };
 
-  // Two different random crew members (never the Boss: he doesn't do the work, he checks on it)
-  function team() {
-    if (FORCE_CREW.length === 2) return FORCE_CREW;
-    const list = Crew.list.filter(m => m !== BOSS);
-    const a = list.splice(Math.floor(Math.random() * list.length), 1)[0];
-    return [a, pick(list)];
-  }
+  // Every worker is one person: the 19 non-Boss crew members are dealt out to the coming-soon cabinets (below).
+  // The Boss is the 20th; he never works, he checks on things. He is only ever in one place (bossBusy).
+  let bossBusy = false;
 
   class Stopped extends Error {}
 
   // ===== One site per coming-soon card =====
-  function makeSite(card, scene) {
+  // crew: who lives here. fixed sites (the custom jobs) have exactly two and keep them; the others are
+  // "dynamic": workers come and go (site.members is who is on the stage right now, site.api lets them in and out).
+  function makeSite(card, scene, crew, fixed) {
     const art = card.querySelector(".card-art");
     const stage = document.createElement("div");
     stage.className = "cs-stage";
@@ -56,7 +55,7 @@
     tape.className = "cs-tape";
     card.appendChild(tape);
     card.classList.add("cs-site");
-    const site = { card, art, stage, scene, crew: team(), gen: 0, visible: true, poked: false, timers: [] };
+    const site = { card, art, stage, scene, crew, fixed, members: crew.slice(), api: null, emptySince: 0, gen: 0, visible: true, poked: false, timers: [] };
 
     const poke = () => { site.poked = true; };
     card.addEventListener("mouseenter", poke);
@@ -71,6 +70,7 @@
     site.gen++;
     site.timers.forEach(clearInterval);
     site.timers = [];
+    site.api = null;
     site.stage.innerHTML = "";
   }
 
@@ -84,7 +84,11 @@
       width: px(a.width - 4), height: px(a.height - 4),
     });
     const s = kit(site);
-    if (calm) { s.A.at(s.W * 0.3, GROUND); s.B.at(s.W * 0.6, GROUND); s.B.face(true); return; }
+    if (calm) {
+      if (s.A) { s.A.at(s.W * 0.3, GROUND); if (s.B) { s.B.at(s.W * 0.6, GROUND); s.B.face(true); } }
+      else site.members.forEach((m, i) => s.actor(m).at(s.W * (0.15 + 0.7 * i / Math.max(1, site.members.length - 1 || 1)), GROUND));
+      return;
+    }
     site.scene(s).catch(e => { if (!(e instanceof Stopped)) throw e; });
   }
 
@@ -292,7 +296,9 @@
       const stopZ = every(900, () => a.say("Z", 850));
       a.say("Z", 850);
       await sleep(2600 + a.sleepy * 900);
-      if (Math.random() < 0.75 && BOSS) {
+      if (Math.random() < 0.75 && BOSS && !bossBusy) {
+        bossBusy = true;
+        setTimeout(() => { bossBusy = false; }, 14000);   // safety: a stopped scene can't leave him stuck
         const boss = actor(BOSS);
         const fromRight = a.x < W / 2;
         boss.at(fromRight ? W + 4 : -24, ground);
@@ -310,6 +316,7 @@
         await sleep(500);
         await boss.walk(fromRight ? W + 4 : -24, SPEED * 0.8);
         boss.el.remove();
+        bossBusy = false;
         await sleep(300);
         a.show("stand");
       } else {
@@ -322,9 +329,10 @@
     }
 
     const [mA, mB] = site.crew;
-    const A = actor(mA), B = actor(mB);
+    // Fixed sites (custom jobs, and each roamer's own layer) get A and B; dynamic crews are made with actor()
+    const A = site.fixed ? actor(mA) : null, B = site.fixed && mB ? actor(mB) : null;
     return {
-      W, H, sleep, every, el, glide, arcPoints, alive, A, B,
+      W, H, sleep, every, el, glide, arcPoints, alive, A, B, actor, site,
       crash, trip, thumb, nap, lookAround,
       // Time for a mishap? Always right after a hover or tap, otherwise about as often as chance says.
       mishap(chance = 0.5) {
@@ -656,33 +664,412 @@
     }
   }
 
-  // Any other coming-soon game: A hammers, B hauls planks back and forth (and trips, and naps).
+  // Any other coming-soon game: 0-4 workers, each on their own errands (hammering, hauling planks between the two
+  // lumber piles, standing around), with mishaps that get likelier the more of them there are. Workers walk in and
+  // out through site.api (see "Roamers"): enter drops one in through the top of the screen, leave sends one out,
+  // fetch drops one in to borrow a plank. A plank always comes from a pile and goes onto a pile.
   async function general(s) {
-    const { A, B, W } = s;
-    A.at(Math.round(W * 0.4), GROUND);
-    B.at(8, GROUND);
-    for (;;) {
-      A.play(["up", "down"], 180, n => n === "down" && s.sparks(A.x + 18, GROUND + 6, 1));
-      B.show("lift");
-      const plank = s.el("cs-plank", -2, 26, B.el);
-      plank.style.width = "24px";
-      await B.stroll(W - 26, 0.4);
-      plank.remove();
-      await s.sleep(1200);
-      await B.stroll(8, 0.3);
-      if (s.mishap(0.4)) {
-        const g = s.gag(["thumb", "nap"]);
-        if (g === "thumb") await s.thumb(A);
-        else await s.nap(s.napper(A));
+    const { W, H, site } = s;
+    const live = new Map();   // member -> actor
+    const quiet = e => { if (!(e instanceof Stopped)) throw e; };
+    const spot = () => Math.round(rand(6, W - 26));
+    const pileX = i => (i ? W - 25 : 3);
+    if (!site.piles) site.piles = [Math.floor(rand(1, 4)), Math.floor(rand(0, 3))];
+    const pileEls = [0, 1].map(i => s.el("cs-lumber-pile", pileX(i), GROUND));
+    const draw = () => pileEls.forEach((p, i) => { p.style.height = px(site.piles[i] * 4); });
+    draw();
+    const planks = () => site.piles[0] + site.piles[1];
+    const fuller = () => (site.piles[0] >= site.piles[1] ? 0 : 1);
+
+    // Pick a plank up off pile i / put the one being carried on pile i
+    async function takeFrom(a, i) {
+      await a.stroll(pileX(i) - 1, 0.3);
+      a.show("down");
+      await s.sleep(450);
+      if (site.piles[i] > 0) {
+        site.piles[i]--;
+        draw();
+        a.carry = s.el("cs-lumber", -2, 23, a.el);
       }
-      await s.sleep(1000);
+      a.show("stand");
+      await s.sleep(150);
     }
+    async function putOn(a, i) {
+      await a.stroll(pileX(i) - 1, 0.3);
+      a.show("down");
+      await s.sleep(400);
+      if (a.carry) { a.carry.remove(); a.carry = null; site.piles[i]++; draw(); }
+      a.show("stand");
+    }
+
+    async function life(a) {
+      while (!a.leaving) {
+        const r = Math.random();
+        if (r < 0.5 || (r < 0.8 && !planks())) {
+          // hammer somewhere
+          await a.stroll(spot(), 0.3);
+          if (a.leaving) break;
+          a.face(Math.random() < 0.5);
+          a.play(["up", "down"], 180, n => n === "down" && s.sparks(a.x + (a.facingLeft() ? 0 : 18), GROUND + 6, a.facingLeft() ? -1 : 1));
+          await s.sleep(rand(2000, 4000));
+          a.show("stand");
+        } else if (r < 0.8) {
+          // move a plank from the fuller pile to the other
+          const from = fuller();
+          await takeFrom(a, from);
+          await putOn(a, 1 - from);
+          await s.sleep(rand(400, 900));
+        } else {
+          a.show("think");
+          await s.sleep(rand(1000, 2000));
+          a.show("stand");
+        }
+        if (a.leaving) break;
+        // The more workers on the cabinet, the more goes wrong
+        if (s.mishap(0.15 + 0.12 * (live.size - 1))) {
+          const g = pick(["thumb", "trip", "nap"].concat(Array(a.sleepy).fill("nap")));
+          if (g === "thumb") await s.thumb(a);
+          else if (g === "trip") await s.trip(a);
+          else await s.nap(a);
+        }
+      }
+    }
+
+    // A new arrival: from above the screen on page load, or from just inside its top edge when a roamer
+    // has already dropped through the cabinet's frame (seamless)
+    async function land(m, x, seamless, carry) {
+      if (!site.members.includes(m)) site.members.push(m);
+      const a = s.actor(m);
+      live.set(m, a);
+      a.at(Math.max(0, Math.min(W - 20, x)), seamless ? H - 26 : H + 30);
+      if (carry) a.carry = s.el("cs-lumber", -2, 23, a.el);
+      a.show("flail");
+      await a.to(a.x, GROUND, seamless ? 250 : 350, "ease-in");
+      s.dust(a.x + 10, GROUND);
+      a.show("stand");
+      return a;
+    }
+    // Up and out through the top edge; resolves to where they left (stage x)
+    async function exit(a) {
+      a.show("lift");
+      const x = a.x;
+      await a.to(x, H - 26, 300, "ease-out");
+      a.el.remove();
+      live.delete(a.member);
+      return x;
+    }
+
+    site.api = {
+      count: () => live.size,
+      planks,
+      async enter(m, x, opt = {}) {
+        if (live.has(m)) return;
+        const a = await land(m, x, opt.seamless, opt.carry);
+        a.done = (async () => {
+          if (opt.carry) await putOn(a, site.piles[0] <= site.piles[1] ? 0 : 1);   // the plank goes on the smaller pile
+          await life(a);
+        })().catch(quiet);
+      },
+      // Borrow a plank from the fuller pile and go straight back out with it
+      async fetch(m, x) {
+        if (live.has(m)) return null;
+        const a = await land(m, x, true, false);
+        if (planks()) await takeFrom(a, fuller());
+        const carry = !!a.carry;
+        site.members = site.members.filter(k => k !== m);
+        return { x: await exit(a), carry };
+      },
+      // Finish what they're doing, then out through the top
+      async leave(m) {
+        const a = live.get(m);
+        site.members = site.members.filter(k => k !== m);
+        if (!a) return null;
+        a.leaving = true;
+        await a.done;
+        const carry = !!a.carry;
+        return { x: await exit(a), carry };
+      },
+    };
+    site.members.slice().forEach(m => site.api.enter(m, spot()).catch(quiet));
   }
 
   const JOBS = { "CUBE HOPPER": cubeHopper, "BARREL CLIMB": barrelClimb, "BLAST ZONE": blastZone, "PIXEL HERO": pixelHero };
 
-  document.querySelectorAll(".game-card.soon").forEach(card => {
-    const name = (card.querySelector("h2") || {}).textContent || "";
-    start(makeSite(card, JOBS[name.trim()] || general));
+  // ===== Dealing out the crew =====
+  // 19 workers, each exactly once: two to every custom-job cabinet, then one to every other cabinet, and the
+  // rest (up to four on a cabinet) wherever there is room. Homes are temporary: they are dealt again on every
+  // page load, and a cabinet that ships stops being a site.
+  const cards = [...document.querySelectorAll(".game-card.soon")];
+  const jobOf = card => JOBS[((card.querySelector("h2") || {}).textContent || "").trim()];
+  const pool = Crew.list.filter(m => m !== BOSS).sort(() => Math.random() - 0.5);
+  const homes = new Map();
+  if (FORCE_CREW.length === 2) cards.forEach(c => homes.set(c, FORCE_CREW.slice()));
+  else {
+    cards.filter(jobOf).forEach(c => homes.set(c, pool.splice(0, 2)));
+    const free = cards.filter(c => !jobOf(c));
+    free.forEach(c => homes.set(c, pool.splice(0, 1)));
+    for (let room = free.filter(c => homes.get(c).length < 4); pool.length && room.length; room = free.filter(c => homes.get(c).length < 4)) {
+      homes.get(pick(room)).push(pool.pop());
+    }
+  }
+  const sites = new Map();   // card -> site
+  cards.forEach(card => {
+    const job = jobOf(card);
+    const site = makeSite(card, job || general, homes.get(card), !!job);
+    sites.set(card, site);
+    start(site);
   });
+
+  // ===== Roamers =====
+  // Workers on the dynamic cabinets don't stay put. Every so often one climbs out onto the top of the cabinets
+  // and goes on an errand: visit another cabinet (and join in there, which makes it more chaotic), fetch supplies
+  // from one, or go stare at a live game. Between rows they set up a ladder, climb it and pack it away again.
+  // The Boss walks to any cabinet that has sat empty for a while and calls its workers back.
+  // The roamers live on their own layers over the whole page, in page coordinates (kit "y" is minus the page y).
+  // Desktop only for now: on touch screens the crews stay on their cabinets.
+  // ?roam=fast makes trips and Boss visits frequent, ?roam=off turns them off.
+  const ROAM = params.get("roam");
+  const ROAM_GAP = ROAM === "fast" ? [1, 3] : [20, 40];   // seconds a worker stays home between errands
+  const ROAM_MAX = 3;                                      // errands going on at once
+  const BOSS_WAIT = ROAM === "fast" ? 8 : 25;              // seconds a cabinet sits empty before the Boss comes
+  const quiet = e => { if (!(e instanceof Stopped)) throw e; };
+  const roster = [];   // the people who roam: { m, home, layer, pseudo, s, out, recalled, row }
+  let tripsOn = 0;
+
+  const origin = () => roster[0].layer.getBoundingClientRect();
+  const stageLeft = (site, o) => site.stage.getBoundingClientRect().left - o.left;
+
+  // The rows of cabinets, top to bottom (y is where a worker stands: the top edge of the row)
+  function rowsOf(o) {
+    const rows = [];
+    document.querySelectorAll(".game-card").forEach(c => {
+      const r = c.getBoundingClientRect(), y = Math.round(r.top - o.top);
+      let row = rows.find(w => Math.abs(w.y - y) < 8);
+      if (!row) rows.push(row = { y, cards: [] });
+      row.cards.push({ el: c, x: r.left - o.left, w: r.width });
+    });
+    rows.sort((a, b) => a.y - b.y);
+    rows.forEach(r => r.cards.sort((a, b) => a.x - b.x));
+    return rows;
+  }
+  // x of the lanes between columns (ladders stand there), taken from the fullest row
+  function colGaps(rows) {
+    const full = rows.reduce((b, r) => (r.cards.length > b.cards.length ? r : b), rows[0]);
+    return full.cards.slice(1).map((k, i) => (full.cards[i].x + full.cards[i].w + k.x) / 2);
+  }
+
+  // The frame of a cabinet is crossed without ever disappearing: the roamer drops through it until they are just
+  // inside the top of the screen, and the on-screen worker takes over from exactly that spot (and the reverse
+  // on the way out). insideY = where that is, in layer coordinates.
+  const insideY = (site, o) => -(site.stage.getBoundingClientRect().top - o.top + 26);
+
+  // Out through the top of a cabinet: { x, fromY, carry } where the roamer picks up, or null
+  async function leaveSite(w, site, o) {
+    let out = null;
+    try { if (site.api) out = await site.api.leave(w.m); } catch (e) { quiet(e); }
+    site.members = site.members.filter(k => k !== w.m);
+    return out && { x: stageLeft(site, o) + out.x, fromY: insideY(site, o), carry: out.carry };
+  }
+  // Drop through the frame at the roamer's current spot; returns the stage x they land at and where they were
+  async function fallIn(w, site, o) {
+    const A = w.s.A, at = A.x, x = at - stageLeft(site, o);
+    A.show("flail");
+    await A.to(at, insideY(site, o), 260, "ease-in");
+    A.at(-60, -1000);
+    return { x, at };
+  }
+  // Hop down into a cabinet (carry: with a plank for its pile)
+  async function enterSite(w, site, o, carry = false) {
+    const { x } = await fallIn(w, site, o);
+    if (!site.members.includes(w.m)) site.members.push(w.m);
+    try { if (site.api) await site.api.enter(w.m, x, { seamless: true, carry }); } catch (e) { quiet(e); }
+  }
+  // Drop in to borrow a plank, and come out again with it
+  async function fetchFrom(w, site, o) {
+    const { x, at } = await fallIn(w, site, o);
+    let out = null;
+    try { out = await site.api.fetch(w.m, x); } catch (e) { quiet(e); }
+    return out ? { x: stageLeft(site, o) + out.x, fromY: insideY(site, o), carry: out.carry } : { x: at, carry: false };
+  }
+  // Onto the top edge of a row at x: up through the frame from fromY, or dropping in from above
+  async function popOut(w, x, y, fromY, carry = false) {
+    const A = w.s.A, rise = fromY != null;
+    A.at(x, rise ? fromY : y + 30);
+    A.show("flail");
+    await A.to(x, y, 320, rise ? "ease-out" : "ease-in");
+    w.s.dust(x + 10, y);
+    A.show("stand");
+    if (carry && !A.carry) {
+      A.carry = w.s.el("cs-lumber", -2, 23, A.el);
+    }
+  }
+
+  // Set up a ladder in the nearest lane, climb it one row, and pack it away behind them
+  async function ladderStep(w, rows, to, gaps) {
+    const s = w.s, A = s.A, from = w.row, down = to > from;
+    const yF = rows[from].y, yT = rows[to].y, top = Math.min(yF, yT), len = Math.abs(yT - yF);
+    const gx = gaps.reduce((b, g) => (Math.abs(g - A.x) < Math.abs(b - A.x) ? g : b), gaps[0]);
+    await A.stroll(Math.round(gx - 10), 0.2);
+    const lad = s.el("cs-ladder", gx - 8, 0);
+    lad.style.bottom = "";
+    lad.style.top = px(top);
+    lad.style.height = px(len);
+    const IN = down ? ["inset(0 0 100% 0)", "inset(0)"] : ["inset(100% 0 0 0)", "inset(0)"];     // grows from the top / bottom
+    const OUT = down ? ["inset(0)", "inset(100% 0 0 0)"] : ["inset(0)", "inset(0 0 100% 0)"];   // packs away toward the climber
+    lad.style.clipPath = IN[0];
+    const slide = async ([a, b]) => {
+      await lad.animate({ clipPath: [a, b] }, { duration: 700, fill: "forwards" }).finished.catch(() => {});
+      s.alive();
+    };
+    A.show("lift");
+    await slide(IN);
+    A.face(false);
+    A.play(["lift", "stand"], 200);
+    await A.to(Math.round(gx - 10), -yT, len / (70 * A.pace) * 1000);
+    A.show("lift");
+    await slide(OUT);
+    lad.remove();
+    A.show("stand");
+    w.row = to;
+  }
+
+  // Up and down the rows by ladder, then along to the cabinet
+  async function goTo(w, rows, card, gaps) {
+    const A = w.s.A, t = rows.findIndex(r => r.cards.some(k => k.el === card));
+    if (t < 0 || (t !== w.row && !gaps.length)) return;
+    while (w.row !== t) await ladderStep(w, rows, w.row + Math.sign(t - w.row), gaps);
+    const k = rows[t].cards.find(k => k.el === card);
+    await A.stroll(Math.round(k.x + rand(k.w * 0.3, k.w * 0.7) - 10), 0.25);
+  }
+
+  // One errand
+  async function workerTrip(w) {
+    const s = w.s, A = s.A, home = w.home, o = origin();
+    const rows = rowsOf(o), gaps = colGaps(rows);
+    const rowOf = c => rows.findIndex(r => r.cards.some(k => k.el === c));
+    const hr = rowOf(home.card);
+    if (hr < 0) return;
+    const reach = c => rowOf(c) === hr || gaps.length > 0;
+    w.recalled = false;
+    w.row = hr;
+    const out = await leaveSite(w, home, o);
+    await popOut(w, out ? out.x : rows[hr].cards.find(k => k.el === home.card).x + 60, -rows[hr].y, out && out.fromY);
+    await s.sleep(400);
+
+    const panels = [...sites.values()].filter(t => t !== home && t.api && t.members.length < 4 && reach(t.card));
+    const live = [...document.querySelectorAll(".game-card:not(.soon)")].filter(reach);
+    const lenders = [...sites.values()].filter(t => t !== home && t.api && t.api.planks() > 0 && reach(t.card));
+    const stops = Math.random() < 0.4 ? 2 : 1;
+    for (let i = 0; i < stops && !w.recalled; i++) {
+      const kind = pick(["visit", "visit", "supplies", "gawk"]);
+      if (kind === "visit" && panels.length) {
+        // Step into another cabinet and muck in for a while
+        const t = pick(panels);
+        await goTo(w, rows, t.card, gaps);
+        if (t.members.length >= 4) continue;
+        const at = A.x;
+        await enterSite(w, t, o);
+        for (let n = rand(16, 32); n > 0 && !w.recalled; n--) await s.sleep(500);
+        const back = await leaveSite(w, t, o);
+        await popOut(w, back ? back.x : at, -rows[w.row].y, back && back.fromY);
+      } else if (kind === "supplies" && lenders.length && !A.carry) {
+        // Borrow a plank from another cabinet's pile; it gets carried home and goes on the pile there
+        const t = pick(lenders);
+        await goTo(w, rows, t.card, gaps);
+        const got = await fetchFrom(w, t, o);
+        await popOut(w, got.x, -rows[w.row].y, got.fromY, got.carry);
+      } else if (live.length) {
+        // Go and stare at a game that actually works
+        await goTo(w, rows, pick(live), gaps);
+        A.show("think");
+        A.say("?", 900);
+        await s.sleep(2200);
+        A.show("stand");
+      }
+    }
+    await goTo(w, rows, home.card, gaps);
+    const plank = !!A.carry;
+    if (A.carry) { A.carry.remove(); A.carry = null; }
+    await enterSite(w, home, o, plank);
+  }
+
+  // The Boss goes to an empty cabinet, looks stern, calls its workers back, and is gone when they're there
+  async function bossTrip(w, site) {
+    const s = w.s, A = s.A, o = origin(), rows = rowsOf(o), gaps = colGaps(rows);
+    const start = pick(rows[0].cards);
+    w.row = 0;
+    await popOut(w, Math.round(start.x + start.w / 2 - 10), -rows[0].y);
+    await goTo(w, rows, site.card, gaps);
+    A.show("think");
+    A.say("?", 900);
+    await s.sleep(1100);
+    A.say("!", 900);
+    roster.forEach(k => { if (k.home === site && k.out) k.recalled = true; });
+    for (let n = 0; n < 28 && !site.members.length; n++) await s.sleep(500);
+    await s.sleep(600);
+    s.dust(A.x + 10, A.y);
+    A.at(-60, -1000);
+  }
+
+  async function workerLoop(w) {
+    const s = w.s;
+    await s.sleep(ROAM === "fast" ? rand(0.5, 2) * 1000 : rand(4, 18) * 1000);
+    for (;;) {
+      while (tripsOn >= ROAM_MAX) await s.sleep(2000);
+      tripsOn++;
+      w.out = true;
+      try { await workerTrip(w); } finally { tripsOn--; w.out = false; }
+      await s.sleep(rand(...ROAM_GAP) * 1000);
+    }
+  }
+  async function bossLoop(w) {
+    for (;;) {
+      await w.s.sleep(2000);
+      if (bossBusy) continue;
+      const t = [...sites.values()].find(t => t.api && !t.members.length && t.emptySince && performance.now() - t.emptySince > BOSS_WAIT * 1000);
+      if (!t) continue;
+      bossBusy = true;
+      w.out = true;
+      try { await bossTrip(w, t); } finally { bossBusy = false; w.out = false; t.emptySince = performance.now(); }
+    }
+  }
+
+  // (Re)start one roamer: a fresh layer, and if they were mid-errand they go back to work at home
+  function startRoamer(w) {
+    stop(w.pseudo);
+    w.out = false;
+    w.recalled = false;
+    w.s = kit(w.pseudo);
+    w.s.A.at(-60, -1000);
+    if (w.home) {
+      sites.forEach(t => {
+        if (t !== w.home && t.members.includes(w.m)) { if (t.api) t.api.leave(w.m).catch(() => {}); else t.members = t.members.filter(k => k !== w.m); }
+      });
+      if (!w.home.members.includes(w.m)) { if (w.home.api) w.home.api.enter(w.m, rand(10, 150)).catch(() => {}); else w.home.members.push(w.m); }
+    } else bossBusy = false;
+    (w.home ? workerLoop : bossLoop)(w).catch(quiet);
+  }
+
+  const roamOn = !calm && ROAM !== "off" && FORCE_CREW.length !== 2 && !matchMedia("(hover: none)").matches;
+  if (roamOn) {
+    const add = (m, home) => {
+      const layer = document.createElement("div");
+      layer.className = "cs-roam";
+      layer.setAttribute("aria-hidden", "true");
+      document.body.appendChild(layer);
+      roster.push({ m, home, layer, s: null, out: false, recalled: false, row: 0,
+        pseudo: { card: home && home.card, stage: layer, crew: [m], fixed: true, gen: 0, visible: true, poked: false, timers: [] } });
+    };
+    sites.forEach(site => { if (!site.fixed) site.crew.forEach(m => add(m, site)); });
+    if (BOSS && roster.length) add(BOSS, null);
+    roster.forEach(startRoamer);
+    // Time stands still for a roamer who is off screen; track which cabinets have no one on them
+    const onScreen = el => { const r = el.getBoundingClientRect(); return r.bottom > -200 && r.top < innerHeight + 200; };
+    setInterval(() => {
+      roster.forEach(w => { w.pseudo.visible = !w.out || onScreen(w.s.A.el); });
+      sites.forEach(t => { t.emptySince = t.api && !t.members.length ? (t.emptySince || performance.now()) : 0; });
+    }, 500);
+    let relaid = 0;
+    addEventListener("resize", () => { clearTimeout(relaid); relaid = setTimeout(() => roster.forEach(startRoamer), 400); });
+  }
 })();

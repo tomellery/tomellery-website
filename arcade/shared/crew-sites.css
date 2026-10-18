@@ -9,6 +9,9 @@
   background: repeating-linear-gradient(-45deg, #ffe14d 0 6px, #111 6px 12px); opacity: 0.85;
 }
 
+/* Roamers: a zero-size layer at the page's corner; crew inside it are positioned in page coordinates */
+.cs-roam { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 6; pointer-events: none; }
+
 /* The crew */
 .cs-actor { position: absolute; width: 20px; z-index: 2; }
 .cs-look { display: block; }
@@ -63,6 +66,11 @@
 .cs-cube.placed { animation: cs-placed 0.5s steps(4) forwards; }
 @keyframes cs-placed { 50% { box-shadow: 0 0 8px #fff; } to { opacity: 0; } }
 .cs-pile { width: 8px; height: 16px; }
+
+/* Lumber: two piles on every general cabinet; planks are carried from one to the other (and borrowed by roamers) */
+.cs-lumber, .cs-lumber-pile { position: absolute; background: repeating-linear-gradient(to top, #b5651d 0 3px, #5a3010 3px 4px); }
+.cs-lumber { width: 24px; height: 3px; z-index: 3; box-shadow: 0 0 0 1px #5a3010; }
+.cs-lumber-pile { width: 22px; height: 0; }
 
 /* PIXEL HERO: platform planks */
 .cs-plank { position: absolute; height: 4px; background: #2bcf63; box-shadow: inset 0 -1px 0 #1a7a3a, inset -1px 0 0 #1a7a3a; z-index: 1; }
