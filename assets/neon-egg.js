@@ -2,14 +2,36 @@
 // A random member of the 8-bit repair crew shows up from a random side: walking in from the left or right, rappelling
 // down a rope from above, or climbing out of a manhole in the line below. He bangs the letter with his wrench until it
 // lights back up, hops, and leaves a different way than he came. Keep hovering and another letter goes 15 seconds later.
-// Moving off the sign resets everything. Skipped for visitors who turn animations off.
-// The crew lives in assets/crew.js, which has to load first.
+// Moving off the sign resets everything.
+// Phones and tablets can't hover, so there the sign switches itself on 1.5 seconds after the menu opens, the first
+// letter goes out after 10 seconds with the menu open (then every 15), and closing the menu resets it.
+// The crew is skipped for visitors who turn animations off. It lives in assets/crew.js, which has to load first.
 (() => {
   const item = document.querySelector(".neon-item");
-  if (!item || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (!item) return;
+  const touch = matchMedia("(hover: none)").matches;
+  const WARM_UP = 1500, FIRST_BURNOUT = 10000;   // touch screens only: ms after the menu opens
+
+  // Touch screens: light the sign a moment after the menu opens, like a neon sign warming up
+  if (touch) {
+    const menu = document.getElementById("menu");
+    let warming = 0;
+    new MutationObserver(() => {
+      clearTimeout(warming);
+      if (menu.classList.contains("open")) {
+        warming = setTimeout(() => { item.classList.add("lit"); crewStart(FIRST_BURNOUT - WARM_UP); }, WARM_UP);
+      } else {
+        item.classList.remove("lit");
+        crewReset();
+      }
+    }).observe(menu, { attributes: true, attributeFilter: ["class"] });
+  }
 
   const Crew = window.Crew;   // assets/crew.js
-  if (!Crew) return;
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const crewStart = first => { if (Crew && !calm) start(first); };
+  const crewReset = () => { if (Crew && !calm) reset(); };
+  if (!Crew || calm) return;
 
   // ===== The show =====
   const WIDTH = 22, HEIGHT = 29, GROUND = 2, SPEED = 90;   // px; walking speed in px per second
@@ -116,9 +138,9 @@
     stage = dude = letter = null;
   }
 
-  function start() {
+  function start(first = wait()) {
     reset();
-    later(wait(), burnOut);
+    later(first, burnOut);
   }
 
   function burnOut() {
@@ -170,8 +192,10 @@
     }
   }
 
-  item.addEventListener("mouseenter", start);
-  item.addEventListener("mouseleave", reset);
-  item.addEventListener("focus", start);
-  item.addEventListener("blur", reset);
+  if (!touch) {
+    item.addEventListener("mouseenter", () => start());
+    item.addEventListener("mouseleave", reset);
+  }
+  item.addEventListener("focus", () => start());
+  item.addEventListener("blur", () => { if (!item.classList.contains("lit")) reset(); });
 })();

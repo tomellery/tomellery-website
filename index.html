@@ -256,7 +256,7 @@
     /* Neon Arcade item: on hover each white letter flickers into the arcade's pink/cyan pixel sign, left to right,
        and flips back right to left when the mouse leaves. The pixel font loads when the menu opens (see setMenu). */
     .neon-item { position: relative; --pink: #ff2e88; --cyan: #29f0ff; --pixel: "Press Start 2P", monospace; --step: 45ms; }
-    .menu nav a.neon-item:hover, .menu nav a.neon-item:focus-visible { color: var(--white); }
+    .menu nav a.neon-item:hover, .menu nav a.neon-item:focus-visible, .menu nav a.neon-item.lit { color: var(--white); }
     .neon-item small { visibility: hidden; }  /* keeps the letters lined up with the numbered items */
     .na { display: inline-flex; }
     .na-gap { width: .22em; }
@@ -269,19 +269,20 @@
       font-family: var(--pixel); font-size: .44em; line-height: 1; color: var(--pink-or-cyan);
       text-shadow: 0 0 4px currentColor, 0 0 12px currentColor, 0 0 26px currentColor;
     }
-    .neon-item:hover .na-w, .neon-item:focus-visible .na-w { opacity: 0; transform: scaleY(.6); transition-delay: calc(var(--i) * var(--step) + 40ms); }
-    .neon-item:hover .na-p, .neon-item:focus-visible .na-p {
+    .neon-item:hover .na-w, .neon-item:focus-visible .na-w, .neon-item.lit .na-w { opacity: 0; transform: scaleY(.6); transition-delay: calc(var(--i) * var(--step) + 40ms); }
+    .neon-item:hover .na-p, .neon-item:focus-visible .na-p, .neon-item.lit .na-p {
       opacity: 1; transform: translate(-50%, -50%) scale(1, 1.55); transition-delay: calc(var(--i) * var(--step));
       animation: na-flicker .32s steps(1) both; animation-delay: calc(var(--i) * var(--step));
     }
-    /* Easter egg (assets/neon-egg.js): hover on the sign for --burnout and a random letter sputters out,
+    /* .lit is the hover look switched on by script: phones can't hover, so the sign lights itself (assets/neon-egg.js).
+       Easter egg (assets/neon-egg.js): hover on the sign for --burnout and a random letter sputters out,
        then a little 8-bit repairman walks over and fixes it. Moving off the sign resets it. */
     .neon-item { --burnout: 15s; }
-    .neon-item:hover .na-p.na-dying, .neon-item:focus-visible .na-p.na-dying {
+    .neon-item:hover .na-p.na-dying, .neon-item:focus-visible .na-p.na-dying, .neon-item.lit .na-p.na-dying {
       animation: na-flicker .32s steps(1) both, na-burnout 4s steps(1) forwards;
       animation-delay: calc(var(--i) * var(--step)), 0s;
     }
-    .neon-item:hover .na-p.na-fixing, .neon-item:focus-visible .na-p.na-fixing {
+    .neon-item:hover .na-p.na-fixing, .neon-item:focus-visible .na-p.na-fixing, .neon-item.lit .na-p.na-fixing {
       animation: na-flicker .32s steps(1) both, na-relight 1.2s steps(1) forwards;
       animation-delay: calc(var(--i) * var(--step)), 0s;
     }
@@ -317,12 +318,14 @@
       position: absolute; right: 0; top: 50%; transform: translateY(-50%); opacity: 0; transition: opacity .15s;
       font-family: var(--mono); font-style: normal; font-size: 10px; letter-spacing: .2em; color: var(--pink); text-shadow: 0 0 8px var(--pink);
     }
-    .neon-item:hover .na-coin, .neon-item:focus-visible .na-coin { opacity: 1; transition-delay: .45s; animation: na-blink 1s steps(1) .45s infinite; }
+    .neon-item:hover .na-coin, .neon-item:focus-visible .na-coin, .neon-item.lit .na-coin { opacity: 1; transition-delay: .45s; animation: na-blink 1s steps(1) .45s infinite; }
     @keyframes na-blink { 50% { opacity: 0; } }
+    /* Narrow screens: no room beside the sign, so INSERT COIN sits under its right end */
+    @media (max-width: 520px) { .na-coin { top: auto; bottom: 2px; transform: none; font-size: 8px; } }
     :root[data-theme="light"] .neon-item { --pink: #e0006b; --cyan: #0094b3; }
     @media (prefers-reduced-motion: reduce) {
-      .na-w, .na-p, .neon-item:hover .na-w, .neon-item:hover .na-p, .neon-item:focus-visible .na-w, .neon-item:focus-visible .na-p { transition-delay: 0s; animation: none; }
-      .neon-item:hover .na-coin, .neon-item:focus-visible .na-coin { animation: none; }
+      .na-w, .na-p, .neon-item:hover .na-w, .neon-item:hover .na-p, .neon-item:focus-visible .na-w, .neon-item.lit .na-w, .neon-item:focus-visible .na-p, .neon-item.lit .na-p { transition-delay: 0s; animation: none; }
+      .neon-item:hover .na-coin, .neon-item:focus-visible .na-coin, .neon-item.lit .na-coin { animation: none; }
     }
     .menu-foot { max-width: 560px; width: 100%; margin: 0 auto; display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .2em; color: var(--dim); }
     body.menu-open { overflow: hidden; }
@@ -525,6 +528,6 @@
   <script src="assets/secrets.js?v=2"></script>
   <script src="assets/snowdump.js?v=13"></script>
   <script src="assets/crew.js?v=2"></script>
-  <script src="assets/neon-egg.js?v=7"></script>
+  <script src="assets/neon-egg.js?v=8"></script>
 </body>
 </html>
