@@ -1,6 +1,7 @@
 // The 8-bit repair crew: 20 pixel characters shared by the Neon Arcade sign in the menu (assets/neon-egg.js)
 // and the construction sites on the arcade's coming-soon cabinets (arcade/shared/crew-sites.js).
 // All 20 are laid out side by side in drafts/repairmen.html (kept offline).
+// Part of the Neon Arcade: how it all fits together, and Tom's style notes, are in arcade/CLAUDE.md.
 //   Crew.list        the 20 crew members
 //   Crew.sprites(m)  their frames (walk1, walk2, stand, up, down, lift, flail, think, sit) as ready-to-use SVG strings
 (() => {

@@ -1,3 +1,4 @@
+// Part of the Neon Arcade: how it all fits together, and Tom's style notes, are in arcade/CLAUDE.md.
 // Neon Arcade easter egg (menu): hover on the sign for 15 seconds (--burnout in the CSS) and a random letter sputters out.
 // A random member of the 8-bit repair crew shows up from a random side: walking in from the left or right, rappelling
 // down a rope from above, or climbing out of a manhole in the line below. He bangs the letter with his wrench until it
