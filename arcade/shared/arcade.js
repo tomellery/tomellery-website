@@ -288,6 +288,8 @@
   // ---------- High scores (top 5 per game, shared by everyone via the site's Worker) ----------
   // A copy of the shared tables is kept in this browser so scores show instantly and the games work offline.
   // A score that couldn't be sent is kept as "pending" and sent again on the next visit.
+  // Each score goes with a ticket the Worker handed out when the page opened (or after the last score), so it can
+  // check the score was possible in the time played. A score the Worker turns down is dropped, not retried.
 
   const scores = (() => {
     const API = 'https://tomellery-scores.tomellery1818.workers.dev/arcade';
@@ -297,6 +299,15 @@
     const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
+
+    let ticket = null;
+    function getTicket() {
+      fetch(API.replace(/\/arcade$/, '/ticket'), { cache: 'no-store' })
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => { if (d && d.ticket) ticket = d.ticket; })
+        .catch(() => {});
+    }
+    getTicket();
 
     const read = (key, fallback) => {
       try { return JSON.parse(store.get(key)) || fallback; } catch (e) { return fallback; }
@@ -324,12 +335,15 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry),
-      }).then(r => (r.ok ? r.json() : Promise.reject(r.status)))
-        .then(tables => {
-          pending = pending.filter(p => p !== entry);
-          store.set(PENDING, JSON.stringify(pending));
-          received(tables);
-        });
+      }).then(r => {
+        // Turned down (no ticket, impossible score...): drop it. Busy or down: keep it for next time.
+        if (!r.ok && r.status >= 400 && r.status < 500 && r.status !== 429) return null;
+        return r.ok ? r.json() : Promise.reject(r.status);
+      }).then(tables => {
+        pending = pending.filter(p => p !== entry);
+        store.set(PENDING, JSON.stringify(pending));
+        if (tables) received(tables);
+      });
     }
 
     // Get the latest tables, after first sending anything left over from last time.
@@ -353,7 +367,8 @@
       },
       // Returns the rank (0-based) the new score landed at. It shows right away and is sent in the background.
       add(id, name, score) {
-        const entry = { game: id, name, score };
+        const entry = { game: id, name, score, ticket };
+        getTicket();   // a fresh one for the next run
         pending.push(entry);
         store.set(PENDING, JSON.stringify(pending));
         const rank = list(id).indexOf(entry);

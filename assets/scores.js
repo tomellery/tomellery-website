@@ -1,7 +1,18 @@
 // Shared high scores for the secret games, kept by a Cloudflare Worker (worker/scores.js).
 // The browser's own copy is used straight away and whenever the Worker can't be reached.
+// Each score goes with a ticket the Worker handed out when the page opened (or after the last score), so it can
+// check the score was possible in the time played.
 (function () {
   const API = "https://tomellery-scores.tomellery1818.workers.dev";
+
+  let ticket = null;
+  function getTicket() {
+    fetch(API + "/ticket", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && d.ticket) ticket = d.ticket; })
+      .catch(() => {});
+  }
+  getTicket();
 
   function local(game) {
     try { return parseInt(localStorage.getItem(game + "Hi"), 10) || 0; } catch (e) { return 0; }
@@ -12,7 +23,9 @@
 
   function send(game, score, onHi) {
     if (!API) return;
-    fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ game, score }) })
+    const used = ticket;
+    getTicket();   // a fresh one for the next run
+    fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ game, score, ticket: used }) })
       .then(r => r.json())
       .then(d => { if (d.hi > 0) { keep(game, Math.max(local(game), d.hi)); onHi && onHi(d.hi); } })
       .catch(() => {});
@@ -27,8 +40,7 @@
       .then(r => r.json())
       .then(d => {
         const hi = d.hi || 0;
-        if (mine > hi) send(game, mine, onHi);   // this browser has a better score the Worker hasn't seen
-        else if (hi > mine) { keep(game, hi); onHi(hi); }
+        if (hi > mine) { keep(game, hi); onHi(hi); }
       })
       .catch(() => {});
   };

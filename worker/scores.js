@@ -2,42 +2,121 @@
   // Needs a KV namespace bound as SCORES (Settings → Bindings in the dashboard),
   // and a Cron Trigger of */15 * * * * (Settings → Trigger events) so prices and snow stay fresh.
   //
-  //   GET  /?game=flapper                    → { "hi": 12 }
-  //   POST /  {"game":"flapper","score":15}  → { "hi": 15 }  (only ever goes up)
+  //   GET  /ticket                           → { "ticket": "..." }  a game gets one when it starts, and sends it with its score
+  //   GET  /?game=flapper                    → { "hi": 12 }   secret games: one best score each
+  //   POST /  {"game":"flapper","score":15,"ticket":"..."}  → { "hi": 15 }  (only ever goes up)
   //   GET  /arcade                          → { "snake": [{ "name": "TOM", "score": 1200 }, ...], ... }  top 5 per game
-  //   POST /arcade {"game":"snake","name":"TOM","score":1200}  → the same, with the new score in it
+  //   POST /arcade {"game":"snake","name":"TOM","score":1200,"ticket":"..."}  → the same, with the new score in it
+  //
+  // Any short lowercase game name works for both, so a new game (arcade or secret) needs no change here.
+  // Keeping the boards honest:
+  //   - a score has to come with a ticket this Worker signed, and be possible in the time since the ticket was issued
+  //   - each visitor can send only a few scores a minute (so spam can't use up the free daily saves the snow and
+  //     crypto boards need)
+  //   - at most MAX_BOARDS boards of each kind, and every score has a ceiling
   //   GET  /crypto                           → prices, refreshed every 15 minutes
   //   GET  /snow                             → snow for every mountain, refreshed every 15 minutes
   //
   // The coin and mountain lists live on the site in assets/feeds.json, so they're edited in one place.
   
-  const VERSION = 5;   // bump when the code changes, so it's easy to tell which copy Cloudflare is running
+  const VERSION = 6;   // bump when the code changes, so it's easy to tell which copy Cloudflare is running
   const CONFIG_URL = "https://tomellery.com/assets/feeds.json";
   const FRESH = 15 * 60 * 1000;            // refresh prices and snow this often
   const SEASON_FRESH = 60 * 60 * 1000;     // snow sensors post once a day, so hourly is plenty
   
-  // Highest believable score per game; anything above is ignored.
-  const GAMES = { flapper: 500, runner: 50000 };
-  
+  // ===== Game scores =====
+  const GAME_ID = /^[a-z]{3,12}$/, ARCADE_NAME = /^[A-Z0-9]{3}$/;
+  const MAX_BOARDS = 40;            // per kind (arcade, secret): new game names past this are turned away
+  // Highest believable score, and fastest believable scoring (points per second of play, plus a head start).
+  // Games not listed get the defaults, which are generous.
+  const LIMITS = {
+    flapper: { max: 500, perSec: 2, start: 5 },        // about one point per pipe
+    runner: { max: 50000, perSec: 15, start: 50 },     // 10 points a second
+  };
+  const DEFAULT_LIMIT = { max: 999999, perSec: 1000, start: 5000 };
+  const MIN_PLAY = 2, MAX_TICKET_AGE = 7 * 24 * 3600;   // seconds: arcade scores saved offline are sent on the next visit
+  const SCORES_PER_MINUTE = 8, TICKETS_PER_MINUTE = 30;  // per visitor
+
+  // Tickets: the time they were issued, signed with a secret, so they can't be made up or backdated.
+  // The secret is TICKET_SECRET if set (Settings → Variables and secrets), otherwise derived from the CoinGecko key,
+  // otherwise made once and kept in KV.
+  const enc = new TextEncoder();
+  let signingKey = null;
+  async function ticketKey(env) {
+    if (signingKey) return signingKey;
+    let secret = env.TICKET_SECRET || env.COINGECKO_KEY;
+    if (!secret) {
+      secret = await env.SCORES.get("ticket:secret");
+      if (!secret) { secret = crypto.randomUUID() + crypto.randomUUID(); await env.SCORES.put("ticket:secret", secret); }
+    }
+    signingKey = await crypto.subtle.importKey("raw", enc.encode("tomellery tickets:" + secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    return signingKey;
+  }
+  const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const sign = async (env, text) => b64(await crypto.subtle.sign("HMAC", await ticketKey(env), enc.encode(text)));
+  async function newTicket(env) {
+    const t = String(Date.now());
+    return t + "." + await sign(env, t);
+  }
+  // Seconds since the ticket was issued, or -1 if it isn't one of ours
+  async function ticketAge(env, ticket) {
+    const [t, sig] = String(ticket || "").split(".");
+    if (!/^\d{13}$/.test(t || "") || !sig || sig !== await sign(env, t)) return -1;
+    return (Date.now() - Number(t)) / 1000;
+  }
+
+  // Is this score believable? Returns null if so, otherwise [status, why].
+  async function checkScore(env, game, score, ticket) {
+    const lim = LIMITS[game] || DEFAULT_LIMIT;
+    if (!Number.isInteger(score) || score <= 0 || score > lim.max) return [400, "bad score"];
+    const age = await ticketAge(env, ticket);
+    if (age < 0) return [403, "no valid ticket"];
+    if (age < MIN_PLAY || age > MAX_TICKET_AGE) return [422, "ticket too new or too old"];
+    if (score > lim.start + lim.perSec * age) return [422, "score too high for the time played"];
+    return null;
+  }
+
+  // A few requests a minute per visitor. Kept in the Worker's memory: free, no KV saves, and enough to stop a script
+  // hammering the boards (each Cloudflare location keeps its own count, which is fine for this).
+  const recent = new Map();
+  function tooFast(req, kind, perMinute) {
+    const who = kind + ":" + (req.headers.get("CF-Connecting-IP") || "unknown"), now = Date.now();
+    const times = (recent.get(who) || []).filter(t => now - t < 60000);
+    times.push(now);
+    if (recent.size > 5000) recent.clear();
+    recent.set(who, times);
+    return times.length > perMinute;
+  }
+
   // Neon Arcade (tomellery.com/arcade/): one shared top-5 table per game, all kept under one KV key.
-  // Any short lowercase game id is accepted, so a new game needs no change here.
-  const ARCADE_KEY = "arcade:tables", ARCADE_SIZE = 5, ARCADE_MAX = 999999;
-  const ARCADE_GAME = /^[a-z]{3,12}$/, ARCADE_NAME = /^[A-Z0-9]{3}$/;
+  const ARCADE_KEY = "arcade:tables", ARCADE_SIZE = 5;
 
   async function arcade(req, env) {
     const tables = JSON.parse(await env.SCORES.get(ARCADE_KEY) || "{}");
     if (req.method === "GET") return reply(req, tables);
+    if (tooFast(req, "score", SCORES_PER_MINUTE)) return reply(req, { error: "slow down" }, 429);
     let data;
     try { data = await req.json(); } catch (e) { return reply(req, { error: "bad json" }, 400); }
-    const { game, name, score } = data || {};
-    if (!ARCADE_GAME.test(game || "")) return reply(req, { error: "unknown game" }, 400);
+    const { game, name, score, ticket } = data || {};
+    if (!GAME_ID.test(game || "")) return reply(req, { error: "unknown game" }, 400);
     if (!ARCADE_NAME.test(name || "")) return reply(req, { error: "bad name" }, 400);
-    if (!Number.isInteger(score) || score <= 0 || score > ARCADE_MAX) return reply(req, { error: "bad score" }, 400);
+    const wrong = await checkScore(env, game, score, ticket);
+    if (wrong) return reply(req, { error: wrong[1] }, wrong[0]);
+    if (!tables[game] && Object.keys(tables).length >= MAX_BOARDS) return reply(req, { error: "too many games" }, 400);
     const table = tables[game] || [];
     if (table.length >= ARCADE_SIZE && score <= table[table.length - 1].score) return reply(req, tables);
     tables[game] = table.concat({ name, score }).sort((a, b) => b.score - a.score).slice(0, ARCADE_SIZE);
     await env.SCORES.put(ARCADE_KEY, JSON.stringify(tables));
     return reply(req, tables);
+  }
+
+  // Secret games: one best score per game, all kept under one KV key. (Flapper's and Runner's records from before
+  // this were each kept under their own "hi:<game>" key, which is still read until they set a new one.)
+  const SECRET_KEY = "secret:hi";
+  async function secretBest(env, game) {
+    const all = JSON.parse(await env.SCORES.get(SECRET_KEY) || "{}");
+    const hi = game in all ? all[game] : parseInt(await env.SCORES.get("hi:" + game), 10) || 0;
+    return [all, hi];
   }
 
   const ORIGINS = ["https://tomellery.com", "https://www.tomellery.com"];
@@ -187,24 +266,32 @@
       if (req.method === "GET" && path === "/version") return reply(req, { v: VERSION });
       if (req.method === "GET" && path === "/crypto") return feed(req, env, ctx, "feed:crypto", refreshCrypto);
       if (req.method === "GET" && path === "/snow") return feed(req, env, ctx, "feed:snow", refreshSnow);
+      if (req.method === "GET" && path === "/ticket") {
+        if (tooFast(req, "ticket", TICKETS_PER_MINUTE)) return reply(req, { error: "slow down" }, 429);
+        return reply(req, { ticket: await newTicket(env) });
+      }
       if (path === "/arcade") return arcade(req, env);
-  
+
       if (req.method === "GET") {
         const game = new URL(req.url).searchParams.get("game");
-        if (!(game in GAMES)) return reply(req, { error: "unknown game" }, 400);
-        const hi = parseInt(await env.SCORES.get("hi:" + game), 10) || 0;
+        if (!GAME_ID.test(game || "")) return reply(req, { error: "unknown game" }, 400);
+        const [, hi] = await secretBest(env, game);
         return reply(req, { hi });
       }
-  
+
       if (req.method === "POST") {
+        if (tooFast(req, "score", SCORES_PER_MINUTE)) return reply(req, { error: "slow down" }, 429);
         let data;
         try { data = await req.json(); } catch (e) { return reply(req, { error: "bad json" }, 400); }
-        const { game, score } = data || {};
-        if (!(game in GAMES)) return reply(req, { error: "unknown game" }, 400);
-        if (!Number.isInteger(score) || score < 0 || score > GAMES[game]) return reply(req, { error: "bad score" }, 400);
-        const hi = parseInt(await env.SCORES.get("hi:" + game), 10) || 0;
+        const { game, score, ticket } = data || {};
+        if (!GAME_ID.test(game || "")) return reply(req, { error: "unknown game" }, 400);
+        const wrong = await checkScore(env, game, score, ticket);
+        if (wrong) return reply(req, { error: wrong[1] }, wrong[0]);
+        const [all, hi] = await secretBest(env, game);
         if (score <= hi) return reply(req, { hi });
-        await env.SCORES.put("hi:" + game, String(score));
+        if (!(game in all) && Object.keys(all).length >= MAX_BOARDS) return reply(req, { error: "too many games" }, 400);
+        all[game] = score;
+        await env.SCORES.put(SECRET_KEY, JSON.stringify(all));
         return reply(req, { hi: score });
       }
   
