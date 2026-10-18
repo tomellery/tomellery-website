@@ -33,6 +33,51 @@ this file, show him the exact wording, and only change it after he says yes.
 4. Changed `arcade.js`, `arcade.css` or a shared script? Bump its `?v=` on every page that loads it, or phones keep
    the old copy for a while.
 
+## What every game needs (definition of done)
+
+- States like the others: title (attract mode with a CPU player or moving background) → ready → playing ⇄ paused →
+  dying / clear → entry (initials, if the score qualifies) → gameover, back to the title after 20 s idle; Esc on
+  game over goes to the title.
+- HUD bar on top (SCORE / level / HI-SCORE), the same overlay layouts and prompts (`PRESS ENTER` / `TAP TO START`),
+  a short how-to-play panel alternating with the high score table on the title.
+- Keyboard and touch: on-screen buttons via `data-action`, swipes where they make sense, auto-pause on blur.
+- Sounds from the engine's `SFX` (add new ones there, synthesized, no audio files); `sfx()` stays silent in attract
+  mode.
+- Scripted test of a full game (start, score, die, clear, game over) on the test bench, a long attract-mode run with
+  no errors, a phone check at the mobile preset, and screenshots for Tom.
+
+## How Tom likes a new game built
+
+1. A written plan first (the game, controls, enemies, scoring, the build steps, open questions); start only after
+   he says go.
+2. Build in steps and send screenshots after the first playable step, so he can redirect early.
+3. When it's done, open it in the browser pane for him to play. Commit and push only when he says so: one commit per
+   game, with only your own files, and a descriptive message like the existing ones.
+4. After pushing, check tomellery.com serves it (about a minute) before saying it's live.
+
+## Roadmap (Top 20)
+
+Each game adds one reusable piece to `arcade.js`, so later games get cheaper. Build in this order:
+
+| # | Game | Plays like | Adds to the engine |
+|---|---|---|---|
+| 11 | Neon Trails | light cycles | 2-player keyboard split, flood fill |
+| 12 | Rock Blaster | Asteroids | vector kit (glowing line shapes, thrust/rotation, screen wrap) |
+| 13 | Sky Shield | Missile Command | blast rings |
+| 16 | Block Drop | falling blocks | key auto-repeat |
+| 14 | Line Grab | Qix | (reuses flood fill, vector kit) |
+| 08 | Barrel Climb | Donkey Kong | platform physics (gravity, jumps, ladders) |
+| 19 | Stack Attack | Burger Time | (reuses platform physics) |
+| 15 | Bug Burst | Centipede | (reuses Swarm Strike shooting) |
+| 09 | Blast Zone | Bomberman | chain explosions |
+| 17 | Robo Rush | Robotron | twin-stick touch controls |
+| 18 | Sky Knights | Joust | (reuses platform physics, 2-player split) |
+| 10 | Pixel Hero | Mario-style | scrolling camera and level format |
+| 20 | Tunnel Storm | Tempest | 3D projection |
+
+Engine pieces land one at a time (they all touch `arcade.js`); games that only reuse pieces can be built in parallel
+sessions.
+
 ## The construction crews
 
 - Two random crew members (never the Boss) work on every `soon` card. Cards get a custom job by their `<h2>` text
@@ -69,6 +114,12 @@ this file, show him the exact wording, and only change it after he says yes.
 - Preview with the "site" launch config, then open `/arcade/` (port 8123, or 8124 via "site-alt" if it's busy). Hidden-pane caveat: when Tom's window is
   closed the browser pane stops painting and runs timers late - don't trust animation timing or screenshots then.
 - Phone check in the preview: resize to the mobile preset (it also acts as a touch screen, `(hover: none)`).
+- Scripted tests and real screenshots even when the pane is hidden: `drafts/arcade-test.html?game=<id>` runs a game
+  on a manual clock (`__pump(ms)`, `__key(code)`), with `&hook=1` for access to the game's internals
+  (`__in('state')`). For pictures, point headless Edge at it (`msedge --headless=new --screenshot=...`, a fresh
+  `--user-data-dir` each time); Edge returns before the file is written, so wait for it. Usage is at the top of the
+  file.
+- Never submit initials in a test: that posts to the real shared high score table.
 - Score code bench (real Worker code against a fake database and a clock that can jump ahead):
   `drafts/worker-test.html` and `drafts/client-test.html` (local only).
 
