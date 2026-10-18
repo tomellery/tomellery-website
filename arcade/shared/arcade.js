@@ -127,6 +127,9 @@
       disc: () => arpeggio([392, 523, 659, 784, 1047, 1319], 0.09, { type: 'triangle', vol: 0.09 }),
       hatch: () => { tone(220, 0.08, { vol: 0.06 }); tone(330, 0.12, { type: 'sawtooth', delay: 0.08, vol: 0.06 }); },
       swear: () => [0, 1, 2, 3, 4].forEach(i => tone(300 + Math.random() * 500, 0.06, { type: 'sawtooth', delay: i * 0.06, vol: 0.06 })),
+      turn: () => tone(520, 0.03, { vol: 0.03 }),
+      turbo: () => tone(180, 0.3, { type: 'sawtooth', slide: 420, vol: 0.04 }),
+      derez: () => { tone(900, 0.6, { type: 'sawtooth', slide: -820, vol: 0.06 }); tone(1800, 0.2, { type: 'triangle', slide: -1200, vol: 0.04, delay: 0.05 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
       eat: () => { tone(880, 0.05); tone(1320, 0.06, { delay: 0.04 }); },
@@ -296,7 +299,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -429,6 +432,35 @@
         return path.reverse();
       },
     };
+  }
+
+  // ---------- Flood fill ----------
+  // Every cell reachable from a starting cell without crossing a closed one: how much room a rider has
+  // left, or which part of the board an enclosed area covers. Stops counting at cap if given.
+  // Returns the count and a mask (1 = reached) of cols x rows cells.
+
+  function floodFill(cols, rows, open, from, { cap = Infinity } = {}) {
+    const mask = new Uint8Array(cols * rows);
+    if (from.c < 0 || from.r < 0 || from.c >= cols || from.r >= rows || !open(from.c, from.r)) return { count: 0, mask };
+    const stack = [from.r * cols + from.c];
+    mask[stack[0]] = 1;
+    let count = 1;
+    while (stack.length && count < cap) {
+      const i = stack.pop();
+      const c = i % cols;
+      const r = (i - c) / cols;
+      for (const [dc, dr] of NEIGHBOURS) {
+        const nc = c + dc;
+        const nr = r + dr;
+        if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+        const n = nr * cols + nc;
+        if (mask[n] || !open(nc, nr)) continue;
+        mask[n] = 1;
+        count++;
+        stack.push(n);
+      }
+    }
+    return { count, mask };
   }
 
   // ---------- Isometric cubes ----------
@@ -645,6 +677,146 @@
     }
   }
 
+  // ---------- Game shell ----------
+  // The screens every game shares, so a new game only writes its own play: the title (with the game's
+  // attract mode running behind it), pause, initials entry and game over, the HUD bar, and the controls
+  // that drive them. The game keeps its own play states ('ready', 'playing', 'dying', ...).
+  //
+  //   const shell = Arcade.createShell({ ctx, width, height, id: 'trails', title: ['NEON', 'TRAILS'],
+  //     howTo: [['LINE', color], ...], hudLabel: 'ROUND', newGame, showTitle, pauseIn: ['playing'] });
+  //   input.on(action => { if (!shell.handle(action)) { ...game controls... } });
+  //   shell.state, shell.stateTime, shell.clock, shell.setState(name), shell.pause()
+  //   shell.gameOver(score, summary)   initials entry if it's a high score, then the game over screen
+  //   shell.update(dt) every tick; shell.drawHud(score, value) and shell.drawOverlay() in render
+  // newGame() starts a game (and sets its first play state); showTitle() resets the attract mode and calls
+  // shell.setState('title').
+
+  function createShell({ ctx, width: W, height: H, id, title, titleColors = [COLORS.cyan, COLORS.pink], howTo = [],
+    hudLabel = 'LEVEL', hudColor = COLORS.yellow, newGame, showTitle, pauseIn = ['playing'] }) {
+    let hi = scores.best(id);
+    scores.onChange(() => { hi = scores.best(id); });
+    let entry = null;
+    let rank = -1;
+    let final = 0;
+    let summary = '';
+    let resumeTo = 'playing';
+    const y = n => Math.round((n * H) / 600); // layouts are designed for a 600-tall screen
+    const blink = (ms = 500) => Math.floor(shell.clock / ms) % 2 === 0;
+
+    const shell = {
+      state: 'title',
+      stateTime: 0,
+      clock: 0,
+      get hiScore() { return hi; },
+      setState(next) {
+        shell.state = next;
+        shell.stateTime = 0;
+      },
+      pause() {
+        resumeTo = shell.state;
+        shell.setState('paused');
+        sound.play('pause');
+      },
+      gameOver(score, line = '') {
+        final = score;
+        summary = line;
+        if (scores.qualifies(id, score)) {
+          entry = new InitialsEntry();
+          shell.setState('entry');
+          sound.play('highscore');
+        } else {
+          rank = -1;
+          shell.setState('gameover');
+        }
+      },
+      // Handles everything outside play; returns true when the action was used here.
+      handle(action) {
+        switch (shell.state) {
+          case 'title':
+            if (action === 'start' || action === 'tap') newGame();
+            return true;
+          case 'paused':
+            if (action === 'pause' || action === 'start' || action === 'tap') {
+              shell.setState(resumeTo);
+              sound.play('pause');
+            }
+            return true;
+          case 'entry': {
+            const name = entry.handle(action);
+            if (name) {
+              rank = scores.add(id, name, final);
+              hi = scores.best(id);
+              shell.setState('gameover');
+            }
+            return true;
+          }
+          case 'gameover':
+            if (shell.stateTime < 600) return true; // don't skip the screen by accident
+            if (action === 'start' || action === 'tap') newGame();
+            else if (action === 'pause') showTitle();
+            return true;
+        }
+        if (action === 'pause' && pauseIn.includes(shell.state)) {
+          shell.pause();
+          return true;
+        }
+        return false;
+      },
+      update(dt) {
+        shell.clock += dt;
+        shell.stateTime += dt;
+        if (shell.state === 'gameover' && shell.stateTime >= 20000) showTitle(); // back to attract mode
+      },
+      drawHud(score, value) {
+        const shown = shell.state === 'title' ? 0 : score;
+        text(ctx, 'SCORE', 16, 16, { size: 8, color: COLORS.dim, align: 'left' });
+        text(ctx, pad(shown), 16, 33, { size: 14, align: 'left' });
+        text(ctx, hudLabel, W / 2, 16, { size: 8, color: COLORS.dim });
+        text(ctx, String(value), W / 2, 33, { size: 14, color: hudColor });
+        text(ctx, 'HI-SCORE', W - 16, 16, { size: 8, color: COLORS.dim, align: 'right' });
+        text(ctx, pad(Math.max(hi, shown)), W - 16, 33, { size: 14, color: COLORS.pink, align: 'right' });
+        ctx.fillStyle = 'rgba(41, 240, 255, 0.6)';
+        ctx.fillRect(0, 46, W, 2);
+      },
+      drawOverlay() {
+        const cx = W / 2;
+        const cy = H / 2;
+        if (shell.state === 'title') {
+          dim(ctx, W, H, 0.6);
+          text(ctx, title[0], cx, y(116), { size: 34, color: titleColors[0], glow: 18 });
+          text(ctx, title[1], cx, y(164), { size: 40, color: titleColors[1], glow: 20 });
+          if (Math.floor(shell.clock / 5000) % 2 === 0) {
+            howTo.forEach(([line, color], i) => text(ctx, line, cx, y(236) + i * 32, { size: 10, color: color || COLORS.text }));
+          } else {
+            drawScoreTable(ctx, id, cx, y(236));
+          }
+          if (blink()) text(ctx, isTouch ? 'TAP TO START' : 'PRESS ENTER', cx, y(470), { size: 14, color: COLORS.yellow, glow: 10 });
+          text(ctx, '(C) 2026 NEON ARCADE', cx, y(520), { size: 8, color: COLORS.dim });
+        } else if (shell.state === 'paused') {
+          dim(ctx, W, H, 0.7);
+          text(ctx, 'PAUSED', cx, cy - 20, { size: 28, color: COLORS.cyan, glow: 16 });
+          if (blink()) text(ctx, isTouch ? 'TAP TO RESUME' : 'PRESS P TO RESUME', cx, cy + 30, { size: 10 });
+        } else if (shell.state === 'entry') {
+          dim(ctx, W, H, 0.8);
+          if (blink(250)) text(ctx, 'NEW HIGH SCORE!', cx, y(150), { size: 18, color: COLORS.yellow, glow: 14 });
+          text(ctx, pad(final), cx, y(200), { size: 24, color: COLORS.pink, glow: 12 });
+          text(ctx, 'ENTER YOUR INITIALS', cx, y(280), { size: 10 });
+          entry.draw(ctx, cx, y(360), shell.clock);
+          text(ctx, isTouch ? 'UP/DOWN PICK - TAP NEXT' : 'UP/DOWN PICK - ENTER NEXT', cx, y(450), { size: 8, color: COLORS.dim });
+        } else if (shell.state === 'gameover') {
+          dim(ctx, W, H, 0.75);
+          text(ctx, 'GAME OVER', cx, y(120), { size: 32, color: COLORS.red, glow: 18 });
+          text(ctx, 'SCORE ' + pad(final) + (summary ? '  ' + summary : ''), cx, y(170), { size: 12 });
+          drawScoreTable(ctx, id, cx, y(240), { highlight: rank, t: shell.clock });
+          if (shell.stateTime > 600 && blink()) text(ctx, isTouch ? 'TAP TO PLAY AGAIN' : 'ENTER TO PLAY AGAIN', cx, y(470), { size: 12, color: COLORS.yellow, glow: 10 });
+          if (!isTouch) text(ctx, 'ESC FOR TITLE', cx, y(510), { size: 8, color: COLORS.dim });
+        }
+      },
+    };
+    onBlur(() => { if (pauseIn.includes(shell.state)) shell.pause(); });
+    return shell;
+  }
+
   // Canvas text needs the pixel font loaded before the first frame.
   function waitForFont() {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
@@ -657,7 +829,7 @@
   window.Arcade = {
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
-    sound, createInput, scores, gridSearch,
+    sound, createInput, scores, gridSearch, floodFill, createShell,
     text, roundRect, dim, triangle, drawCube, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
