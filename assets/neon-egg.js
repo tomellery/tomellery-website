@@ -1,7 +1,7 @@
-// Neon Arcade easter egg (menu): hover on the sign for a minute (--burnout in the CSS) and a random letter sputters out.
+// Neon Arcade easter egg (menu): hover on the sign for 15 seconds (--burnout in the CSS) and a random letter sputters out.
 // A random member of the 8-bit repair crew shows up from a random side: walking in from the left or right, rappelling
 // down a rope from above, or climbing out of a manhole in the line below. He bangs the letter with his wrench until it
-// lights back up, hops, and leaves a different way than he came. Keep hovering and another letter goes a minute later.
+// lights back up, hops, and leaves a different way than he came. Keep hovering and another letter goes 15 seconds later.
 // Moving off the sign resets everything. Skipped for visitors who turn animations off.
 // All 20 crew members are laid out side by side in drafts/repairmen.html (kept offline).
 (() => {
@@ -115,7 +115,7 @@
   const SIDES = ["left", "right", "top", "bottom"];
   let timers = [], frames = 0, stage = null, dude = null, letter = null, art = null;
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
-  const wait = () => (parseFloat(getComputedStyle(item).getPropertyValue("--burnout")) || 60) * 1000;
+  const wait = () => (parseFloat(getComputedStyle(item).getPropertyValue("--burnout")) || 15) * 1000;
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const px = n => Math.round(n) + "px";
 

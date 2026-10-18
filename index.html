@@ -276,7 +276,7 @@
     }
     /* Easter egg (assets/neon-egg.js): hover on the sign for --burnout and a random letter sputters out,
        then a little 8-bit repairman walks over and fixes it. Moving off the sign resets it. */
-    .neon-item { --burnout: 60s; }
+    .neon-item { --burnout: 15s; }
     .neon-item:hover .na-p.na-dying, .neon-item:focus-visible .na-p.na-dying {
       animation: na-flicker .32s steps(1) both, na-burnout 4s steps(1) forwards;
       animation-delay: calc(var(--i) * var(--step)), 0s;
@@ -523,6 +523,6 @@
   <script src="assets/holiday.js?v=3"></script>
   <script src="assets/secrets.js?v=2"></script>
   <script src="assets/snowdump.js?v=13"></script>
-  <script src="assets/neon-egg.js?v=5"></script>
+  <script src="assets/neon-egg.js?v=6"></script>
 </body>
 </html>
