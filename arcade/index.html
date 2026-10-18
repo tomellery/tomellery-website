@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07060f">
+  <title>Neon Arcade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared/arcade.css">
+</head>
+<body class="arcade">
+  <nav class="home-back"><a class="chip" href="../">&#9664; TOMELLERY.COM</a></nav>
+  <header class="home-marquee">
+    <p class="eyebrow">&#9733; PLAYER 1 &#9733;</p>
+    <h1 class="neon">NEON<br><span>ARCADE</span></h1>
+    <p class="insert-coin blink">INSERT COIN</p>
+  </header>
+
+  <h2 class="section-title">THE TOP 10 <span id="ready-count"></span></h2>
+
+  <main class="game-grid">
+    <a class="game-card" href="games/snake/index.html" autofocus>
+      <span class="card-rank">01</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <rect x="4" y="13" width="12" height="2" fill="#1f9e4c"/>
+        <rect x="14" y="7" width="2" height="8" fill="#2bcf63"/>
+        <rect x="14" y="7" width="8" height="2" fill="#3dff7a"/>
+        <rect x="21" y="7" width="2" height="2" fill="#b6ffcc"/>
+        <rect x="26" y="7" width="2" height="2" fill="#ff2e88"/>
+      </svg>
+      <h2>NEON SNAKE</h2>
+      <p class="card-meta">HI <span data-hi="snake">000000</span></p>
+      <span class="card-cta">PLAY &#9654;</span>
+    </a>
+
+    <a class="game-card" href="games/bricks/index.html">
+      <span class="card-rank">02</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <g fill="#ff2e88"><rect x="2" y="2" width="5" height="2"/><rect x="8" y="2" width="5" height="2"/><rect x="14" y="2" width="5" height="2"/><rect x="20" y="2" width="5" height="2"/><rect x="26" y="2" width="4" height="2"/></g>
+        <g fill="#ffe14d"><rect x="2" y="5" width="5" height="2"/><rect x="8" y="5" width="5" height="2"/><rect x="20" y="5" width="5" height="2"/><rect x="26" y="5" width="4" height="2"/></g>
+        <g fill="#29f0ff"><rect x="2" y="8" width="5" height="2"/><rect x="26" y="8" width="4" height="2"/></g>
+        <rect x="17" y="12" width="2" height="2" fill="#f4f1ff"/>
+        <rect x="12" y="17" width="8" height="1.5" fill="#3dff7a"/>
+      </svg>
+      <h2>BRICK BUSTER</h2>
+      <p class="card-meta">HI <span data-hi="bricks">000000</span></p>
+      <span class="card-cta">PLAY &#9654;</span>
+    </a>
+
+    <a class="game-card" href="games/hopper/index.html">
+      <span class="card-rank">03</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <rect x="0" y="0" width="32" height="3" fill="#0c2a1a"/>
+        <rect x="6" y="0.5" width="3" height="2.5" fill="#050c1c"/><rect x="14.5" y="0.5" width="3" height="2.5" fill="#050c1c"/><rect x="23" y="0.5" width="3" height="2.5" fill="#050c1c"/>
+        <rect x="0" y="3" width="32" height="6" fill="#081236"/>
+        <rect x="3" y="4" width="10" height="2" fill="#7a4120"/>
+        <rect x="18" y="6.5" width="8" height="2" fill="#7a4120"/>
+        <rect x="0" y="9" width="32" height="2" fill="#1c1240"/>
+        <rect x="0" y="11" width="32" height="6" fill="#0d0c14"/>
+        <g fill="#ffe14d" opacity="0.5"><rect x="2" y="14" width="3" height="0.5"/><rect x="9" y="14" width="3" height="0.5"/><rect x="16" y="14" width="3" height="0.5"/><rect x="23" y="14" width="3" height="0.5"/></g>
+        <rect x="6" y="11.5" width="4" height="2" fill="#ff2e88"/>
+        <rect x="20" y="14.5" width="4" height="2" fill="#29f0ff"/>
+        <rect x="0" y="17" width="32" height="3" fill="#1c1240"/>
+        <rect x="14.5" y="17.5" width="3" height="2.5" fill="#3dff7a"/>
+      </svg>
+      <h2>ROAD HOPPER</h2>
+      <p class="card-meta">HI <span data-hi="hopper">000000</span></p>
+      <span class="card-cta">PLAY &#9654;</span>
+    </a>
+
+    <a class="game-card" href="games/swarm/index.html">
+      <span class="card-rank">04</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <g fill="#ff2e88"><rect x="6" y="3" width="3" height="2"/><rect x="11" y="3" width="3" height="2"/><rect x="18" y="3" width="3" height="2"/><rect x="23" y="3" width="3" height="2"/></g>
+        <g fill="#ffe14d"><rect x="9" y="6" width="3" height="2"/><rect x="20" y="6" width="3" height="2"/></g>
+        <path d="M25 8 q4 4 -2 7" fill="none" stroke="#ff2e88" stroke-width="0.6" stroke-dasharray="1 1"/>
+        <rect x="15.5" y="10" width="1" height="2" fill="#29f0ff"/>
+        <polygon points="16,13 13,18 19,18" fill="#29f0ff"/>
+      </svg>
+      <h2>SWARM STRIKE</h2>
+      <p class="card-meta">HI <span data-hi="swarm">000000</span></p>
+      <span class="card-cta">PLAY &#9654;</span>
+    </a>
+
+    <div class="game-card soon">
+      <span class="card-rank">05</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <g fill="none" stroke="#29f0ff" stroke-width="1">
+          <rect x="2" y="2" width="28" height="16"/>
+          <path d="M8 2v6M2 12h8M16 6v8M22 8h8M22 14v4"/>
+        </g>
+        <g fill="#ffe14d"><rect x="5" y="5" width="1" height="1"/><rect x="12" y="5" width="1" height="1"/><rect x="19" y="5" width="1" height="1"/><rect x="26" y="5" width="1" height="1"/><rect x="12" y="15" width="1" height="1"/><rect x="26" y="11" width="1" height="1"/></g>
+        <rect x="4" y="14" width="3" height="3" fill="#3dff7a"/>
+        <rect x="19" y="10" width="3" height="3" fill="#ff2e88"/>
+      </svg>
+      <h2>MAZE MUNCH</h2>
+      <p class="card-meta">COMING SOON</p>
+    </div>
+
+    <a class="game-card" href="games/driller/index.html">
+      <span class="card-rank">06</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <rect x="0" y="3" width="32" height="17" fill="#5a3418"/>
+        <g fill="#000"><rect x="15" y="3" width="3" height="9"/><rect x="5" y="9" width="13" height="3"/><rect x="22" y="12" width="7" height="3"/></g>
+        <rect x="15" y="9" width="3" height="3" fill="#3dff7a"/>
+        <rect x="6" y="9.5" width="2.5" height="2.5" fill="#ff2e88"/>
+        <rect x="25" y="12.5" width="2.5" height="2.5" fill="#ffe14d"/>
+        <rect x="23" y="6" width="4" height="3" fill="#8a85b3"/>
+      </svg>
+      <h2>DEEP DRILLER</h2>
+      <p class="card-meta">HI <span data-hi="driller">000000</span></p>
+      <span class="card-cta">PLAY &#9654;</span>
+    </a>
+
+    <div class="game-card soon">
+      <span class="card-rank">07</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <g stroke="#07060f" stroke-width="0.3">
+          <polygon points="16,2 19,4 16,6 13,4" fill="#ff2e88"/>
+          <polygon points="13,6 16,8 13,10 10,8" fill="#29f0ff"/>
+          <polygon points="19,6 22,8 19,10 16,8" fill="#ff2e88"/>
+          <polygon points="10,10 13,12 10,14 7,12" fill="#29f0ff"/>
+          <polygon points="16,10 19,12 16,14 13,12" fill="#29f0ff"/>
+          <polygon points="22,10 25,12 22,14 19,12" fill="#ff2e88"/>
+        </g>
+        <g fill="#2a2650"><polygon points="7,12 10,14 10,17 7,15"/><polygon points="25,12 22,14 22,17 25,15"/><polygon points="13,12 16,14 16,17 13,15"/></g>
+        <rect x="15" y="0.5" width="2" height="2" fill="#ff9f1c"/>
+      </svg>
+      <h2>CUBE HOPPER</h2>
+      <p class="card-meta">COMING SOON</p>
+    </div>
+
+    <div class="game-card soon">
+      <span class="card-rank">08</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <g stroke="#ff2e88" stroke-width="1"><line x1="2" y1="6" x2="26" y2="8"/><line x1="6" y1="13" x2="30" y2="11"/><line x1="0" y1="19" x2="32" y2="19"/></g>
+        <g stroke="#29f0ff" stroke-width="0.5"><line x1="22" y1="8" x2="22" y2="12"/><line x1="24" y1="8" x2="24" y2="12"/><line x1="22" y1="9.5" x2="24" y2="9.5"/><line x1="22" y1="11" x2="24" y2="11"/></g>
+        <circle cx="12" cy="10.8" r="1.4" fill="#ff9f1c"/>
+        <rect x="5" y="15.5" width="2" height="3" fill="#3dff7a"/>
+        <rect x="4" y="2" width="3" height="3.5" fill="#ffe14d"/>
+      </svg>
+      <h2>BARREL CLIMB</h2>
+      <p class="card-meta">COMING SOON</p>
+    </div>
+
+    <div class="game-card soon">
+      <span class="card-rank">09</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <g fill="#2a2650"><rect x="6" y="4" width="3" height="3"/><rect x="14" y="4" width="3" height="3"/><rect x="22" y="4" width="3" height="3"/><rect x="6" y="12" width="3" height="3"/><rect x="14" y="12" width="3" height="3"/><rect x="22" y="12" width="3" height="3"/></g>
+        <g fill="#ffe14d" opacity="0.8"><rect x="10" y="8" width="11" height="3"/><rect x="14" y="7" width="3" height="5"/></g>
+        <circle cx="15.5" cy="9.5" r="1.8" fill="#ff2e88"/>
+        <rect x="2" y="1" width="2.5" height="2.5" fill="#3dff7a"/>
+        <rect x="27" y="16" width="2.5" height="2.5" fill="#29f0ff"/>
+      </svg>
+      <h2>BLAST ZONE</h2>
+      <p class="card-meta">COMING SOON</p>
+    </div>
+
+    <div class="game-card soon">
+      <span class="card-rank">10</span>
+      <svg class="card-art" viewBox="0 0 32 20" aria-hidden="true">
+        <rect x="0" y="17" width="32" height="3" fill="#2bcf63"/>
+        <rect x="18" y="10" width="8" height="2" fill="#29f0ff"/>
+        <rect x="21" y="6" width="2" height="2" fill="#ffe14d"/>
+        <rect x="6" y="13" width="3" height="4" fill="#ff2e88"/>
+        <rect x="7.5" y="14" width="1" height="1" fill="#07060f"/>
+      </svg>
+      <h2>PIXEL HERO</h2>
+      <p class="card-meta">COMING SOON</p>
+    </div>
+  </main>
+
+  <footer class="home-footer">ORIGINAL GAMES &middot; NO ROMS &middot; MADE WITH HTML5</footer>
+
+  <script src="shared/arcade.js"></script>
+  <script>
+    document.querySelectorAll('[data-hi]').forEach(el => {
+      el.textContent = Arcade.pad(Arcade.scores.best(el.dataset.hi));
+    });
+    const ready = document.querySelectorAll('a.game-card').length;
+    document.getElementById('ready-count').textContent = '- ' + ready + '/10 READY';
+  </script>
+</body>
+</html>

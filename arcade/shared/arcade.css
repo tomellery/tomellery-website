@@ -1,0 +1,267 @@
+/*
+ * Neon Arcade shared theme.
+ * Every game page and the arcade home use these styles so the whole site
+ * feels like one arcade: neon palette, pixel font, CRT screen, cabinet layout.
+ */
+
+:root {
+  --bg: #07060f;
+  --panel: #0e0c1d;
+  --line: #2a2650;
+  --text: #f4f1ff;
+  --dim: #8a85b3;
+  --pink: #ff2e88;
+  --cyan: #29f0ff;
+  --yellow: #ffe14d;
+  --green: #3dff7a;
+  --red: #ff3b3b;
+  --font: "Press Start 2P", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body.arcade {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background-color: var(--bg);
+  background-image: radial-gradient(ellipse at 50% -20%, #2a0f45 0%, transparent 65%);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+/* Synthwave floor grid behind everything */
+body.arcade::before {
+  content: "";
+  position: fixed;
+  left: -50%;
+  right: -50%;
+  bottom: 0;
+  height: 45vh;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to bottom, rgba(255, 46, 136, 0.35) 1px, transparent 1px),
+    linear-gradient(to right, rgba(41, 240, 255, 0.25) 1px, transparent 1px);
+  background-size: 48px 48px;
+  transform: perspective(240px) rotateX(60deg);
+  transform-origin: bottom;
+  mask-image: linear-gradient(to top, #000 10%, transparent 90%);
+  -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 90%);
+}
+
+.neon {
+  text-shadow: 0 0 4px currentColor, 0 0 12px currentColor, 0 0 28px currentColor;
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.92; } }
+
+.blink { animation: blink 1s steps(1) infinite; }
+
+/* Small outlined pill used for back / sound buttons */
+.chip {
+  font: inherit;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--cyan);
+  background: transparent;
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip:hover, .chip:focus-visible { box-shadow: 0 0 12px var(--cyan); outline: none; }
+
+/* ---------- Game cabinet ---------- */
+
+/* --ratio is the game's width / height; set it on the cabinet for taller screens. */
+.cabinet {
+  --chrome: 190px;
+  --ratio: 0.909;
+  width: min(100%, 520px, calc((100svh - var(--chrome)) * var(--ratio)));
+  min-width: min(100%, 280px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.marquee {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.marquee h1 {
+  margin: 0;
+  font-size: clamp(12px, 3.6vw, 20px);
+  color: var(--pink);
+  text-align: center;
+}
+
+.screen {
+  position: relative;
+  overflow: hidden;
+  border: 3px solid var(--cyan);
+  border-radius: 12px;
+  background: #000;
+  box-shadow: 0 0 0 4px #000, 0 0 28px rgba(41, 240, 255, 0.45);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.screen canvas { display: block; width: 100%; height: auto; }
+
+/* CRT scanlines + vignette */
+.screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0 1px, rgba(0, 0, 0, 0.28) 1px 3px),
+    radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
+  animation: flicker 0.15s infinite;
+}
+
+.hint {
+  margin: 0;
+  font-size: 8px;
+  line-height: 2;
+  color: var(--dim);
+  text-align: center;
+}
+
+/* On-screen controls, only on touch devices */
+.touch-controls { display: none; }
+
+@media (pointer: coarse) {
+  .cabinet { --chrome: 330px; }
+  .cabinet.slim-controls { --chrome: 240px; }
+  .hint { display: none; }
+  .touch-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+  }
+}
+
+.pad-btn {
+  font: inherit;
+  font-size: 9px;
+  color: var(--text);
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+}
+.pad-btn.pressed { border-color: var(--cyan); box-shadow: 0 0 14px var(--cyan); color: var(--cyan); }
+
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(3, 56px);
+  gap: 4px;
+}
+.dpad .pad-btn { font-size: 18px; }
+.dpad [data-action="up"] { grid-area: 1 / 2; }
+.dpad [data-action="left"] { grid-area: 2 / 1; }
+.dpad [data-action="right"] { grid-area: 2 / 3; }
+.dpad [data-action="down"] { grid-area: 3 / 2; }
+
+/* Left/right pad for games that only steer sideways */
+.lr-pad { display: flex; gap: 8px; }
+.lr-pad .pad-btn { width: 76px; height: 76px; font-size: 22px; }
+
+.action-btns { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.round { width: 76px; height: 76px; border-radius: 50%; }
+.round.start { background: var(--pink); border-color: var(--pink); color: var(--bg); box-shadow: 0 0 18px rgba(255, 46, 136, 0.6); }
+.round.start.pressed { color: var(--bg); box-shadow: 0 0 28px var(--pink); }
+.round.small { width: 64px; height: 30px; border-radius: 15px; font-size: 7px; }
+
+/* ---------- Arcade home ---------- */
+
+.home-back { width: min(100%, 960px); margin: 0 auto; }
+.home-marquee { text-align: center; margin: 24px 0 32px; }
+.home-marquee .eyebrow { margin: 0 0 16px; font-size: 10px; color: var(--yellow); }
+.home-marquee h1 {
+  margin: 0;
+  font-size: clamp(30px, 9vw, 68px);
+  line-height: 1.25;
+  color: var(--pink);
+}
+.home-marquee h1 span { color: var(--cyan); }
+.home-marquee .insert-coin { margin: 24px 0 0; font-size: 12px; color: var(--yellow); }
+
+.game-grid {
+  width: min(100%, 960px);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.section-title {
+  width: min(100%, 960px);
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--cyan);
+}
+.section-title span { color: var(--dim); font-size: 9px; }
+
+.game-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--panel);
+  border: 3px solid var(--line);
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+a.game-card:hover, a.game-card:focus-visible {
+  outline: none;
+  border-color: var(--pink);
+  box-shadow: 0 0 22px rgba(255, 46, 136, 0.5);
+  transform: translateY(-3px);
+}
+.game-card.soon { opacity: 0.4; }
+.card-rank {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  padding: 4px 6px;
+  font-size: 8px;
+  color: var(--bg);
+  background: var(--yellow);
+  border-radius: 4px;
+}
+.game-card h2 { margin: 0; font-size: 12px; line-height: 1.5; }
+.game-card .card-art {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #000;
+  border-radius: 6px;
+  border: 2px solid var(--line);
+  shape-rendering: crispEdges;
+}
+.game-card .card-meta { margin: 0; font-size: 8px; color: var(--dim); }
+.game-card .card-cta { font-size: 10px; color: var(--yellow); }
+a.game-card:hover .card-cta, a.game-card:focus-visible .card-cta { animation: blink 0.6s steps(1) infinite; }
+
+.home-footer { margin: 40px 0 8px; font-size: 8px; line-height: 2; color: var(--dim); text-align: center; }
