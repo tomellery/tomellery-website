@@ -267,9 +267,12 @@
     .na-p {
       position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.6, .9); opacity: 0;
       font-family: var(--pixel); font-size: .44em; line-height: 1; color: var(--pink-or-cyan);
-      /* see-through glow sized to the letters: crisp edges, big halo (same as the arcade page title) */
-      text-shadow: 0 0 .15em color-mix(in srgb, currentColor 65%, transparent), 0 0 .55em color-mix(in srgb, currentColor 65%, transparent), 0 0 1.3em color-mix(in srgb, currentColor 55%, transparent), 0 0 2em color-mix(in srgb, currentColor 30%, transparent);
     }
+    /* The glow is its own layer: blurred copies of the letter (data-c) behind it, no glow on the letter itself.
+       (A text-shadow glow on iPhones comes out blocky and softens the letter edges.) Same as the arcade page title. */
+    .na-p::before, .na-p::after { content: attr(data-c); position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+    .na-p::before { filter: blur(.12em); opacity: .9; }   /* close glow */
+    .na-p::after { filter: blur(.45em); opacity: .75; }   /* wide halo */
     .neon-item:hover .na-w, .neon-item:focus-visible .na-w, .neon-item.lit .na-w { opacity: 0; transform: scaleY(.6); transition-delay: calc(var(--i) * var(--step) + 40ms); }
     .neon-item:hover .na-p, .neon-item:focus-visible .na-p, .neon-item.lit .na-p {
       opacity: 1; transform: translate(-50%, -50%) scale(1, 1.55); transition-delay: calc(var(--i) * var(--step));
@@ -424,7 +427,7 @@
       <a href="#snow" data-close><small>02</small>Snow Report</a>
       <div class="soon" aria-disabled="true"><small>03</small>Projects <i>SOON</i></div>
       <a href="gallery/"><small>04</small>Other Looks</a>
-      <a href="arcade/" class="neon-item" aria-label="Neon Arcade"><small aria-hidden="true">05</small><span class="na" aria-hidden="true"><span class="na-l" style="--i:0"><span class="na-w">N</span><span class="na-p">N</span></span><span class="na-l" style="--i:1"><span class="na-w">E</span><span class="na-p">E</span></span><span class="na-l" style="--i:2"><span class="na-w">O</span><span class="na-p">O</span></span><span class="na-l" style="--i:3"><span class="na-w">N</span><span class="na-p">N</span></span><span class="na-gap"> </span><span class="na-l na-c" style="--i:5"><span class="na-w">A</span><span class="na-p">A</span></span><span class="na-l na-c" style="--i:6"><span class="na-w">R</span><span class="na-p">R</span></span><span class="na-l na-c" style="--i:7"><span class="na-w">C</span><span class="na-p">C</span></span><span class="na-l na-c" style="--i:8"><span class="na-w">A</span><span class="na-p">A</span></span><span class="na-l na-c" style="--i:9"><span class="na-w">D</span><span class="na-p">D</span></span><span class="na-l na-c" style="--i:10"><span class="na-w">E</span><span class="na-p">E</span></span></span><em class="na-coin" aria-hidden="true">INSERT<br>COIN</em></a>
+      <a href="arcade/" class="neon-item" aria-label="Neon Arcade"><small aria-hidden="true">05</small><span class="na" aria-hidden="true"><span class="na-l" style="--i:0"><span class="na-w">N</span><span class="na-p" data-c="N">N</span></span><span class="na-l" style="--i:1"><span class="na-w">E</span><span class="na-p" data-c="E">E</span></span><span class="na-l" style="--i:2"><span class="na-w">O</span><span class="na-p" data-c="O">O</span></span><span class="na-l" style="--i:3"><span class="na-w">N</span><span class="na-p" data-c="N">N</span></span><span class="na-gap"> </span><span class="na-l na-c" style="--i:5"><span class="na-w">A</span><span class="na-p" data-c="A">A</span></span><span class="na-l na-c" style="--i:6"><span class="na-w">R</span><span class="na-p" data-c="R">R</span></span><span class="na-l na-c" style="--i:7"><span class="na-w">C</span><span class="na-p" data-c="C">C</span></span><span class="na-l na-c" style="--i:8"><span class="na-w">A</span><span class="na-p" data-c="A">A</span></span><span class="na-l na-c" style="--i:9"><span class="na-w">D</span><span class="na-p" data-c="D">D</span></span><span class="na-l na-c" style="--i:10"><span class="na-w">E</span><span class="na-p" data-c="E">E</span></span></span><em class="na-coin" aria-hidden="true">INSERT<br>COIN</em></a>
       <a href="boards/"><small>06</small>Game Room</a>
     </nav>
     <div class="menu-foot"><span>SALT LAKE CITY, UT</span><span>BUILD · RIDE · REPEAT</span></div>

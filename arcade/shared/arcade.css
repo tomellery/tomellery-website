@@ -203,9 +203,17 @@ body.arcade::before {
   color: var(--pink);
 }
 .home-marquee h1 span { color: var(--cyan); }
-/* The title's glow is see-through and sized to the letters: crisp edges with a big halo around them, at any size.
-   (A glow in the full letter color sitting on the edges blurs the letters, worst on phones.) */
-.home-marquee h1.neon { text-shadow: 0 0 .15em color-mix(in srgb, currentColor 65%, transparent), 0 0 .55em color-mix(in srgb, currentColor 65%, transparent), 0 0 1.3em color-mix(in srgb, currentColor 55%, transparent), 0 0 2em color-mix(in srgb, currentColor 30%, transparent); }
+/* The title's glow is its own layer: a blurred copy of each word sits behind the letters, which have no glow on them.
+   (A text-shadow glow on iPhones comes out blocky and softens the letter edges.)
+   The copies spell the words out here, so if the title text changes, change these too. */
+.home-marquee h1.neon { position: relative; isolation: isolate; text-shadow: none; }
+.home-marquee h1 span { position: relative; display: inline-block; }
+.home-marquee h1.neon::before, .home-marquee h1.neon::after,
+.home-marquee h1 span::before, .home-marquee h1 span::after { position: absolute; left: 0; right: 0; top: 0; z-index: -1; pointer-events: none; }
+.home-marquee h1.neon::before, .home-marquee h1.neon::after { content: "NEON"; }
+.home-marquee h1 span::before, .home-marquee h1 span::after { content: "ARCADE"; }
+.home-marquee h1.neon::before, .home-marquee h1 span::before { filter: blur(0.12em); opacity: 0.9; }   /* close glow */
+.home-marquee h1.neon::after, .home-marquee h1 span::after { filter: blur(0.45em); opacity: 0.75; }   /* wide halo */
 .home-marquee .insert-coin { margin: 24px 0 0; font-size: 12px; color: var(--yellow); }
 
 .game-grid {
