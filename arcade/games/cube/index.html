@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07060f">
+  <title>Cube Hopper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../shared/arcade.css">
+  <style>
+    /* The d-pad turned 45 degrees: each button points along one of the four hop diagonals. */
+    .dpad.diag { transform: rotate(45deg) scale(0.8); }
+  </style>
+</head>
+<body class="arcade">
+  <main class="cabinet" style="--ratio: 0.8">
+    <header class="marquee">
+      <a class="chip" href="../../index.html">&#9664; ARCADE</a>
+      <h1 class="neon">CUBE HOPPER</h1>
+      <button class="chip" type="button" data-action="mute" data-mute-label>SOUND ON</button>
+    </header>
+
+    <div class="screen">
+      <canvas id="game" aria-label="Cube Hopper game screen"></canvas>
+    </div>
+
+    <div class="touch-controls">
+      <div class="dpad diag">
+        <button class="pad-btn" type="button" data-action="up" aria-label="Hop up-right">&#9650;</button>
+        <button class="pad-btn" type="button" data-action="left" aria-label="Hop up-left">&#9664;</button>
+        <button class="pad-btn" type="button" data-action="right" aria-label="Hop down-right">&#9654;</button>
+        <button class="pad-btn" type="button" data-action="down" aria-label="Hop down-left">&#9660;</button>
+      </div>
+      <div class="action-btns">
+        <button class="pad-btn round start" type="button" data-action="start">START</button>
+        <button class="pad-btn round small" type="button" data-action="pause">PAUSE</button>
+      </div>
+    </div>
+
+    <p class="hint">ARROWS (OR Q E Z C) HOP &nbsp; ENTER START &nbsp; P PAUSE &nbsp; M SOUND</p>
+  </main>
+
+  <script src="../../shared/arcade.js?v=4"></script>
+  <script src="cube.js"></script>
+</body>
+</html>

@@ -122,6 +122,11 @@
       step: () => tone(180, 0.03, { vol: 0.025 }),
       munch: (alt = 0) => tone(alt ? 520 : 360, 0.07, { type: 'triangle', slide: alt ? -180 : 180, vol: 0.07 }),
       gulp: () => { tone(260, 0.22, { slide: 1100, vol: 0.07 }); tone(1320, 0.08, { type: 'triangle', delay: 0.18, vol: 0.06 }); },
+      bounce: () => tone(140, 0.06, { type: 'triangle', slide: -40, vol: 0.05 }),
+      whistle: () => tone(1500, 1.1, { type: 'sine', slide: -1300, vol: 0.08 }),
+      disc: () => arpeggio([392, 523, 659, 784, 1047, 1319], 0.09, { type: 'triangle', vol: 0.09 }),
+      hatch: () => { tone(220, 0.08, { vol: 0.06 }); tone(330, 0.12, { type: 'sawtooth', delay: 0.08, vol: 0.06 }); },
+      swear: () => [0, 1, 2, 3, 4].forEach(i => tone(300 + Math.random() * 500, 0.06, { type: 'sawtooth', delay: i * 0.06, vol: 0.06 })),
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
       eat: () => { tone(880, 0.05); tone(1320, 0.06, { delay: 0.04 }); },
@@ -289,7 +294,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -409,6 +414,37 @@
         return path.reverse();
       },
     };
+  }
+
+  // ---------- Isometric cubes ----------
+  // A cube seen from above at an angle: its top face is a diamond centred on (x, y), w wide and w / 2
+  // tall, and its two side faces drop w / 2 below that. Stacked in rows w / 2 apart sideways and
+  // 3w / 4 apart downwards, cubes fit together into a pyramid with no gaps.
+
+  function drawCube(ctx, x, y, w, { top, left, right, edge = null }) {
+    const h = w / 4;
+    const s = w / 2;
+    const face = (color, points) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      points.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+      ctx.closePath();
+      ctx.fill();
+    };
+    face(left, [[x - s, y], [x, y + h], [x, y + h + s], [x - s, y + s]]);
+    face(right, [[x, y + h], [x + s, y], [x + s, y + s], [x, y + h + s]]);
+    face(top, [[x, y - h], [x + s, y], [x, y + h], [x - s, y]]);
+    if (edge) {
+      ctx.strokeStyle = edge;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y - h);
+      ctx.lineTo(x + s, y);
+      ctx.lineTo(x, y + h);
+      ctx.lineTo(x - s, y);
+      ctx.closePath();
+      ctx.stroke();
+    }
   }
 
   // ---------- Canvas drawing helpers ----------
@@ -607,7 +643,7 @@
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
     sound, createInput, scores, gridSearch,
-    text, roundRect, dim, triangle, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
+    text, roundRect, dim, triangle, drawCube, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
 })();
