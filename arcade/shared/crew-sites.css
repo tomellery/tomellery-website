@@ -109,6 +109,9 @@
 .cs-flake { position: absolute; width: 3px; height: 3px; background: #fff; box-shadow: 0 0 3px #bfe9ff; z-index: 4; animation: cs-flake 0.9s ease-in forwards; }
 @keyframes cs-flake { to { transform: translate(var(--dx, 0), 16px); opacity: 0; } }
 
+/* The version stamp in the footer */
+.cs-stamp { margin-top: 8px; font: 7px/1.6 "Press Start 2P", monospace; opacity: 0.6; letter-spacing: 0; }
+
 /* Role gags: a glitching live game (Space Tech), a flickering panel screen (Sparky), a cup of cocoa (Holly) */
 .cs-glitch { animation: cs-glitch 0.12s steps(2) infinite; filter: hue-rotate(110deg) saturate(2); }
 @keyframes cs-glitch { 50% { transform: translateX(3px) skewX(6deg); } }

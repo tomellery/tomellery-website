@@ -20,9 +20,33 @@
 // (gags: barrel slip drop thumb nap early rollback over miss self collapse overshoot foot),
 // and ?crew=Bones,Gramps to put those two on every site.
 (() => {
+  // A version stamp in the footer, so it's easy to tell what this browser actually loaded: the ?v= numbers of this
+  // script and the stylesheet (bump them in arcade/index.html when either changes), whether the page online has a
+  // newer one (a cached copy shows "refresh"), and when the server last changed this file.
+  const foot = document.querySelector(".home-footer"), me = document.querySelector('script[src*="crew-sites.js"]');
+  if (foot && me) {
+    const ver = u => ((u || "").match(/[?&]v=(\w+)/) || [])[1] || "?";
+    const sheet = document.querySelector('link[href*="crew-sites.css"]');
+    const stamp = document.createElement("div");
+    stamp.className = "cs-stamp";
+    const base = `crew v${ver(me.src)} · css v${ver(sheet && sheet.href)}`;
+    stamp.textContent = base;
+    foot.appendChild(stamp);
+    Promise.all([
+      fetch(location.pathname, { cache: "no-store" }).then(r => r.text()).catch(() => ""),
+      fetch(me.src, { method: "HEAD", cache: "no-store" }).then(r => r.headers.get("Last-Modified")).catch(() => null),
+    ]).then(([html, modified]) => {
+      const online = (html.match(/crew-sites\.js\?v=(\w+)/) || [])[1];
+      const d = modified && new Date(modified);
+      stamp.textContent = base
+        + (online ? (online === ver(me.src) ? " · up to date" : ` · v${online} is online: refresh`) : "")
+        + (d && !isNaN(d) ? " · served " + d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "");
+    });
+  }
+
   const Crew = window.Crew;
   if (!Crew) return;
-  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const calm =matchMedia("(prefers-reduced-motion: reduce)").matches;
   const GROUND = 2, SPEED = 45;   // px off the bottom of the screen; walking speed in px per second
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = list => list[Math.floor(Math.random() * list.length)];
@@ -31,7 +55,9 @@
   const FORCE_GAG = params.get("gag");
   // ?crew=page: the page-wide crew. There are no sprites inside the panels: every worker lives on the one page
   // layer (see "Page mode" at the bottom), and a panel is just a place to stand. Desktop only for now.
-  const PAGE = params.get("crew") === "page" && !calm && params.get("roam") !== "off" && !matchMedia("(hover: none)").matches;
+  // This is now the default on desktop; ?crew=old brings back the earlier crews that work inside each screen.
+  // Phones and touch screens, and visitors who turn animations off, still get the earlier crews for now.
+  const PAGE = params.get("crew") !== "old" && !calm && params.get("roam") !== "off" && !matchMedia("(hover: none)").matches;
   const FORCE_CREW =(params.get("crew") || "").split(",").map(n => Crew.list.find(m => m.name.toLowerCase() === n.trim().toLowerCase())).filter(Boolean);
 
   // Personalities, by crew name: pace scales walking and climbing; naps makes a nap the likelier mishap
