@@ -91,6 +91,24 @@
 }
 .cs-yard-sign { position: absolute; right: 10px; bottom: 6px; font: 8px "Press Start 2P", monospace; color: #ffe14d; opacity: 0.7; }
 
+/* Movement styles: a ghost hovers and bobs; low gravity means a slow bounce. (They bob by `top`, because the
+   sprite's transform is used for leaning and falling over.) */
+.cs-look { position: relative; }
+.mv-float .cs-look { animation: cs-bob 1.6s ease-in-out infinite; opacity: 0.9; }
+.mv-lowgrav .cs-look { animation: cs-moon 1s ease-in-out infinite; }
+@keyframes cs-bob { 50% { top: -4px; } }
+@keyframes cs-moon { 50% { top: -7px; } }
+.cs-flame { position: absolute; width: 4px; height: 7px; z-index: 3; background: linear-gradient(#fff, #ffe14d 40%, #ff5a1f); animation: cs-flame 0.12s steps(2) infinite; }
+@keyframes cs-flame { 50% { height: 10px; } }
+
+/* Bolt-Bot's charging station at the yard, and his flat-battery blink; Frosty's snow */
+.cs-charger { position: absolute; left: 70px; bottom: 0; width: 18px; height: 22px; background: #3d4658; border: 2px solid #8793ab; border-radius: 3px 3px 0 0; }
+.cs-charger::before { content: ""; position: absolute; left: 4px; top: 3px; width: 6px; height: 4px; background: #3dff7a; box-shadow: 0 0 4px #3dff7a; }
+.cs-lowbat .cs-look { animation: cs-lowbat 0.7s steps(2) infinite; }
+@keyframes cs-lowbat { 50% { filter: brightness(0.55) sepia(0.6) hue-rotate(-30deg); } }
+.cs-flake { position: absolute; width: 3px; height: 3px; background: #fff; box-shadow: 0 0 3px #bfe9ff; z-index: 4; animation: cs-flake 0.9s ease-in forwards; }
+@keyframes cs-flake { to { transform: translate(var(--dx, 0), 16px); opacity: 0; } }
+
 /* Role gags: a glitching live game (Space Tech), a flickering panel screen (Sparky), a cup of cocoa (Holly) */
 .cs-glitch { animation: cs-glitch 0.12s steps(2) infinite; filter: hue-rotate(110deg) saturate(2); }
 @keyframes cs-glitch { 50% { transform: translateX(3px) skewX(6deg); } }

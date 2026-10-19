@@ -39,12 +39,14 @@
   // pace: walking/climbing speed; naps: how often they doze off; clumsy: extra chance of a mishap; lazy: mostly sits
   const TRAITS = {
     Gramps: { pace: 0.55, naps: 3 },
-    Frosty: { pace: 0.6, naps: 2 },
-    Shredder: { pace: 1.8, clumsy: 0.15 },
+    Frosty: { pace: 1.5, move: "slide" },           // glides, and can't stop quickly
+    Shredder: { pace: 1.8, clumsy: 0.15, move: "trick" },   // flips down a level instead of climbing down
     Bones: { clumsy: 0.15 },
     "Off-Duty": { lazy: true },
+    Bubbles: { move: "float" },                     // a ghost: drifts, and floats up and down through cabinets
+    "Space Tech": { move: "lowgrav" },              // low gravity: bounding walk, floaty jumps, a jetpack between levels
   };
-  const trait = m => ({ pace: 1, naps: 0, clumsy: 0, lazy: false, ...TRAITS[m.name] });
+  const trait = m => ({ pace: 1, naps: 0, clumsy: 0, lazy: false, move: "walk", ...TRAITS[m.name] });
 
   // Every worker is one person: the 19 non-Boss crew members are dealt out to the coming-soon cabinets (below).
   // The Boss is the 20th; he never works, he checks on things. He is only ever in one place (bossBusy).
@@ -176,8 +178,9 @@
       const look = el("cs-look", 0, 0, e);   // the sprite itself; stars, bubbles and carried things sit beside it
       const t = trait(member);
       let timer = 0;
+      if (t.move !== "walk") e.classList.add("mv-" + t.move);   // CSS: bobbing for floaters and low-gravity bounders
       const a = {
-        el: e, member, x: -30, y: GROUND, pace: t.pace, sleepy: t.naps, clumsy: t.clumsy, lazy: t.lazy,
+        el: e, member, x: -30, y: GROUND, pace: t.pace, sleepy: t.naps, clumsy: t.clumsy, lazy: t.lazy, move: t.move,
         show(name) { clearInterval(timer); look.innerHTML = art[name]; },
         play(names, ms = 160, onFrame) {
           clearInterval(timer);
@@ -194,9 +197,26 @@
         async arc(x, y, h, ms) { await glide(e, arcPoints(a.x, a.y, x, y, h), ms); a.x = x; a.y = y; },
         async walk(x, speed = SPEED * a.pace) {
           if (Math.abs(x - a.x) < 1) return;
+          const dir = x < a.x ? -1 : 1;
           a.face(x < a.x);
-          a.play(["walk1", "walk2"], 150 / Math.max(1, speed / SPEED));
-          await a.to(x, a.y, Math.abs(x - a.x) / speed * 1000);
+          const ms = Math.abs(x - a.x) / speed * 1000;
+          if (a.move === "slide") {
+            // Frosty: leans into it, glides without moving his feet, and slides a little past where he meant to stop
+            a.show("stand");
+            a.tilt(dir * 8);
+            await a.to(x, a.y, ms, "cubic-bezier(0.25, 0.7, 0.4, 1)");
+            await a.to(x + dir * 6, a.y, 280, "ease-out");
+            a.tilt(0);
+            return;
+          }
+          if (a.move === "float") {
+            // Bubbles: no steps, just drifting
+            a.show("stand");
+            await a.to(x, a.y, ms, "ease-in-out");
+            return;
+          }
+          a.play(["walk1", "walk2"], (a.move === "lowgrav" ? 260 : 150) / Math.max(1, speed / SPEED));
+          await a.to(x, a.y, ms * (a.move === "lowgrav" ? 1.2 : 1));
           a.show("stand");
         },
         // Walk, but maybe trip on the way
@@ -820,7 +840,10 @@
   // page load, and a cabinet that ships stops being a site.
   const cards = [...document.querySelectorAll(".game-card.soon")];
   const jobOf = card => JOBS[((card.querySelector("h2") || {}).textContent || "").trim()];
-  const pool = Crew.list.filter(m => m !== BOSS).sort(() => Math.random() - 0.5);
+  const only = (params.get("only") || "").split(",").map(n => n.trim().toLowerCase()).filter(Boolean);
+  // (with ?only=, those names go to the back of the pool so they end up on roaming panels, not locked in a custom job)
+  const pool = Crew.list.filter(m => m !== BOSS).sort(() => Math.random() - 0.5)
+    .sort((a, b) => only.includes(a.name.toLowerCase()) - only.includes(b.name.toLowerCase()));
   const homes = new Map();
   if (FORCE_CREW.length === 2) cards.forEach(c => homes.set(c, FORCE_CREW.slice()));
   else {
@@ -958,11 +981,56 @@
     w.row = to;
   }
 
-  // Up and down the rows by ladder, then along to the cabinet
+  // Other ways of changing level, one level at a time like the ladder (see TRAITS: move)
+  const nearestLane = (gaps, x) => gaps.reduce((b, g) => (Math.abs(g - x) < Math.abs(b - x) ? g : b), gaps[0]);
+
+  // Bubbles the ghost: drifts to a coming-soon cabinet and floats straight up or down through it
+  async function floatStep(w, rows, to, gaps) {
+    const s = w.s, A = s.A, down = to > w.row;
+    const through = rows[down ? w.row : to].cards.filter(k => k.el.classList.contains("soon"));   // the cabinets she passes through
+    if (!through.length) return ladderStep(w, rows, to, gaps);
+    const k = through.reduce((b, c) => (Math.abs(c.x + c.w / 2 - A.x) < Math.abs(b.x + b.w / 2 - A.x) ? c : b), through[0]);
+    await A.stroll(Math.round(k.x + k.w / 2 - 10), 0);
+    A.el.style.opacity = "0.55";
+    await A.to(A.x, -rows[to].y, 2400, "ease-in-out");
+    A.el.style.opacity = "";
+    w.row = to;
+  }
+
+  // Space Tech: a jetpack up or down the lane between the columns
+  async function jetStep(w, rows, to, gaps) {
+    const s = w.s, A = s.A, gx = Math.round(nearestLane(gaps, A.x) - 10);
+    await A.stroll(gx, 0.1);
+    A.show("lift");
+    const flame = s.el("cs-flame", 8, -6, A.el);
+    await A.to(gx, -rows[to].y, 1500, "ease-in-out");
+    flame.remove();
+    s.dust(A.x + 10, A.y);
+    A.show("stand");
+    w.row = to;
+  }
+
+  // Shredder: a flip off the edge down to the next level (a ladder to go up); now and then it goes wrong
+  async function trickStep(w, rows, to, gaps) {
+    if (to < w.row) return ladderStep(w, rows, to, gaps);
+    const s = w.s, A = s.A, gx = Math.round(nearestLane(gaps, A.x) - 10);
+    await A.stroll(gx, 0.2);
+    A.show("lift");
+    await s.sleep(450);
+    A.show("flail");
+    A.el.animate({ transform: ["rotate(0deg)", A.facingLeft() ? "rotate(-360deg)" : "rotate(360deg)"] }, { duration: 1300, easing: "ease-in-out" });
+    await A.arc(gx, -rows[to].y, 50, 1300);
+    s.dust(A.x + 10, A.y);
+    w.row = to;
+    if (Math.random() < 0.3) await s.crash(A, true); else { A.show("stand"); A.say("!", 700); }
+  }
+  const levelStep = (w, rows, to, gaps) => { drain(w, 3); return ({ float: floatStep, lowgrav: jetStep, trick: trickStep }[w.s.A.move] || ladderStep)(w, rows, to, gaps); };
+
+  // Up and down the rows (by ladder, unless their style says otherwise), then along to the cabinet
   async function goTo(w, rows, card, gaps) {
     const A = w.s.A, t = rows.findIndex(r => r.cards.some(k => k.el === card));
     if (t < 0 || (t !== w.row && !gaps.length)) return;
-    while (w.row !== t) await ladderStep(w, rows, w.row + Math.sign(t - w.row), gaps);
+    while (w.row !== t) await levelStep(w, rows, w.row + Math.sign(t - w.row), gaps);
     const k = rows[t].cards.find(k => k.el === card);
     await A.stroll(Math.round(k.x + rand(k.w * 0.3, k.w * 0.7) - 10), 0.25);
   }
@@ -1054,7 +1122,7 @@
     yardEl = document.createElement("div");
     yardEl.className = "cs-yard";
     yardEl.setAttribute("aria-hidden", "true");
-    yardEl.innerHTML = '<span class="cs-yard-stack"></span><span class="cs-yard-sign">LUMBER YARD</span>';
+    yardEl.innerHTML = '<span class="cs-charger"></span><span class="cs-yard-stack"></span><span class="cs-yard-sign">LUMBER YARD</span>';
     const grid = document.querySelector(".game-grid");
     if (grid) grid.after(yardEl); else yardEl = null;
     itemsLayer = document.createElement("div");
@@ -1094,7 +1162,23 @@
   // The rest of what makes them different is in TRAITS (pace, naps, clumsy, lazy) and in stint() (The Welder).
   let away = 0;   // workers off their panel right now, and the most that may be
   const AWAY_MAX = ROAM === "fast" ? 6 : 3;
-  let incident = null;   // the last crash, for Ski Patrol: { site, t, w }
+  // Things that happen that somebody else may want to deal with: a crash (Ski Patrol), a sooty face or a zapped
+  // worker (Frosty). Each is claimed by the first responder who takes it, and goes stale after a while.
+  const events = [];
+  const emit = (type, site, w) => { events.push({ type, site, w, t: performance.now(), claimed: false }); if (events.length > 12) events.shift(); };
+  const takeEvent = (types, ok = () => true, maxAge = 12000) => {
+    const e = events.find(e => !e.claimed && types.includes(e.type) && e.site && performance.now() - e.t < maxAge && ok(e));
+    if (e) e.claimed = true;
+    return e;
+  };
+  // Bolt-Bot's battery: it drains as he works and climbs, slows him down, and he recharges at the yard
+  const setBattery = (w, v) => {
+    w.battery = Math.max(0, Math.min(100, v));
+    const A = w.s.A;
+    A.pace = (A.basePace || 1) * (0.4 + 0.6 * w.battery / 100);
+    A.el.classList.toggle("cs-lowbat", w.battery < 25);
+  };
+  const drain = (w, n) => { if (w.battery != null) setBattery(w, w.battery - n); };
   const busiestPanels = (c, min = 1) => [...sites.values()].filter(t => !t.fixed && t !== c.w.at && occupants(t) >= min && occupants(t) < 4)
     .sort((a, b) => occupants(b) - occupants(a));
   const anyPanel = c => [...sites.values()].filter(t => !t.fixed && t !== c.w.at && occupants(t) < 4);
@@ -1158,8 +1242,27 @@
       for (let n = 0; n < 3; n++) { c.s.sparks(c.A.x + 10, c.A.y + 12, n % 2 ? 1 : -1); await c.s.sleep(250); }
       c.A.say("!", 1000);
       c.A.dizzy("stars");
+      emit("zap", t, c.w);
       await c.s.sleep(1600);
       c.A.dizzy(false);
+      return true;
+    },
+    // Cooler: comes running to anyone sooty or zapped and cools them off with a flurry of snow
+    Frosty: async c => {
+      const e = takeEvent(["sooty", "zap"], x => x.w !== c.w && occupants(x.site) < 4);
+      if (!e) return false;
+      await c.standAt(e.site);
+      c.A.say("!", 900);
+      await c.s.sleep(500);
+      const v = e.w.s.A;
+      for (let n = 0; n < 8; n++) {
+        const f = c.s.el("cs-flake", v.x + rand(2, 16), v.y + rand(16, 30));
+        f.style.setProperty("--dx", px(rand(-6, 6)));
+        setTimeout(() => f.remove(), 950);
+      }
+      v.dizzy(false);
+      v.say("♪", 1000);
+      await c.s.sleep(1200);
       return true;
     },
     // Ladder keeper: climbs a level and back to test the ladder, with sparks at the top
@@ -1188,9 +1291,8 @@
     },
     // Rescue: runs to wherever somebody just crashed
     "Ski Patrol": async c => {
-      const i = incident;
-      if (!i || performance.now() - i.t > 12000 || !i.site || i.site === c.w.at || i.w === c.w || occupants(i.site) >= 4) return false;
-      incident = null;
+      const i = takeEvent(["crash"], e => e.w !== c.w && e.site !== c.w.at && occupants(e.site) < 4);
+      if (!i) return false;
       await c.standAt(i.site);
       c.A.say("!", 900);
       c.A.show("lift");
@@ -1232,14 +1334,15 @@
       }
       return true;
     },
-    // Sweeps up around the lumber yard
+    // Haunter: floats up through a busy panel (only coming-soon ones) and spooks everyone on it
     Bubbles: async c => {
-      if (!chance(0.3)) return false;
-      await c.standAtYard();
-      c.A.play(["lift", "stand"], 420);
-      c.A.say("♪", 900);
-      await c.s.sleep(4500);
-      c.A.show("stand");
+      const t = busiestPanels(c)[0];
+      if (!t || !chance(0.4)) return false;
+      await c.standAt(t);
+      c.A.say("~", 1000);
+      poke(t, c.w);
+      roster.forEach(k => { if (k.at === t && k !== c.w) k.s.A.say("!", 900); });
+      await c.s.sleep(2200);
       return true;
     },
     // Tags the construction tape on a panel
@@ -1287,7 +1390,8 @@
     let f = place(w.home);
     A.at(Math.round(rand(f.x0, f.x1)), f.y);
     A.face(Math.random() < 0.5);
-    A.onCrash = () => { incident = { site: w.at, t: performance.now(), w }; };
+    A.onCrash = () => emit("crash", w.at, w);
+    A.basePace = A.pace;
     await s.sleep(rand(0, 1500));
 
     // Out over the top of the screen onto the cabinets, and in again
@@ -1295,18 +1399,42 @@
       w.row = rowOf(w.at.card);
       w.at = null;
       const top = -rows[w.row].y;
+      if (A.move === "float") {
+        // straight up through the cabinet
+        A.el.style.opacity = "0.55";
+        await A.to(A.x, top, 2200, "ease-in-out");
+        A.el.style.opacity = "";
+        await s.sleep(500);
+        return;
+      }
       A.show("lift");                        // a beat to get ready, a slow high arc, then a moment to catch their breath
       await s.sleep(350);
-      await A.arc(A.x, top, 70, 1700);
+      if (A.move === "lowgrav") {            // Space Tech never jumps: it's always the jetpack
+        const flame = s.el("cs-flame", 8, -6, A.el);
+        await A.arc(A.x, top, 30, 1500);
+        flame.remove();
+      } else await A.arc(A.x, top, 70, 1700);
       s.dust(A.x + 10, top);
       A.show("stand");
       await s.sleep(800);
     }
     async function hopIn(site) {
       const g = floorOf(site, o), x = Math.round(Math.max(g.x0, Math.min(g.x1, A.x)));
+      if (A.move === "float") {
+        A.el.style.opacity = "0.55";
+        await A.to(x, g.y, 2200, "ease-in-out");
+        A.el.style.opacity = "";
+        f = place(site);
+        await s.sleep(500);
+        return;
+      }
       A.show("lift");
       await s.sleep(350);
-      await A.arc(x, g.y, 70, 1700);
+      if (A.move === "lowgrav") {
+        const flame = s.el("cs-flame", 8, -6, A.el);
+        await A.arc(x, g.y, 30, 1500);
+        flame.remove();
+      } else await A.arc(x, g.y, 70, 1700);
       s.dust(x + 10, g.y);
       A.show("stand");
       f = place(site);
@@ -1375,7 +1503,7 @@
           A.play(["up", "down"], 180, k => k === "down" && s.sparks(A.x + (A.facingLeft() ? 0 : 18), A.y + 6, A.facingLeft() ? -1 : 1) + (welder ? s.sparks(A.x + (A.facingLeft() ? 0 : 18), A.y + 10, A.facingLeft() ? -1 : 1) : 0));
           await s.sleep(rand(2000, 4000));
           A.show("stand");
-          if (welder && chance(0.25)) { A.dizzy("sooty"); await s.sleep(1500); A.dizzy(false); }   // all that welding
+          if (welder && chance(0.25)) { A.dizzy("sooty"); emit("sooty", site, w); await s.sleep(1500); A.dizzy(false); }   // all that welding
         } else if ((A.sleepy && r < 0.7) || (A.lazy && r < 0.85)) {
           A.show("sit");
           const stopZ = s.every(900, () => A.say("Z", 850));
@@ -1407,9 +1535,25 @@
       try { return await fn(); } finally { away--; }
     };
 
+    // Bolt-Bot: a flat battery means a trip to the charger at the yard, sitting there until he's full again
+    async function chargeUp() {
+      if (w.at) await hopUp();
+      await goTo(w, rows, yardEl, gaps);
+      const ch = yardEl.querySelector(".cs-charger").getBoundingClientRect();
+      await A.stroll(Math.round(ch.left - o.left - 4), 0.1);
+      A.show("sit");
+      for (let n = 0; n < 6; n++) { s.sparks(A.x + 10, A.y + 6, n % 2 ? 1 : -1); await s.sleep(900); }
+      setBattery(w, 100);
+      A.show("stand");
+      A.say("♪", 1000);
+    }
+
     for (;;) {
+      if (!w.at && w.battery === null) await standAt(w.home);
+      if (w.battery != null && w.battery < 20) { await chargeUp(); await standAt(w.home); continue; }
       if (!w.at) await standAt(w.home);
       await stint();
+      drain(w, rand(4, 8));
       // Their own thing
       const role = ROLES[w.m.name];
       if (role && !w.recalled && await withSlot(async () => {
@@ -1485,6 +1629,7 @@
     w.s = kit(w.pseudo);
     w.s.A.at(-60, -1000);
     w.at = null;
+    if (w.battery != null) { w.s.A.basePace = w.s.A.pace; setBattery(w, 100); }
     if (PAGE) {
       if (!w.home) bossBusy = false;
       if (w.carrying) { w.carrying = false; yard.stock++; drawYard(); }   // a plank in hand goes back on the stack
@@ -1505,17 +1650,20 @@
       layer.className = "cs-roam";
       layer.setAttribute("aria-hidden", "true");
       document.body.appendChild(layer);
-      roster.push({ m, home, layer, s: null, out: false, recalled: false, row: 0, at: null,
+      roster.push({ m, home, layer, s: null, out: false, recalled: false, row: 0, at: null, battery: m.name === "Bolt-Bot" ? 100 : null,
         pseudo: { card: home && home.card, stage: layer, crew: [m], fixed: true, gen: 0, visible: true, poked: false, timers: [] } });
     };
-    sites.forEach(site => { if (!site.fixed) site.crew.forEach(m => add(m, site)); });
-    if (BOSS && roster.length) add(BOSS, null);
+    // ?only=Frosty,Bubbles puts just those on the page (for testing one sprite at a time)
+    const ONLY = (params.get("only") || "").split(",").map(n => n.trim().toLowerCase()).filter(Boolean);
+    const wanted = m => !ONLY.length || ONLY.includes(m.name.toLowerCase());
+    sites.forEach(site => { if (!site.fixed) site.crew.forEach(m => { if (wanted(m)) add(m, site); }); });
+    if (BOSS && roster.length && wanted(BOSS)) add(BOSS, null);
     layoutPiles();
     roster.forEach(startRoamer);
     // Time stands still for a roamer who is off screen; track which cabinets have no one on them
     const onScreen = el => { const r = el.getBoundingClientRect(); return r.bottom > -200 && r.top < innerHeight + 200; };
     setInterval(() => {
-      roster.forEach(w => { w.pseudo.visible = !(w.out || PAGE) || onScreen(w.s.A.el); });
+      roster.forEach(w => { w.pseudo.visible = params.get("awake") === "1" || !(w.out || PAGE) || onScreen(w.s.A.el); });   // ?awake=1: never pause (for testing)
       sites.forEach(t => { t.emptySince = !t.fixed && (PAGE || t.api) && !occupants(t) ? (t.emptySince || performance.now()) : 0; });
     }, 500);
     let relaid = 0;
