@@ -81,7 +81,7 @@
   reset();
 
   function flap() {
-    if (state === "ready") { state = "running"; last = performance.now(); }
+    if (state === "ready") { state = "running"; last = performance.now(); if (window.track) track("secret:flapper"); }
     else if (state === "over") { reset(); state = "ready"; return; }
     bug.vy = -380; bug.flapT = 0.15;
   }

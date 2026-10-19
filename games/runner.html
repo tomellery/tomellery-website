@@ -86,7 +86,7 @@
   }
 
   function jump() {
-    if (state !== "running") { reset(); state = "running"; last = performance.now(); return; }
+    if (state !== "running") { reset(); state = "running"; last = performance.now(); if (window.track) track("secret:runner"); return; }
     if (player.y >= GROUND && !player.duck) player.vy = -560;
   }
 

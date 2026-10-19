@@ -10,7 +10,7 @@
 // Nothing here identifies a person: a visitor is a random id the browser makes up, and location comes from
 // Cloudflare's own country/city guess. The tables are made automatically the first time anything arrives.
 
-const VERSION = 3; // bump when the code changes, so it's easy to tell which copy Cloudflare is running
+const VERSION = 4;// bump when the code changes, so it's easy to tell which copy Cloudflare is running
 const ORIGINS = ["https://tomellery.com", "https://www.tomellery.com", "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:8080", "http://127.0.0.1:8080"];
 const TOKEN_DAYS = 60;
 const MAX_FAILS = 8, FAIL_WINDOW = 10 * 60 * 1000;   // wrong passcodes allowed per visitor address, per 10 minutes
@@ -183,9 +183,10 @@ async function arcade(req, env, url) {
     /* 3 daily */    q("SELECT strftime('%Y-%m-%d', ts / 1000 + ?, 'unixepoch') AS k, COUNT(*) AS plays, COUNT(DISTINCT vid) AS players FROM hits WHERE " + plays + " GROUP BY k ORDER BY k", tz * 60, since),
     /* 4 arcade home */ q("SELECT COUNT(*) AS n FROM hits WHERE type = 'view' AND path = '/arcade/' AND ts >= ?", since),
     /* 5 by hour */  q("SELECT CAST(strftime('%H', ts / 1000 + ?, 'unixepoch') AS INTEGER) AS h, COUNT(*) AS plays FROM hits WHERE " + plays + " GROUP BY h ORDER BY h", tz * 60, since),
+    /* 6 secret games (games/*.html send "secret:<game>") */ q("SELECT substr(name, 8) AS game, COUNT(*) AS plays, COUNT(DISTINCT vid) AS players, MAX(ts) AS last FROM hits WHERE type = 'event' AND name LIKE 'secret:%' AND ts >= ? GROUP BY game ORDER BY plays DESC", since),
   ]);
   const rows = i => r[i].results;
-  return json(req, { days, now: Date.now(), games: rows(0), opened: rows(1), totals: rows(2)[0], daily: rows(3), home: rows(4)[0].n, hours: rows(5) });
+  return json(req, { days, now: Date.now(), games: rows(0), opened: rows(1), totals: rows(2)[0], daily: rows(3), home: rows(4)[0].n, hours: rows(5), secret: rows(6) });
 }
 
 export default {

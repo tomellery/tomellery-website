@@ -187,6 +187,10 @@
           <div class="tablewrap"><table><thead><tr><th>Game</th><th>Played</th><th>Players</th><th>Opened</th><th>Play rate</th><th>Plays / player</th><th>Last played</th></tr></thead><tbody id="aTable"></tbody></table></div>
           <div class="note" style="margin-top:8px">Played = a run started (not the demo). Opened = the game page was loaded. Play rate = played / opened.</div></div>
 
+        <div class="card c12"><h2>SECRET GAMES</h2>
+          <div class="tablewrap"><table><thead><tr><th>Game</th><th>Played</th><th>Players</th><th>Plays / player</th><th>Best score</th><th>Last played</th></tr></thead><tbody id="sTable"></tbody></table></div>
+          <div class="note" style="margin-top:8px">The two hidden games on the main site. Played = a run started. Best score is the shared record, live.</div></div>
+
         <div class="card c12"><h2>LEADERBOARDS</h2><div class="boards" id="aBoards"><div class="empty">Loading...</div></div>
           <div class="note" style="margin-top:10px">Real scores only (the made-up starting scores aren't included). Live from the arcade's shared tables.</div></div>
       </div>
@@ -427,12 +431,33 @@
       return { label: dt.toLocaleDateString([], { month: "short", day: "numeric" }), tip: dt.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }), a: r.plays, b: r.players };
     }), { id: "ad", h: 200, aria: "Games played per day", aName: "games played", every: Math.ceil(dn / 10) });
 
+    secretRows = d.secret || []; drawSecret();
+
     const byHour = {}; d.hours.forEach(r => { byHour[r.h] = r.plays; });
     const hrs = []; for (let h = 0; h < 24; h++) hrs.push({ label: (h % 12 || 12) + (h < 12 ? "a" : "p"), tip: (h % 12 || 12) + (h < 12 ? " AM" : " PM"), a: byHour[h] || 0 });
     bars($("aHours"), hrs, { id: "ah", h: 190, aria: "Games played by hour of day", aName: "games played", every: 3 });
   }
 
+  // The two secret games: plays come from the stats Worker, the best score from the shared score tables.
+  const SECRET = { flapper: "Flapper", runner: "Runner" };
+  let secretRows = [], secretBest = {};
+  function drawSecret() {
+    const by = {}; secretRows.forEach(g => { by[g.game] = g; });
+    const ids = Object.keys(SECRET).concat(secretRows.map(g => g.game)).filter((x, i, a) => a.indexOf(x) === i);
+    $("sTable").innerHTML = ids.map(id => {
+      const g = by[id] || { plays: 0, players: 0, last: null };
+      return "<tr><td>" + esc(SECRET[id] || id) + "</td><td>" + fmt(g.plays) + "</td><td>" + fmt(g.players) + "</td><td>" + (g.players ? (g.plays / g.players).toFixed(1) : "-") + "</td><td>" +
+        (secretBest[id] != null ? fmt(secretBest[id]) : "-") + "</td><td>" + (g.last ? esc(ago(g.last)) : "never") + "</td></tr>";
+    }).join("");
+  }
+  async function loadSecretBest() {
+    await Promise.all(Object.keys(SECRET).map(id =>
+      fetch(SCORES_API.replace(/\/arcade$/, "/?game=" + id), { cache: "no-store" }).then(r => r.json()).then(d => { secretBest[id] = d.hi; }).catch(() => {})));
+    drawSecret();
+  }
+
   async function loadBoards() {
+    loadSecretBest();
     try {
       const r = await fetch(SCORES_API, { cache: "no-store" });
       const tables = await r.json();
