@@ -29,18 +29,30 @@
   const px = n => Math.round(n) + "px";
   const params = new URLSearchParams(location.search);
   const FORCE_GAG = params.get("gag");
-  const FORCE_CREW = (params.get("crew") || "").split(",").map(n => Crew.list.find(m => m.name.toLowerCase() === n.trim().toLowerCase())).filter(Boolean);
+  // ?crew=page: the page-wide crew. There are no sprites inside the panels: every worker lives on the one page
+  // layer (see "Page mode" at the bottom), and a panel is just a place to stand. Desktop only for now.
+  const PAGE = params.get("crew") === "page" && !calm && params.get("roam") !== "off" && !matchMedia("(hover: none)").matches;
+  const FORCE_CREW =(params.get("crew") || "").split(",").map(n => Crew.list.find(m => m.name.toLowerCase() === n.trim().toLowerCase())).filter(Boolean);
 
   // Personalities, by crew name: pace scales walking and climbing; naps makes a nap the likelier mishap
   const BOSS = Crew.list.find(m => m.name === "The Boss");
-  const TRAITS = { Gramps: { pace: 0.55, naps: 3 } };
-  const trait = m => TRAITS[m.name] || { pace: 1, naps: 0 };
+  // pace: walking/climbing speed; naps: how often they doze off; clumsy: extra chance of a mishap; lazy: mostly sits
+  const TRAITS = {
+    Gramps: { pace: 0.55, naps: 3 },
+    Frosty: { pace: 0.6, naps: 2 },
+    Shredder: { pace: 1.8, clumsy: 0.15 },
+    Bones: { clumsy: 0.15 },
+    "Off-Duty": { lazy: true },
+  };
+  const trait = m => ({ pace: 1, naps: 0, clumsy: 0, lazy: false, ...TRAITS[m.name] });
 
   // Every worker is one person: the 19 non-Boss crew members are dealt out to the coming-soon cabinets (below).
   // The Boss is the 20th; he never works, he checks on things. He is only ever in one place (bossBusy).
   let bossBusy = false;
 
   class Stopped extends Error {}
+  // A scene that is stopped while it waits on several things at once (Promise.all) rejects more than once: ignore
+  addEventListener("unhandledrejection", e => { if (e.reason instanceof Stopped) e.preventDefault(); });
 
   // ===== One site per coming-soon card =====
   // crew: who lives here. fixed sites (the custom jobs) have exactly two and keep them; the others are
@@ -55,9 +67,14 @@
     tape.className = "cs-tape";
     card.appendChild(tape);
     card.classList.add("cs-site");
+    const meta = card.querySelector(".card-meta");
+    if (meta) meta.textContent = "UNDER CONSTRUCTION";
     const site = { card, art, stage, scene, crew, fixed, members: crew.slice(), api: null, emptySince: 0, gen: 0, visible: true, poked: false, timers: [] };
 
-    const poke = () => { site.poked = true; };
+    const poke = () => {
+      site.poked = true;
+      if (PAGE) roster.forEach(w => { if (w.at === site) w.pseudo.poked = true; });   // whoever is on it reacts
+    };
     card.addEventListener("mouseenter", poke);
     card.addEventListener("click", poke);
     new IntersectionObserver(([e]) => { site.visible = e.isIntersecting; }).observe(card);
@@ -77,6 +94,7 @@
   function start(site) {
     stop(site);
     if (!site.card.classList.contains("soon")) return;
+    if (PAGE && !site.fixed) return;   // page mode: nobody works inside the screen
     // The stage sits exactly over the art's screen
     const c = site.card.getBoundingClientRect(), a = site.art.getBoundingClientRect();
     Object.assign(site.stage.style, {
@@ -159,7 +177,7 @@
       const t = trait(member);
       let timer = 0;
       const a = {
-        el: e, member, x: -30, y: GROUND, pace: t.pace, sleepy: t.naps,
+        el: e, member, x: -30, y: GROUND, pace: t.pace, sleepy: t.naps, clumsy: t.clumsy, lazy: t.lazy,
         show(name) { clearInterval(timer); look.innerHTML = art[name]; },
         play(names, ms = 160, onFrame) {
           clearInterval(timer);
@@ -222,6 +240,7 @@
 
     // Down he goes, stars, and back up looking around to see if anyone noticed. Bones comes apart instead.
     async function crash(a, forward = true) {
+      if (a.onCrash) a.onCrash();
       if (a.member.name === "Bones") return fallApart(a);
       a.show("flail");
       a.flat(forward);
@@ -850,11 +869,17 @@
     });
     rows.sort((a, b) => a.y - b.y);
     rows.forEach(r => r.cards.sort((a, b) => a.x - b.x));
+    if (yardEl) {   // page mode: the lumber yard under the grid is one more level to stand on
+      const r = yardEl.getBoundingClientRect();
+      rows.push({ y: Math.round(r.bottom - o.top - 4), yard: true, cards: [{ el: yardEl, x: r.left - o.left, w: r.width }] });
+    }
     return rows;
   }
   // x of the lanes between columns (ladders stand there), taken from the fullest row
   function colGaps(rows) {
     const full = rows.reduce((b, r) => (r.cards.length > b.cards.length ? r : b), rows[0]);
+    // One column (a narrow window): there is no lane between columns, so the ladders stand in the left margin
+    if (full.cards.length === 1) return [Math.max(8, full.cards[0].x - 8)];
     return full.cards.slice(1).map((k, i) => (full.cards[i].x + full.cards[i].w + k.x) / 2);
   }
 
@@ -996,19 +1021,437 @@
   // The Boss goes to an empty cabinet, looks stern, calls its workers back, and is gone when they're there
   async function bossTrip(w, site) {
     const s = w.s, A = s.A, o = origin(), rows = rowsOf(o), gaps = colGaps(rows);
-    const start = pick(rows[0].cards);
+    // He walks in along the top row from the edge of the page; nobody drops in from above
     w.row = 0;
-    await popOut(w, Math.round(start.x + start.w / 2 - 10), -rows[0].y);
+    A.at(-24, -rows[0].y);
+    A.face(false);
     await goTo(w, rows, site.card, gaps);
     A.show("think");
     A.say("?", 900);
     await s.sleep(1100);
     A.say("!", 900);
-    roster.forEach(k => { if (k.home === site && k.out) k.recalled = true; });
-    for (let n = 0; n < 28 && !site.members.length; n++) await s.sleep(500);
+    roster.forEach(k => { if (k.home === site && (PAGE ? k.at !== site : k.out)) k.recalled = true; });
+    for (let n = 0; n < 28 && !occupants(site); n++) await s.sleep(500);
     await s.sleep(600);
-    s.dust(A.x + 10, A.y);
+    await A.walk(-30);   // and out the way he came
     A.at(-60, -1000);
+  }
+
+  // ===== Page mode (?crew=page) =====
+  // Every worker is on the page layer all the time. A panel is the art floor of its card: they stand on it,
+  // work, and when it is time to go they hop out over the top of the screen onto the cabinets, walk (and climb
+  // ladders) to another panel or a live game, and hop in. How many are standing on a panel is how chaotic it is.
+  const occupants = t => (PAGE ? roster.filter(k => k.at === t).length : t.members.length);
+
+  // The lumber yard sits under the grid and is where planks come from and go back to. Every panel has a little
+  // pile of its own on its floor. Planks are never created or destroyed: one is taken off a pile (yard or panel),
+  // carried, and put on another. The yard's stock and each panel's count are what the piles show.
+  const YARD = {};
+  const yard = { stock: 24 };   // all the lumber starts here; panels start empty and get theirs carried over
+  let yardEl = null;
+  let itemsLayer = null;
+  if (PAGE) {
+    yardEl = document.createElement("div");
+    yardEl.className = "cs-yard";
+    yardEl.setAttribute("aria-hidden", "true");
+    yardEl.innerHTML = '<span class="cs-yard-stack"></span><span class="cs-yard-sign">LUMBER YARD</span>';
+    const grid = document.querySelector(".game-grid");
+    if (grid) grid.after(yardEl); else yardEl = null;
+    itemsLayer = document.createElement("div");
+    itemsLayer.className = "cs-roam";
+    itemsLayer.setAttribute("aria-hidden", "true");
+    document.body.appendChild(itemsLayer);
+    sites.forEach(t => {
+      if (t.fixed) return;
+      t.planks = 0;
+      t.pile = document.createElement("div");
+      t.pile.className = "cs-lumber-pile";
+      itemsLayer.appendChild(t.pile);
+    });
+  }
+  const drawYard = () => { if (yardEl) yardEl.querySelector(".cs-yard-stack").style.height = px(Math.min(yard.stock, 24) * 2.5); };
+  const drawPile = t => { t.pile.style.height = px(t.planks * 4); };
+  function layoutPiles() {
+    if (!itemsLayer) return;
+    const o = itemsLayer.getBoundingClientRect();
+    sites.forEach(t => {
+      if (t.fixed) return;
+      const f = floorOf(t, o);
+      t.pile.style.left = px(f.x0);
+      t.pile.style.bottom = px(f.y);
+      drawPile(t);
+    });
+    drawYard();
+  }
+  const floorOf = (site, o) => {
+    const a = site.art.getBoundingClientRect();   // the screen of the cabinet; they stand along its bottom edge
+    return { y: -Math.round(a.bottom - o.top - 2 - GROUND), x0: a.left - o.left + 6, x1: a.right - o.left - 26 };
+  };
+
+  // ===== Roles =====
+  // Each helper's own thing to do instead of the usual work. A role is called once after every stint with a context
+  // (c) that has the page-mode moves in it; it does its bit and returns true, or returns false to carry on as normal.
+  // The rest of what makes them different is in TRAITS (pace, naps, clumsy, lazy) and in stint() (The Welder).
+  let away = 0;   // workers off their panel right now, and the most that may be
+  const AWAY_MAX = ROAM === "fast" ? 6 : 3;
+  let incident = null;   // the last crash, for Ski Patrol: { site, t, w }
+  const busiestPanels = (c, min = 1) => [...sites.values()].filter(t => !t.fixed && t !== c.w.at && occupants(t) >= min && occupants(t) < 4)
+    .sort((a, b) => occupants(b) - occupants(a));
+  const anyPanel = c => [...sites.values()].filter(t => !t.fixed && t !== c.w.at && occupants(t) < 4);
+  const poke = (t, except) => roster.forEach(k => { if (k.at === t && k !== except) k.pseudo.poked = true; });
+  const flash = (el, cls, ms) => { el.classList.add(cls); setTimeout(() => el.classList.remove(cls), ms); };
+  const chance = p => params.get("roles") === "always" || Math.random() < p;   // ?roles=always: every role acts every time
+  async function gawk(c, glitch) {
+    const live = [...document.querySelectorAll(".game-card:not(.soon)")];
+    if (!live.length) return false;
+    const card = pick(live);
+    if (c.w.at) await c.hopUp();
+    await c.goTo(card);
+    c.A.show("think");
+    c.A.say("?", 900);
+    await c.s.sleep(1800);
+    if (glitch) { flash(card.querySelector(".card-art"), "cs-glitch", 1300); c.A.say("!", 900); await c.s.sleep(1400); }
+    c.A.show("stand");
+    return true;
+  }
+  const ROLES = {
+    // Lumber runner: moves planks between the yard and the panels
+    "The Classic": async c => {
+      if (!chance(0.7)) return false;
+      for (let n = 0; n < 2; n++) {
+        const run = c.planRun();
+        if (!run) break;
+        if (await c.pickUp(run.from)) await c.putDown(run.to);
+      }
+      return true;
+    },
+    // Safety inspector: turns up at a busy panel, blows the whistle, everybody on it reacts
+    "Hi-Vis": async c => {
+      const t = busiestPanels(c)[0];
+      if (!t || !chance(0.45)) return false;
+      await c.standAt(t);
+      c.A.say("!", 900);
+      await c.s.sleep(500);
+      c.A.say("!", 900);
+      poke(t, c.w);
+      await c.s.sleep(2500);
+      return true;
+    },
+    // Courier: dashes between panels without stopping to work (fast, and trips)
+    Shredder: async c => {
+      if (!chance(0.45)) return false;
+      for (let n = 0; n < 2; n++) {
+        const list = anyPanel(c);
+        if (!list.length) break;
+        await c.standAt(pick(list));
+        await c.s.sleep(300);
+      }
+      return true;
+    },
+    // Electrician: zaps a panel's screen, and himself
+    Sparky: async c => {
+      const list = anyPanel(c);
+      if (!list.length || !chance(0.4)) return false;
+      const t = pick(list);
+      await c.standAt(t);
+      flash(t.art, "cs-flicker", 1200);
+      for (let n = 0; n < 3; n++) { c.s.sparks(c.A.x + 10, c.A.y + 12, n % 2 ? 1 : -1); await c.s.sleep(250); }
+      c.A.say("!", 1000);
+      c.A.dizzy("stars");
+      await c.s.sleep(1600);
+      c.A.dizzy(false);
+      return true;
+    },
+    // Ladder keeper: climbs a level and back to test the ladder, with sparks at the top
+    "Bolt-Bot": async c => {
+      if (!chance(0.4) || c.rows.length < 2) return false;
+      if (c.w.at) await c.hopUp();
+      const r = c.w.row, to = r + 1 < c.rows.length ? r + 1 : r - 1;
+      await c.ladderStep(to);
+      c.A.show("down");
+      for (let n = 0; n < 3; n++) { c.s.sparks(c.A.x + 10, c.A.y + 10, n % 2 ? 1 : -1); await c.s.sleep(400); }
+      c.A.show("stand");
+      await c.ladderStep(r);
+      return true;
+    },
+    // Sneaks up on a busy panel half see-through, then startles them
+    "Night Ninja": async c => {
+      const t = busiestPanels(c)[0];
+      if (!t || !chance(0.4)) return false;
+      c.A.el.style.opacity = "0.35";
+      await c.standAt(t);
+      c.A.el.style.opacity = "";
+      c.A.say("!", 900);
+      poke(t, c.w);
+      await c.s.sleep(2000);
+      return true;
+    },
+    // Rescue: runs to wherever somebody just crashed
+    "Ski Patrol": async c => {
+      const i = incident;
+      if (!i || performance.now() - i.t > 12000 || !i.site || i.site === c.w.at || i.w === c.w || occupants(i.site) >= 4) return false;
+      incident = null;
+      await c.standAt(i.site);
+      c.A.say("!", 900);
+      c.A.show("lift");
+      await c.s.sleep(1600);
+      c.A.show("stand");
+      return true;
+    },
+    // Goes off to stare at the live games
+    Zorp: async c => (chance(0.2) ? gawk(c) : false),
+    // Tests the live games, and glitches them
+    "Space Tech": async c => (chance(0.2) ? gawk(c, true) : false),
+    // Fetches cocoa from the yard and hands it out at the busiest panel
+    "Holly the Elf": async c => {
+      const t = busiestPanels(c)[0];
+      if (!t || !chance(0.35)) return false;
+      await c.standAtYard();
+      c.A.show("down");
+      await c.s.sleep(500);
+      const cup = c.s.el("cs-cup", 4, 23, c.A.el);
+      c.A.show("stand");
+      await c.standAt(t);
+      await c.s.sleep(500);
+      cup.remove();
+      c.A.say("♪", 1000);
+      roster.forEach(k => { if (k.at === t && k !== c.w) k.s.A.say("♪", 1000); });
+      await c.s.sleep(1400);
+      return true;
+    },
+    // Supervises from the top of the busiest cabinet, pointing and fretting
+    "Foreman Cat": async c => {
+      const t = busiestPanels(c, 2)[0] || busiestPanels(c)[0];
+      if (!t || !chance(0.4)) return false;
+      if (c.w.at) await c.hopUp();
+      await c.goTo(t.card);
+      for (let n = 0; n < 4; n++) {
+        c.A.show(n % 2 ? "think" : "stand");
+        c.A.say(n % 2 ? "!" : "?", 900);
+        await c.s.sleep(1400);
+      }
+      return true;
+    },
+    // Sweeps up around the lumber yard
+    Bubbles: async c => {
+      if (!chance(0.3)) return false;
+      await c.standAtYard();
+      c.A.play(["lift", "stand"], 420);
+      c.A.say("♪", 900);
+      await c.s.sleep(4500);
+      c.A.show("stand");
+      return true;
+    },
+    // Tags the construction tape on a panel
+    Punk: async c => {
+      const list = anyPanel(c);
+      if (!list.length || !chance(0.35)) return false;
+      if (c.w.at) await c.hopUp();
+      await c.goTo(pick(list).card);
+      c.A.play(["up", "down"], 130, k => k === "down" && c.s.sparks(c.A.x + 18, c.A.y + 10, 1));
+      await c.s.sleep(3000);
+      c.A.say("!", 900);
+      c.A.show("stand");
+      return true;
+    },
+    // Takes over any panel that has nobody on it
+    "Night Shift": async c => {
+      const empty = anyPanel(c).filter(t => occupants(t) === 0 && t !== c.w.home);
+      if (!empty.length || !chance(0.5)) return false;
+      c.w.home = pick(empty);
+      await c.standAt(c.w.home);
+      c.A.say("!", 900);
+      return true;
+    },
+    // On a break more than at work
+    "Off-Duty": async c => {
+      if (!chance(0.4)) return false;
+      c.A.show("sit");
+      c.A.say("Z", 900);
+      await c.s.sleep(5000);
+      c.A.show("stand");
+      return true;
+    },
+  };
+
+  async function pageLoop(w) {
+    const s = w.s, A = s.A, o = origin(), rows = rowsOf(o), gaps = colGaps(rows), fast = ROAM === "fast";
+    const rowOf = c => rows.findIndex(r => r.cards.some(k => k.el === c));
+    const reach = c => gaps.length > 0 || rowOf(c) === w.row;
+    const place = site => {
+      const f = floorOf(site, o);
+      w.at = site;
+      w.row = rowOf(site.card);
+      return f;
+    };
+    let f = place(w.home);
+    A.at(Math.round(rand(f.x0, f.x1)), f.y);
+    A.face(Math.random() < 0.5);
+    A.onCrash = () => { incident = { site: w.at, t: performance.now(), w }; };
+    await s.sleep(rand(0, 1500));
+
+    // Out over the top of the screen onto the cabinets, and in again
+    async function hopUp() {
+      w.row = rowOf(w.at.card);
+      w.at = null;
+      const top = -rows[w.row].y;
+      A.show("lift");                        // a beat to get ready, a slow high arc, then a moment to catch their breath
+      await s.sleep(350);
+      await A.arc(A.x, top, 70, 1700);
+      s.dust(A.x + 10, top);
+      A.show("stand");
+      await s.sleep(800);
+    }
+    async function hopIn(site) {
+      const g = floorOf(site, o), x = Math.round(Math.max(g.x0, Math.min(g.x1, A.x)));
+      A.show("lift");
+      await s.sleep(350);
+      await A.arc(x, g.y, 70, 1700);
+      s.dust(x + 10, g.y);
+      A.show("stand");
+      f = place(site);
+      await s.sleep(800);
+    }
+
+    // ----- Plank runs -----
+    const carryOn = () => { A.carry = s.el("cs-lumber", -2, 23, A.el); w.carrying = true; };
+    const carryOff = () => { if (A.carry) A.carry.remove(); A.carry = null; w.carrying = false; };
+    async function standAt(site) {
+      if (w.at === site) return;
+      if (w.at) await hopUp();
+      await goTo(w, rows, site.card, gaps);
+      await hopIn(site);
+    }
+    async function standAtYard() {
+      if (w.at) await hopUp();
+      await goTo(w, rows, yardEl, gaps);
+      const st = yardEl.querySelector(".cs-yard-stack").getBoundingClientRect();
+      await A.stroll(Math.round(st.left - o.left + 20), 0.2);
+    }
+    // Take a plank off the yard's stack or a panel's pile (false if there wasn't one after all)
+    async function pickUp(src) {
+      if (src === YARD) await standAtYard();
+      else { await standAt(src); await A.stroll(Math.round(floorOf(src, o).x0), 0.2); }
+      A.show("down");
+      await s.sleep(500);
+      const ok = src === YARD ? yard.stock > 0 : src.planks > 0;
+      if (ok) {
+        if (src === YARD) { yard.stock--; drawYard(); } else { src.planks--; drawPile(src); }
+        carryOn();
+      }
+      A.show("stand");
+      await s.sleep(200);
+      return ok;
+    }
+    async function putDown(dst) {
+      if (dst === YARD) await standAtYard();
+      else { await standAt(dst); await A.stroll(Math.round(floorOf(dst, o).x0), 0.2); }
+      A.show("down");
+      await s.sleep(450);
+      carryOff();
+      if (dst === YARD) yard.stock++; else dst.planks++;
+      if (dst === YARD) drawYard(); else drawPile(dst);
+      A.show("stand");
+    }
+    // Panels that are short get planks (from the yard, or a panel with plenty); panels with too many send some back
+    function planRun() {
+      const panels = [...sites.values()].filter(t => !t.fixed);
+      const low = panels.filter(t => t.planks < 2), high = panels.filter(t => t.planks >= 4);
+      if (high.length && Math.random() < 0.5) return { from: pick(high), to: YARD };
+      if (!low.length) return null;
+      const to = pick(low), donors = panels.filter(t => t !== to && t.planks >= 3);
+      const from = yard.stock > 0 ? YARD : donors.length ? pick(donors) : null;
+      return from && { from, to };
+    }
+
+    // A while of work on the panel they are standing on
+    async function stint() {
+      const site = w.at;
+      for (let n = fast ? 2 + Math.floor(rand(0, 3)) : 6 + Math.floor(rand(0, 5)); n > 0 && !w.recalled; n--) {
+        const r = Math.random(), welder = w.m.name === "The Welder";
+        if (r < (A.lazy ? 0.15 : 0.55)) {
+          await A.stroll(Math.round(rand(f.x0, f.x1)), 0.3);
+          A.face(Math.random() < 0.5);
+          A.play(["up", "down"], 180, k => k === "down" && s.sparks(A.x + (A.facingLeft() ? 0 : 18), A.y + 6, A.facingLeft() ? -1 : 1) + (welder ? s.sparks(A.x + (A.facingLeft() ? 0 : 18), A.y + 10, A.facingLeft() ? -1 : 1) : 0));
+          await s.sleep(rand(2000, 4000));
+          A.show("stand");
+          if (welder && chance(0.25)) { A.dizzy("sooty"); await s.sleep(1500); A.dizzy(false); }   // all that welding
+        } else if ((A.sleepy && r < 0.7) || (A.lazy && r < 0.85)) {
+          A.show("sit");
+          const stopZ = s.every(900, () => A.say("Z", 850));
+          await s.sleep(3000);
+          stopZ();
+          A.show("stand");
+        } else {
+          A.show("think");
+          await s.sleep(rand(1000, 2000));
+          A.show("stand");
+        }
+        // The more workers on the panel, the more goes wrong
+        if (s.mishap(0.15 + 0.12 * (occupants(site) - 1) + A.clumsy)) await (Math.random() < 0.5 ? s.thumb(A) : s.trip(A));
+      }
+    }
+
+    // What the role functions (ROLES) get to work with
+    const c = {
+      w, s, A, rows, hopUp, standAt, standAtYard, pickUp, putDown, planRun,
+      goTo: card => goTo(w, rows, card, gaps),
+      ladderStep: to => ladderStep(w, rows, to, gaps),
+    };
+
+    // Only a few workers are away from their panel at any moment (errands, roles, plank runs); the rest are working.
+    // Someone who wants to go but finds every slot taken just keeps working.
+    const withSlot = async fn => {
+      if (away >= AWAY_MAX) return false;
+      away++;
+      try { return await fn(); } finally { away--; }
+    };
+
+    for (;;) {
+      if (!w.at) await standAt(w.home);
+      await stint();
+      // Their own thing
+      const role = ROLES[w.m.name];
+      if (role && !w.recalled && await withSlot(async () => {
+        const did = await role(c);
+        if (did && !w.at) await standAt(w.home);
+        return did;
+      })) continue;
+      // A plank run now and then
+      if (!w.recalled && Math.random() < 0.3) {
+        const run = planRun();
+        if (run && await withSlot(async () => {
+          if (await pickUp(run.from)) await putDown(run.to);
+          await standAt(w.home);
+          return true;
+        })) continue;
+      }
+      // Where to next? Home if called back, or another panel; very rarely a look at a live game; otherwise stay put
+      const others = [...sites.values()].filter(t => !t.fixed && t !== w.at && occupants(t) < 4 && reach(t.card));
+      const live = [...document.querySelectorAll(".game-card:not(.soon)")].filter(reach);
+      const r = Math.random();
+      let goal = null;
+      if (w.recalled) { w.recalled = false; if (w.at !== w.home) goal = { site: w.home }; }
+      else if (w.at !== w.home && r < 0.6) goal = { site: w.home };
+      else if (r < 0.64 && live.length) goal = { card: pick(live) };
+      else if (r < 0.8 && others.length) goal = { site: pick(others) };
+      if (!goal) continue;
+      await withSlot(async () => {
+        await hopUp();
+        if (goal.site) {
+          await goTo(w, rows, goal.site.card, gaps);
+          await hopIn(goal.site);
+        } else {
+          await goTo(w, rows, goal.card, gaps);
+          A.show("think");
+          A.say("?", 900);
+          await s.sleep(2200);
+          A.show("stand");
+          await goTo(w, rows, w.home.card, gaps);
+          await hopIn(w.home);
+        }
+      });
+    }
   }
 
   async function workerLoop(w) {
@@ -1026,7 +1469,7 @@
     for (;;) {
       await w.s.sleep(2000);
       if (bossBusy) continue;
-      const t = [...sites.values()].find(t => t.api && !t.members.length && t.emptySince && performance.now() - t.emptySince > BOSS_WAIT * 1000);
+      const t = [...sites.values()].find(t => !t.fixed && (PAGE || t.api) && !occupants(t) && t.emptySince && performance.now() - t.emptySince > BOSS_WAIT * 1000);
       if (!t) continue;
       bossBusy = true;
       w.out = true;
@@ -1041,13 +1484,18 @@
     w.recalled = false;
     w.s = kit(w.pseudo);
     w.s.A.at(-60, -1000);
-    if (w.home) {
+    w.at = null;
+    if (PAGE) {
+      if (!w.home) bossBusy = false;
+      if (w.carrying) { w.carrying = false; yard.stock++; drawYard(); }   // a plank in hand goes back on the stack
+    }
+    else if (w.home) {
       sites.forEach(t => {
         if (t !== w.home && t.members.includes(w.m)) { if (t.api) t.api.leave(w.m).catch(() => {}); else t.members = t.members.filter(k => k !== w.m); }
       });
       if (!w.home.members.includes(w.m)) { if (w.home.api) w.home.api.enter(w.m, rand(10, 150)).catch(() => {}); else w.home.members.push(w.m); }
     } else bossBusy = false;
-    (w.home ? workerLoop : bossLoop)(w).catch(quiet);
+    (w.home ? (PAGE ? pageLoop : workerLoop) : bossLoop)(w).catch(quiet);
   }
 
   const roamOn = !calm && ROAM !== "off" && FORCE_CREW.length !== 2 && !matchMedia("(hover: none)").matches;
@@ -1057,19 +1505,24 @@
       layer.className = "cs-roam";
       layer.setAttribute("aria-hidden", "true");
       document.body.appendChild(layer);
-      roster.push({ m, home, layer, s: null, out: false, recalled: false, row: 0,
+      roster.push({ m, home, layer, s: null, out: false, recalled: false, row: 0, at: null,
         pseudo: { card: home && home.card, stage: layer, crew: [m], fixed: true, gen: 0, visible: true, poked: false, timers: [] } });
     };
     sites.forEach(site => { if (!site.fixed) site.crew.forEach(m => add(m, site)); });
     if (BOSS && roster.length) add(BOSS, null);
+    layoutPiles();
     roster.forEach(startRoamer);
     // Time stands still for a roamer who is off screen; track which cabinets have no one on them
     const onScreen = el => { const r = el.getBoundingClientRect(); return r.bottom > -200 && r.top < innerHeight + 200; };
     setInterval(() => {
-      roster.forEach(w => { w.pseudo.visible = !w.out || onScreen(w.s.A.el); });
-      sites.forEach(t => { t.emptySince = t.api && !t.members.length ? (t.emptySince || performance.now()) : 0; });
+      roster.forEach(w => { w.pseudo.visible = !(w.out || PAGE) || onScreen(w.s.A.el); });
+      sites.forEach(t => { t.emptySince = !t.fixed && (PAGE || t.api) && !occupants(t) ? (t.emptySince || performance.now()) : 0; });
     }, 500);
     let relaid = 0;
-    addEventListener("resize", () => { clearTimeout(relaid); relaid = setTimeout(() => roster.forEach(startRoamer), 400); });
+    // Whenever the layout changes (window resized, columns reflow, a scrollbar appears, fonts load) everyone
+    // re-reads where the rows and ladders lanes are and goes back to their panel
+    const relayout = () => { clearTimeout(relaid); relaid = setTimeout(() => { layoutPiles(); roster.forEach(startRoamer); }, 400); };
+    addEventListener("resize", relayout);
+    new ResizeObserver(relayout).observe(document.body);
   }
 })();
