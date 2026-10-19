@@ -13,7 +13,7 @@ this file, show him the exact wording, and only change it after he says yes.
 |---|---|
 | Arcade home: the Top 20 cabinet grid | `arcade/index.html` |
 | Shared engine every game uses (screen, loop, controls, sound, high scores, initials, drawing helpers) | `arcade/shared/arcade.js`, `arcade.css` |
-| One game | `arcade/games/<id>/index.html` + `<id>.js` (copy `snake/` as the pattern) |
+| One game | `arcade/games/<id>/index.html` + `<id>.js` (copy `trails/` as the pattern) |
 | Construction crews on coming-soon cabinets | `arcade/shared/crew-sites.js`, `crew-sites.css` |
 | The 20 crew sprites (shared with the menu sign) | `assets/crew.js` |
 | NEON ARCADE sign in the site menu (hover glow, letter burnout, repairman) | `index.html` (menu + `.neon-item` CSS), `assets/neon-egg.js` |
@@ -23,7 +23,9 @@ this file, show him the exact wording, and only change it after he says yes.
 ## Adding or finishing a game
 
 1. Build `arcade/games/<id>/` like the others. `<id>` is 3-12 lowercase letters; it is also the high score board's
-   name. Load `../../shared/arcade.js?v=N` (same `N` as the other pages).
+   name. Load `../../shared/arcade.js?v=N` (same `N` as the other pages). Start new games on the game shell
+   (`Arcade.createShell` in `arcade.js`: title, pause, initials, game over and HUD); `trails/` and `rocks/` are the
+   examples to copy. The older games predate the shell and don't need moving to it.
 2. Scores: `Arcade.scores.qualifies/add/best/list/onChange` with your `GAME_ID`. The shared board works for any new
    id with **no Worker change**. Optionally add the id to `SEED_SCALE` in `arcade.js` so its made-up starting table
    fits how the game scores.
@@ -59,24 +61,25 @@ this file, show him the exact wording, and only change it after he says yes.
 
 Each game adds one reusable piece to `arcade.js`, so later games get cheaper. Build in this order:
 
-| # | Game | Plays like | Adds to the engine |
+| Game | Plays like | Adds to the engine | Status |
 |---|---|---|---|
-| 11 | Neon Trails | light cycles | 2-player keyboard split, flood fill |
-| 12 | Rock Blaster | Asteroids | vector kit (glowing line shapes, thrust/rotation, screen wrap) |
-| 13 | Sky Shield | Missile Command | blast rings |
-| 16 | Block Drop | falling blocks | key auto-repeat |
-| 14 | Line Grab | Qix | (reuses flood fill, vector kit) |
-| 08 | Barrel Climb | Donkey Kong | platform physics (gravity, jumps, ladders) |
-| 19 | Stack Attack | Burger Time | (reuses platform physics) |
-| 15 | Bug Burst | Centipede | (reuses Swarm Strike shooting) |
-| 09 | Blast Zone | Bomberman | chain explosions |
-| 17 | Robo Rush | Robotron | twin-stick touch controls |
-| 18 | Sky Knights | Joust | (reuses platform physics, 2-player split) |
-| 10 | Pixel Hero | Mario-style | scrolling camera and level format |
-| 20 | Tunnel Storm | Tempest | 3D projection |
+| Neon Trails | light cycles | game shell, flood fill | live |
+| Rock Blaster | Asteroids | vector kit (glowing line shapes, thrust/drag/wrap physics, hit tests) | live |
+| Sky Shield | Missile Command | blast rings | |
+| Block Drop | falling blocks | key auto-repeat | |
+| Line Grab | Qix | (reuses flood fill, vector kit) | |
+| Barrel Climb | Donkey Kong | platform physics (gravity, jumps, ladders) | |
+| Stack Attack | Burger Time | (reuses platform physics) | |
+| Bug Burst | Centipede | (reuses Swarm Strike shooting) | |
+| Blast Zone | Bomberman | chain explosions, 2-player keyboard split | |
+| Robo Rush | Robotron | twin-stick touch controls | |
+| Sky Knights | Joust | (reuses platform physics, 2-player split) | |
+| Pixel Hero | Mario-style | scrolling camera and level format | |
+| Tunnel Storm | Tempest | 3D projection | |
 
 Engine pieces land one at a time (they all touch `arcade.js`); games that only reuse pieces can be built in parallel
-sessions.
+sessions. Card numbers aren't fixed: live games are grouped first, so a game that ships moves right after the last
+live card and the coming-soon cards behind it renumber.
 
 ## The construction crews
 
