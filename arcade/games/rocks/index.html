@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07060f">
+  <title>Rock Blaster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../shared/arcade.css">
+  <style>
+    /* Four big buttons (turn left/right, thrust, fire) have to share a phone's width. */
+    .touch-controls .lr-pad .pad-btn, .touch-controls .round:not(.small) { width: 66px; height: 66px; }
+    .fly-btns { display: flex; gap: 10px; }
+    .round.thrust { font-size: 8px; }
+  </style>
+</head>
+<body class="arcade">
+  <main class="cabinet slim-controls" style="--ratio: 0.8">
+    <header class="marquee">
+      <a class="chip" href="../../index.html">&#9664; ARCADE</a>
+      <h1 class="neon">ROCK BLASTER</h1>
+      <button class="chip" type="button" data-action="mute" data-mute-label>SOUND ON</button>
+    </header>
+
+    <div class="screen">
+      <canvas id="game" aria-label="Rock Blaster game screen"></canvas>
+    </div>
+
+    <div class="touch-controls">
+      <div class="lr-pad">
+        <button class="pad-btn" type="button" data-action="left" aria-label="Turn left">&#8634;</button>
+        <button class="pad-btn" type="button" data-action="right" aria-label="Turn right">&#8635;</button>
+      </div>
+      <div class="action-btns">
+        <div class="fly-btns">
+          <button class="pad-btn round thrust" type="button" data-action="up">THRUST</button>
+          <button class="pad-btn round start" type="button" data-action="start">FIRE</button>
+        </div>
+        <button class="pad-btn round small" type="button" data-action="pause">PAUSE</button>
+      </div>
+    </div>
+
+    <p class="hint">&larr; &rarr; TURN &nbsp; &uarr; THRUST &nbsp; SPACE FIRE &nbsp; &darr; HYPERSPACE &nbsp; P PAUSE &nbsp; M SOUND</p>
+  </main>
+
+  <script src="../../shared/arcade.js?v=7"></script>
+  <script src="rocks.js"></script>
+</body>
+</html>

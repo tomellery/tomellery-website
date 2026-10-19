@@ -129,6 +129,10 @@
       swear: () => [0, 1, 2, 3, 4].forEach(i => tone(300 + Math.random() * 500, 0.06, { type: 'sawtooth', delay: i * 0.06, vol: 0.06 })),
       turn: () => tone(520, 0.03, { vol: 0.03 }),
       turbo: () => tone(180, 0.3, { type: 'sawtooth', slide: 420, vol: 0.04 }),
+      beat: (alt = 0) => tone(alt ? 49 : 58, 0.11, { vol: 0.12 }),
+      thrust: () => tone(60 + Math.random() * 20, 0.12, { type: 'sawtooth', vol: 0.03 }),
+      saucer: (small = 0) => tone(small ? 880 : 440, 0.12, { type: 'triangle', slide: small ? 220 : 110, vol: 0.04 }),
+      warp: () => tone(200, 0.35, { type: 'sine', slide: 1400, vol: 0.07 }),
       derez: () => { tone(900, 0.6, { type: 'sawtooth', slide: -820, vol: 0.06 }); tone(1800, 0.2, { type: 'triangle', slide: -1200, vol: 0.04, delay: 0.05 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
@@ -299,7 +303,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -462,6 +466,80 @@
     }
     return { count, mask };
   }
+
+  // ---------- Vector kit ----------
+  // Glowing line-art and drifting-in-space physics. A shape is a list of [x, y] points around (0, 0);
+  // objects are anything with x, y, vx, vy (px and px per ms) and, for hit tests, a radius r.
+
+  const vector = {
+    // Draws a shape as one glowing outline, turned by angle (radians) and scaled.
+    draw(ctx, shape, x, y, { angle = 0, scale = 1, color = COLORS.text, width = 1.5, glow = 8, closed = true } = {}) {
+      const cos = Math.cos(angle) * scale;
+      const sin = Math.sin(angle) * scale;
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      if (glow) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = glow;
+      }
+      ctx.beginPath();
+      shape.forEach(([px, py], i) => {
+        const sx = x + px * cos - py * sin;
+        const sy = y + px * sin + py * cos;
+        if (i) ctx.lineTo(sx, sy);
+        else ctx.moveTo(sx, sy);
+      });
+      if (closed) ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    },
+    // A random jagged outline about radius across: rocks, debris.
+    rock(radius, points = 10, rough = 0.35) {
+      const shape = [];
+      for (let i = 0; i < points; i++) {
+        const a = (i / points) * Math.PI * 2;
+        const r = radius * (1 - rough / 2 + Math.random() * rough);
+        shape.push([Math.cos(a) * r, Math.sin(a) * r]);
+      }
+      return shape;
+    },
+    // Moves an object by its velocity.
+    move(o, dt) {
+      o.x += o.vx * dt;
+      o.y += o.vy * dt;
+    },
+    // Adds speed in the direction of angle (thrust, recoil, explosions).
+    push(o, angle, amount) {
+      o.vx += Math.cos(angle) * amount;
+      o.vy += Math.sin(angle) * amount;
+    },
+    // Slows an object down: keeps `keep` of its speed every 1/60 s (0.99 = a slow coast).
+    drag(o, keep, dt) {
+      const f = Math.pow(keep, dt / (1000 / 60));
+      o.vx *= f;
+      o.vy *= f;
+    },
+    // Caps an object's speed.
+    limit(o, max) {
+      const v = Math.hypot(o.vx, o.vy);
+      if (v > max) {
+        o.vx *= max / v;
+        o.vy *= max / v;
+      }
+    },
+    // Off one edge, back in on the other (margin lets big shapes slide fully off first).
+    wrap(o, w, h, margin = 0) {
+      if (o.x < -margin) o.x += w + margin * 2;
+      else if (o.x > w + margin) o.x -= w + margin * 2;
+      if (o.y < -margin) o.y += h + margin * 2;
+      else if (o.y > h + margin) o.y -= h + margin * 2;
+    },
+    // Do two round objects touch?
+    hit: (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < (a.r || 0) + (b.r || 0),
+  };
 
   // ---------- Isometric cubes ----------
   // A cube seen from above at an angle: its top face is a diamond centred on (x, y), w wide and w / 2
@@ -829,7 +907,7 @@
   window.Arcade = {
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
-    sound, createInput, scores, gridSearch, floodFill, createShell,
+    sound, createInput, scores, gridSearch, floodFill, createShell, vector,
     text, roundRect, dim, triangle, drawCube, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
