@@ -87,6 +87,17 @@
     .feed time { color: var(--dim); min-width: 62px; }
     .feed .t-click { color: var(--amber); } .feed .t-event { color: var(--lime); } .feed .t-view { color: var(--cyan); }
     .feed span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .views { margin-bottom: 16px; }
+    .rawbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .rawbar input { min-width: 200px; }
+    .tablewrap { overflow-x: auto; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; max-height: 70vh; overflow-y: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; white-space: nowrap; }
+    th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+    th { position: sticky; top: 0; background: #1a1438; color: var(--dim); font-weight: 600; z-index: 1; }
+    tr:hover td { background: rgba(37,244,238,.06); }
+    td.t-view { color: var(--cyan); } td.t-click { color: var(--amber); } td.t-event { color: var(--lime); }
+    td.id { color: var(--dim); }
+    .pager { text-align: center; margin-top: 14px; }
     footer { margin-top: 26px; color: var(--dim); font-size: 12px; text-align: center; }
     [hidden] { display: none !important; }
   </style>
@@ -109,6 +120,8 @@
       <h1 class="px">CONTROL <span>ROOM</span></h1>
       <div class="right"><span id="updated"></span><button class="ghost" id="logout">Log out</button></div>
     </header>
+    <div class="tabs views" id="viewTabs"><button data-v="overview" class="on">Overview</button><button data-v="raw">Raw data</button></div>
+    <div id="overview">
     <div class="bar">
       <div class="tabs" id="tabs">
         <button data-d="1">24 hours</button><button data-d="7" class="on">7 days</button><button data-d="30">30 days</button><button data-d="90">90 days</button><button data-d="365">1 year</button>
@@ -142,6 +155,26 @@
       <div class="card c6"><h2>EVENTS</h2><ul class="rank" id="events"></ul></div>
     </div>
     <footer id="foot"></footer>
+    </div>
+
+    <div id="rawview" hidden>
+      <div class="card">
+        <div class="rawbar">
+          <select id="rType" aria-label="Kind"><option value="">All kinds</option><option value="view">Views</option><option value="click">Clicks</option><option value="event">Events</option></select>
+          <select id="rDays" aria-label="Time range"><option value="1">24 hours</option><option value="7" selected>7 days</option><option value="30">30 days</option><option value="90">90 days</option><option value="3650">All time</option></select>
+          <input id="rQ" type="search" placeholder="Search page, city, browser, visitor id..." aria-label="Search">
+          <button class="ghost" id="rCsv">Download CSV</button>
+        </div>
+        <div class="note" id="rCount"></div>
+        <div class="tablewrap">
+          <table id="rTable">
+            <thead><tr><th>Time</th><th>Kind</th><th>Page</th><th>Detail</th><th>From</th><th>Country</th><th>City</th><th>Device</th><th>Browser</th><th>System</th><th>Visitor</th><th>Visit</th></tr></thead>
+            <tbody id="rBody"></tbody>
+          </table>
+        </div>
+        <div class="pager"><button class="ghost" id="rMore">Load more</button></div>
+      </div>
+    </div>
   </section>
 </div>
 <div class="tip" id="tip"></div>
@@ -300,6 +333,69 @@
 
     const first = d.allTime.first ? new Date(d.allTime.first).toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" }) : null;
     $("foot").textContent = first ? fmt(d.allTime.views) + " views and " + fmt(d.allTime.uniques) + " visitors since " + first + " - Worker v" + d.version : "Worker v" + d.version;
+  }
+
+  // ===== Raw data tab =====
+  const PAGE = 100;
+  let rawRows = [], rawTotal = 0, rawTimer = null, rawBusy = false;
+
+  $("viewTabs").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    document.querySelectorAll("#viewTabs button").forEach(x => x.classList.toggle("on", x === b));
+    const raw = b.dataset.v === "raw";
+    $("overview").hidden = raw; $("rawview").hidden = !raw;
+    if (raw) loadRaw(true);
+  });
+  ["rType", "rDays"].forEach(id => $(id).addEventListener("change", () => loadRaw(true)));
+  $("rQ").addEventListener("input", () => { clearTimeout(rawTimer); rawTimer = setTimeout(() => loadRaw(true), 300); });
+  $("rMore").addEventListener("click", () => loadRaw(false));
+  $("rCsv").addEventListener("click", exportCsv);
+
+  function rawUrl(limit, offset) {
+    return API + "/raw?days=" + $("rDays").value + "&type=" + $("rType").value + "&q=" + encodeURIComponent($("rQ").value.trim()) + "&limit=" + limit + "&offset=" + offset;
+  }
+  async function fetchRaw(limit, offset) {
+    const r = await fetch(rawUrl(limit, offset), { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
+    if (r.status === 401) { token = null; try { localStorage.removeItem("statsToken"); } catch (e) {} show(false); throw new Error("login"); }
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "error");
+    return d;
+  }
+
+  async function loadRaw(reset) {
+    if (rawBusy) return; rawBusy = true;
+    try {
+      const d = await fetchRaw(PAGE, reset ? 0 : rawRows.length);
+      rawRows = reset ? d.rows : rawRows.concat(d.rows); rawTotal = d.total;
+      drawRaw();
+    } catch (e) { if (e.message !== "login") $("rCount").textContent = "Couldn't load: " + e.message + " (the Worker may need the latest code)"; }
+    rawBusy = false;
+  }
+
+  function drawRaw() {
+    $("rCount").textContent = rawTotal ? "Showing " + fmt(rawRows.length) + " of " + fmt(rawTotal) + " rows, newest first" : "No rows match.";
+    $("rMore").hidden = rawRows.length >= rawTotal;
+    $("rBody").innerHTML = rawRows.map(r =>
+      "<tr><td>" + esc(new Date(r.ts).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" })) + "</td>" +
+      '<td class="t-' + esc(r.type) + '">' + esc(r.type) + "</td>" +
+      "<td>" + esc(r.path) + "</td><td>" + esc(r.name) + "</td><td>" + esc(r.ref) + "</td>" +
+      "<td>" + esc(r.country) + "</td><td>" + esc(r.city) + "</td><td>" + esc(r.device) + "</td><td>" + esc(r.browser) + "</td><td>" + esc(r.os) + "</td>" +
+      '<td class="id" title="' + esc(r.vid) + '">' + esc(r.vid.slice(0, 8)) + '</td><td class="id" title="' + esc(r.sid) + '">' + esc(r.sid.slice(0, 8)) + "</td></tr>").join("");
+  }
+
+  async function exportCsv() {
+    const btn = $("rCsv"); btn.disabled = true; btn.textContent = "Preparing...";
+    try {
+      const d = await fetchRaw(5000, 0);
+      const cols = ["ts", "type", "path", "name", "ref", "country", "city", "device", "browser", "os", "vid", "sid"];
+      const cell = v => { v = String(v == null ? "" : v); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+      const lines = [cols.join(",")].concat(d.rows.map(r => cols.map(c => c === "ts" ? cell(new Date(r.ts).toISOString()) : cell(r[c])).join(",")));
+      const url = URL.createObjectURL(new Blob([lines.join("\r\n")], { type: "text/csv" }));
+      const a = document.createElement("a"); a.href = url; a.download = "tomellery-stats-" + new Date().toISOString().slice(0, 10) + ".csv"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (d.total > d.rows.length) $("rCount").textContent = "CSV has the newest " + fmt(d.rows.length) + " of " + fmt(d.total) + " rows. Narrow the time range or filter for the rest.";
+    } catch (e) { if (e.message !== "login") $("rCount").textContent = "Export failed: " + e.message; }
+    btn.disabled = false; btn.textContent = "Download CSV";
   }
 
   if (token) start(); else show(false);

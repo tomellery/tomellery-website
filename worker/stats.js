@@ -4,11 +4,12 @@
 //   POST /hit    {type,path,ref,vid,sid,name,w}   → 204   the tracking script (assets/stats.js) sends one per view/click/event
 //   POST /login  {passcode}                        → { token }   a login good for 60 days, kept by the stats page
 //   GET  /data?days=7&tz=-420                      → every number the dashboard shows (needs "Authorization: Bearer <token>")
+//   GET  /raw?days=7&type=view&q=text&limit=100&offset=0   → the saved rows themselves, newest first (same login)
 //
 // Nothing here identifies a person: a visitor is a random id the browser makes up, and location comes from
 // Cloudflare's own country/city guess. The tables are made automatically the first time anything arrives.
 
-const VERSION = 1;   // bump when the code changes, so it's easy to tell which copy Cloudflare is running
+const VERSION = 2;  // bump when the code changes, so it's easy to tell which copy Cloudflare is running
 const ORIGINS = ["https://tomellery.com", "https://www.tomellery.com", "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:8080", "http://127.0.0.1:8080"];
 const TOKEN_DAYS = 60;
 const MAX_FAILS = 8, FAIL_WINDOW = 10 * 60 * 1000;   // wrong passcodes allowed per visitor address, per 10 minutes
@@ -141,6 +142,30 @@ async function data(req, env, url) {
   });
 }
 
+// Every saved row, newest first, for the dashboard's Raw data tab (filter by kind, search text, page through, export).
+async function raw(req, env, url) {
+  if (!(await checkToken(env, req))) return json(req, { error: "login" }, 401);
+  await setup(env);
+  const p = url.searchParams;
+  const days = Math.min(3650, Math.max(1, parseInt(p.get("days"), 10) || 7));
+  const limit = Math.min(5000, Math.max(1, parseInt(p.get("limit"), 10) || 100));
+  const offset = Math.max(0, parseInt(p.get("offset"), 10) || 0);
+  const type = ["view", "click", "event"].includes(p.get("type")) ? p.get("type") : "";
+  const text = clean(p.get("q"), 60).replace(/[\\%_]/g, m => "\\" + m);
+  let where = "ts >= ?";
+  const args = [Date.now() - days * 86400000];
+  if (type) { where += " AND type = ?"; args.push(type); }
+  if (text) {
+    where += " AND (" + ["path", "ref", "name", "country", "city", "device", "browser", "os", "vid"].map(c => c + " LIKE ? ESCAPE '\\'").join(" OR ") + ")";
+    for (let i = 0; i < 9; i++) args.push("%" + text + "%");
+  }
+  const r = await env.DB.batch([
+    env.DB.prepare("SELECT COUNT(*) AS n FROM hits WHERE " + where).bind(...args),
+    env.DB.prepare("SELECT id, ts, type, path, ref, name, vid, sid, country, city, device, browser, os FROM hits WHERE " + where + " ORDER BY id DESC LIMIT ? OFFSET ?").bind(...args, limit, offset),
+  ]);
+  return json(req, { total: r[0].results[0].n, rows: r[1].results });
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -150,6 +175,7 @@ export default {
       if (url.pathname === "/hit" && req.method === "POST") return await hit(req, env);
       if (url.pathname === "/login" && req.method === "POST") return await login(req, env);
       if (url.pathname === "/data" && req.method === "GET") return await data(req, env, url);
+      if (url.pathname === "/raw" && req.method === "GET") return await raw(req, env, url);
     } catch (e) {
       return json(req, { error: "Something went wrong: " + e.message }, 500);
     }
