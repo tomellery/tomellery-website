@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#07060f">
+  <title>Control Room</title>
+  <link rel="icon" href="../favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07060f; --panel: #100d22; --line: #2a2150; --text: #e9e6ff; --dim: #8d86b8;
+      --pink: #ff2fa8; --cyan: #25f4ee; --lime: #b6ff3c; --amber: #ffb02e;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0; min-height: 100vh; color: var(--text); background:
+        radial-gradient(900px 500px at 15% -10%, rgba(255,47,168,.16), transparent 60%),
+        radial-gradient(900px 500px at 95% 0%, rgba(37,244,238,.12), transparent 60%), var(--bg);
+      font: 14px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      padding: max(16px, env(safe-area-inset-top)) 16px 48px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .px { font-family: "Press Start 2P", monospace; }
+    h1 { font-size: clamp(18px, 4.5vw, 30px); margin: 18px 0 6px; color: var(--cyan); text-shadow: 0 0 14px rgba(37,244,238,.7); letter-spacing: 1px; }
+    h1 span { color: var(--pink); text-shadow: 0 0 14px rgba(255,47,168,.7); }
+    .sub { color: var(--dim); margin: 0 0 18px; }
+    a { color: var(--cyan); }
+
+    /* login */
+    #login { max-width: 360px; margin: 14vh auto 0; text-align: center; }
+    #login form { display: flex; gap: 8px; margin-top: 22px; }
+    input, button, select {
+      font: inherit; color: var(--text); background: #0b0919; border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px;
+    }
+    input { flex: 1; min-width: 0; }
+    input:focus, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+    button { cursor: pointer; background: var(--pink); border-color: var(--pink); color: #14001a; font-weight: 700; }
+    button.ghost { background: transparent; color: var(--dim); border-color: var(--line); font-weight: 400; padding: 8px 12px; }
+    #err { color: var(--pink); min-height: 1.4em; margin-top: 12px; }
+
+    /* top bar */
+    .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; margin-bottom: 16px; }
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tabs button { background: transparent; border-color: var(--line); color: var(--dim); padding: 8px 14px; font-weight: 400; }
+    .tabs button.on { color: #07060f; background: var(--cyan); border-color: var(--cyan); font-weight: 700; box-shadow: 0 0 14px rgba(37,244,238,.5); }
+    .right { display: flex; gap: 8px; align-items: center; color: var(--dim); font-size: 12px; }
+
+    /* cards */
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(12, 1fr); }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+    .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c6 { grid-column: span 6; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+    @media (max-width: 860px) { .c3 { grid-column: span 6; } .c4, .c6, .c8 { grid-column: span 12; } }
+    @media (max-width: 420px) { .c3 { grid-column: span 12; } }
+    .card h2 { font: 400 10px/1.4 "Press Start 2P", monospace; color: var(--dim); margin: 0 0 14px; letter-spacing: .5px; }
+
+    .big { font: 400 clamp(22px, 5vw, 34px)/1 "Press Start 2P", monospace; margin: 4px 0 8px; }
+    .big.pink { color: var(--pink); text-shadow: 0 0 16px rgba(255,47,168,.65); }
+    .big.cyan { color: var(--cyan); text-shadow: 0 0 16px rgba(37,244,238,.65); }
+    .big.lime { color: var(--lime); text-shadow: 0 0 16px rgba(182,255,60,.55); }
+    .big.amber { color: var(--amber); text-shadow: 0 0 16px rgba(255,176,46,.55); }
+    .note { color: var(--dim); font-size: 12px; }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px var(--lime); margin-right: 8px; animation: pulse 1.6s infinite; vertical-align: middle; }
+    @keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
+
+    /* charts */
+    svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .axis { fill: var(--dim); font: 10px ui-monospace, Consolas, monospace; }
+    .tip { position: fixed; pointer-events: none; z-index: 5; background: #1a1438; border: 1px solid var(--cyan); border-radius: 8px; padding: 6px 10px; font-size: 12px; display: none; white-space: nowrap; }
+    .legend { display: flex; gap: 16px; font-size: 12px; color: var(--dim); margin-top: 10px; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+    /* ranked lists */
+    .rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+    .rank li { position: relative; display: flex; justify-content: space-between; gap: 12px; padding: 5px 8px; border-radius: 6px; overflow: hidden; }
+    .rank li::before { content: ""; position: absolute; inset: 0; width: var(--w); background: var(--c, var(--pink)); opacity: .22; border-radius: 6px; }
+    .rank span { position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rank b { position: relative; font-weight: 600; }
+    .empty { color: var(--dim); font-size: 12px; }
+
+    .feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 12px; }
+    .feed li { display: flex; gap: 10px; color: var(--text); }
+    .feed time { color: var(--dim); min-width: 62px; }
+    .feed .t-click { color: var(--amber); } .feed .t-event { color: var(--lime); } .feed .t-view { color: var(--cyan); }
+    .feed span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    footer { margin-top: 26px; color: var(--dim); font-size: 12px; text-align: center; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="login" hidden>
+    <h1 class="px">CONTROL<br><span>ROOM</span></h1>
+    <p class="sub">Authorized players only.</p>
+    <form id="form">
+      <input id="pass" type="password" placeholder="Passcode" autocomplete="current-password" autofocus aria-label="Passcode">
+      <button type="submit">ENTER</button>
+    </form>
+    <div id="err" role="alert"></div>
+  </section>
+
+  <section id="dash" hidden>
+    <header class="bar">
+      <h1 class="px">CONTROL <span>ROOM</span></h1>
+      <div class="right"><span id="updated"></span><button class="ghost" id="logout">Log out</button></div>
+    </header>
+    <div class="bar">
+      <div class="tabs" id="tabs">
+        <button data-d="1">24 hours</button><button data-d="7" class="on">7 days</button><button data-d="30">30 days</button><button data-d="90">90 days</button><button data-d="365">1 year</button>
+      </div>
+      <div class="note"><span class="dot"></span><span id="live">0</span> on the site right now</div>
+    </div>
+
+    <div class="grid">
+      <div class="card c3"><h2>PAGE VIEWS</h2><div class="big pink" id="views">-</div><div class="note" id="viewsNote"></div></div>
+      <div class="card c3"><h2>UNIQUE VISITORS</h2><div class="big cyan" id="uniques">-</div><div class="note" id="uniquesNote"></div></div>
+      <div class="card c3"><h2>VISITS</h2><div class="big lime" id="visits">-</div><div class="note" id="visitsNote"></div></div>
+      <div class="card c3"><h2>RETURNING</h2><div class="big amber" id="returning">-</div><div class="note" id="returningNote"></div></div>
+
+      <div class="card c12"><h2 id="dailyTitle">VIEWS PER DAY</h2><div id="daily"></div>
+        <div class="legend"><span><i style="background:var(--pink)"></i>page views</span><span><i style="background:var(--cyan)"></i>unique visitors</span></div></div>
+
+      <div class="card c6"><h2>LAST 24 HOURS</h2><div id="hourly"></div></div>
+      <div class="card c6"><h2>LIVE FEED</h2><ul class="feed" id="feed"></ul></div>
+
+      <div class="card c6"><h2>TOP PAGES</h2><ul class="rank" id="pages"></ul></div>
+      <div class="card c6"><h2>WHERE THEY CAME FROM</h2><ul class="rank" id="refs"></ul></div>
+
+      <div class="card c6"><h2>COUNTRIES</h2><ul class="rank" id="countries"></ul></div>
+      <div class="card c6"><h2>CITIES</h2><ul class="rank" id="cities"></ul></div>
+
+      <div class="card c4"><h2>DEVICES</h2><ul class="rank" id="devices"></ul></div>
+      <div class="card c4"><h2>BROWSERS</h2><ul class="rank" id="browsers"></ul></div>
+      <div class="card c4"><h2>SYSTEMS</h2><ul class="rank" id="os"></ul></div>
+
+      <div class="card c6"><h2>LINK CLICKS</h2><ul class="rank" id="clicks"></ul></div>
+      <div class="card c6"><h2>EVENTS</h2><ul class="rank" id="events"></ul></div>
+    </div>
+    <footer id="foot"></footer>
+  </section>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+(function () {
+  const API = /^(localhost|127.0.0.1)$/.test(location.hostname) ? "http://127.0.0.1:8787" : "https://tomellery-stats.tomellery1818.workers.dev";
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = n => Number(n || 0).toLocaleString();
+  let token = null, days = 7, timer = null;
+  try { token = localStorage.getItem("statsToken"); days = parseInt(localStorage.getItem("statsDays"), 10) || 7; } catch (e) {}
+
+  function show(loggedIn) {
+    $("login").hidden = loggedIn; $("dash").hidden = !loggedIn;
+    if (!loggedIn) { $("pass").focus(); clearInterval(timer); }
+  }
+
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault(); $("err").textContent = "";
+    try {
+      const r = await fetch(API + "/login", { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ passcode: $("pass").value }) });
+      const d = await r.json();
+      if (!r.ok) { $("err").textContent = d.error || "Could not sign in."; return; }
+      token = d.token; $("pass").value = "";
+      try { localStorage.setItem("statsToken", token); localStorage.setItem("noStats", "1"); } catch (e) {}
+      start();
+    } catch (err) { $("err").textContent = "Can't reach the stats Worker."; }
+  });
+  $("logout").addEventListener("click", () => { token = null; try { localStorage.removeItem("statsToken"); } catch (e) {} show(false); });
+  $("tabs").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    days = +b.dataset.d; try { localStorage.setItem("statsDays", days); } catch (e) {}
+    load();
+  });
+
+  async function load() {
+    document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", +b.dataset.d === days));
+    let r, d;
+    try {
+      r = await fetch(API + "/data?days=" + days + "&tz=" + (-new Date().getTimezoneOffset()), { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
+      d = await r.json();
+    } catch (e) { $("updated").textContent = "offline - retrying"; return; }
+    if (r.status === 401) { token = null; try { localStorage.removeItem("statsToken"); } catch (e) {} show(false); return; }
+    if (!r.ok) { $("updated").textContent = d.error || "error"; return; }
+    draw(d);
+  }
+
+  function start() { show(true); load(); clearInterval(timer); timer = setInterval(load, 30000); }
+
+  // ===== drawing =====
+  const names = (() => { try { return new Intl.DisplayNames(undefined, { type: "region" }); } catch (e) { return null; } })();
+  const flag = c => c && c.length === 2 ? String.fromCodePoint(...[...c.toUpperCase()].map(x => 127397 + x.charCodeAt(0))) + " " : "";
+  const country = c => flag(c) + ((names && c.length === 2 && names.of(c.toUpperCase())) || c);
+
+  function ranked(id, rows, color, label) {
+    const el = $(id);
+    if (!rows.length) { el.innerHTML = '<li class="empty">Nothing yet</li>'; return; }
+    const max = Math.max(...rows.map(r => r.n));
+    el.innerHTML = rows.map(r => {
+      const text = label ? label(r.k) : r.k;
+      return '<li style="--w:' + Math.max(4, Math.round(r.n / max * 100)) + '%;--c:' + color + '"><span title="' + esc(text) + '">' + esc(text) + '</span><b>' + fmt(r.n) + '</b></li>';
+    }).join("");
+  }
+
+  function dayList(n, shiftMin, now) {
+    const out = [];
+    for (let i = n - 1; i >= 0; i--) out.push(new Date(now + shiftMin * 60000 - i * 86400000).toISOString().slice(0, 10));
+    return out;
+  }
+
+  const tip = $("tip");
+  function tipOn(el, html) {
+    el.addEventListener("mousemove", e => { tip.innerHTML = html; tip.style.display = "block"; tip.style.left = Math.min(e.clientX + 14, innerWidth - 180) + "px"; tip.style.top = e.clientY + 14 + "px"; });
+    el.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  }
+
+  function bars(box, items, opts) {
+    // items: [{label, a, b?}]  a = bars, b = optional dots/line
+    const W = 1000, H = opts.h || 220, pl = 34, pb = 22, pt = 8, n = items.length;
+    const max = Math.max(1, ...items.map(i => i.a), ...items.map(i => i.b || 0));
+    const bw = (W - pl) / n, y = v => pt + (H - pt - pb) * (1 - v / max);
+    let s = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(opts.aria) + '">';
+    s += '<defs><linearGradient id="g' + opts.id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff2fa8"/><stop offset="1" stop-color="#ff2fa8" stop-opacity=".25"/></linearGradient></defs>';
+    for (let t = 0; t <= 4; t++) {
+      const v = Math.round(max * t / 4), yy = y(max * t / 4);
+      s += '<line x1="' + pl + '" x2="' + W + '" y1="' + yy + '" y2="' + yy + '" stroke="#2a2150" stroke-width="1"/><text class="axis" x="' + (pl - 6) + '" y="' + (yy + 3) + '" text-anchor="end">' + fmt(v) + "</text>";
+    }
+    items.forEach((it, i) => {
+      const x = pl + i * bw, h = (H - pb) - y(it.a);
+      s += '<rect x="' + (x + bw * .14) + '" y="' + y(it.a) + '" width="' + bw * .72 + '" height="' + Math.max(0, h) + '" rx="2" fill="url(#g' + opts.id + ')" style="filter:drop-shadow(0 0 6px rgba(255,47,168,.55))"/>';
+      if (i % opts.every === 0) s += '<text class="axis" x="' + (x + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(it.label) + "</text>";
+    });
+    if (items.some(i => i.b != null)) {
+      const pts = items.map((it, i) => (pl + i * bw + bw / 2) + "," + y(it.b || 0)).join(" ");
+      s += '<polyline points="' + pts + '" fill="none" stroke="#25f4ee" stroke-width="2.5" stroke-linejoin="round" style="filter:drop-shadow(0 0 5px rgba(37,244,238,.8))"/>';
+      if (n <= 40) items.forEach((it, i) => { s += '<circle cx="' + (pl + i * bw + bw / 2) + '" cy="' + y(it.b || 0) + '" r="3.5" fill="#25f4ee"/>'; });
+    }
+    items.forEach((it, i) => { s += '<rect class="hov" data-i="' + i + '" x="' + (pl + i * bw) + '" y="0" width="' + bw + '" height="' + H + '" fill="transparent"/>'; });
+    box.innerHTML = s + "</svg>";
+    box.querySelectorAll(".hov").forEach(r => {
+      const it = items[+r.dataset.i];
+      tipOn(r, "<b>" + esc(it.tip || it.label) + "</b><br>" + fmt(it.a) + " " + opts.aName + (it.b != null ? "<br>" + fmt(it.b) + " unique" : ""));
+    });
+  }
+
+  function ago(ts) {
+    const s = Math.max(0, (Date.now() - ts) / 1000);
+    return s < 60 ? Math.floor(s) + "s ago" : s < 3600 ? Math.floor(s / 60) + "m ago" : s < 86400 ? Math.floor(s / 3600) + "h ago" : Math.floor(s / 86400) + "d ago";
+  }
+
+  function draw(d) {
+    const t = d.totals, per = d.days === 1 ? "24 hours" : d.days + " days";
+    $("views").textContent = fmt(t.views); $("viewsNote").textContent = "in the last " + per;
+    $("uniques").textContent = fmt(t.uniques); $("uniquesNote").textContent = "different browsers";
+    $("visits").textContent = fmt(t.visits); $("visitsNote").textContent = t.visits ? (t.views / t.visits).toFixed(1) + " pages per visit" : "";
+    $("returning").textContent = fmt(d.returning); $("returningNote").textContent = t.uniques ? Math.round(d.returning / t.uniques * 100) + "% came back on another day" : "";
+    $("live").textContent = d.live;
+    $("updated").textContent = "updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+    // per day (a 1-day view shows the hourly chart only)
+    const tz = -new Date().getTimezoneOffset();
+    const dn = Math.min(d.days, 90) , keys = dayList(dn, tz, d.now), byDay = {};
+    d.daily.forEach(r => { byDay[r.k] = r; });
+    $("dailyTitle").textContent = "VIEWS PER DAY";
+    bars($("daily"), keys.map(k => {
+      const r = byDay[k] || { views: 0, uniques: 0 }, dt = new Date(k + "T12:00:00");
+      return { label: dt.toLocaleDateString([], { month: "short", day: "numeric" }), tip: dt.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }), a: r.views, b: r.uniques };
+    }), { id: "d", aria: "Page views per day", aName: "views", every: Math.ceil(dn / 10) });
+
+    const hk = [], byHour = {};
+    d.hourly.forEach(r => { byHour[r.k] = r.views; });
+    for (let i = 23; i >= 0; i--) {
+      const k = new Date(d.now + tz * 60000 - i * 3600000).toISOString().slice(0, 13).replace("T", " ");
+      const hr = +k.slice(11);
+      hk.push({ label: (hr % 12 || 12) + (hr < 12 ? "a" : "p"), tip: k.slice(5, 10) + " " + (hr % 12 || 12) + (hr < 12 ? " AM" : " PM"), a: byHour[k] || 0 });
+    }
+    bars($("hourly"), hk, { id: "h", h: 190, aria: "Page views per hour", aName: "views", every: 3 });
+
+    $("feed").innerHTML = d.feed.length ? d.feed.map(f => {
+      const where = [f.city, f.country].filter(Boolean).join(", ");
+      const what = f.type === "view" ? "viewed " + f.path : f.type === "click" ? "clicked " + f.name : "did " + f.name;
+      return '<li><time>' + ago(f.ts) + '</time><span class="t-' + f.type + '">' + esc(what) + '</span><span class="note">' + esc(where) + "</span></li>";
+    }).join("") : '<li class="empty">No traffic yet</li>';
+
+    ranked("pages", d.pages, "var(--pink)");
+    ranked("refs", d.refs, "var(--cyan)");
+    if (!d.refs.length) $("refs").innerHTML = '<li class="empty">Everyone so far arrived directly</li>';
+    ranked("countries", d.countries, "var(--lime)", country);
+    ranked("cities", d.cities, "var(--amber)");
+    ranked("devices", d.devices, "var(--pink)");
+    ranked("browsers", d.browsers, "var(--cyan)");
+    ranked("os", d.os, "var(--lime)");
+    ranked("clicks", d.clicks, "var(--amber)");
+    ranked("events", d.events, "var(--pink)");
+
+    const first = d.allTime.first ? new Date(d.allTime.first).toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" }) : null;
+    $("foot").textContent = first ? fmt(d.allTime.views) + " views and " + fmt(d.allTime.uniques) + " visitors since " + first + " - Worker v" + d.version : "Worker v" + d.version;
+  }
+
+  if (token) start(); else show(false);
+})();
+</script>
+</body>
+</html>
