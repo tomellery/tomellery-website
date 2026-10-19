@@ -130,6 +130,7 @@
   }
 
   function newGame() {
+    if (window.track) track('play:' + GAME_ID);
     demo = false;
     resetGame();
     setState('playing');

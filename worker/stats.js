@@ -5,11 +5,12 @@
 //   POST /login  {passcode}                        → { token }   a login good for 60 days, kept by the stats page
 //   GET  /data?days=7&tz=-420                      → every number the dashboard shows (needs "Authorization: Bearer <token>")
 //   GET  /raw?days=7&type=view&q=text&limit=100&offset=0   → the saved rows themselves, newest first (same login)
+//   GET  /arcade?days=30&tz=-420                   → plays per game, players, opens, plays per day (same login)
 //
 // Nothing here identifies a person: a visitor is a random id the browser makes up, and location comes from
 // Cloudflare's own country/city guess. The tables are made automatically the first time anything arrives.
 
-const VERSION = 2;  // bump when the code changes, so it's easy to tell which copy Cloudflare is running
+const VERSION = 3; // bump when the code changes, so it's easy to tell which copy Cloudflare is running
 const ORIGINS = ["https://tomellery.com", "https://www.tomellery.com", "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:8080", "http://127.0.0.1:8080"];
 const TOKEN_DAYS = 60;
 const MAX_FAILS = 8, FAIL_WINDOW = 10 * 60 * 1000;   // wrong passcodes allowed per visitor address, per 10 minutes
@@ -166,6 +167,27 @@ async function raw(req, env, url) {
   return json(req, { total: r[0].results[0].n, rows: r[1].results });
 }
 
+// Neon Arcade numbers: runs started per game (the games send a "play:<game>" event), who played, and how many opened each game.
+async function arcade(req, env, url) {
+  if (!(await checkToken(env, req))) return json(req, { error: "login" }, 401);
+  await setup(env);
+  const days = Math.min(3650, Math.max(1, parseInt(url.searchParams.get("days"), 10) || 30));
+  const tz = Math.max(-840, Math.min(840, parseInt(url.searchParams.get("tz"), 10) || 0));
+  const since = Date.now() - days * 86400000;
+  const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
+  const plays = "type = 'event' AND name LIKE 'play:%' AND ts >= ?";
+  const r = await env.DB.batch([
+    /* 0 per game */ q("SELECT substr(name, 6) AS game, COUNT(*) AS plays, COUNT(DISTINCT vid) AS players, MAX(ts) AS last FROM hits WHERE " + plays + " GROUP BY game ORDER BY plays DESC", since),
+    /* 1 opened */   q("SELECT path AS k, COUNT(*) AS n, COUNT(DISTINCT vid) AS u FROM hits WHERE type = 'view' AND path LIKE '/arcade/games/%' AND ts >= ? GROUP BY path", since),
+    /* 2 totals */   q("SELECT COUNT(*) AS plays, COUNT(DISTINCT vid) AS players FROM hits WHERE " + plays, since),
+    /* 3 daily */    q("SELECT strftime('%Y-%m-%d', ts / 1000 + ?, 'unixepoch') AS k, COUNT(*) AS plays, COUNT(DISTINCT vid) AS players FROM hits WHERE " + plays + " GROUP BY k ORDER BY k", tz * 60, since),
+    /* 4 arcade home */ q("SELECT COUNT(*) AS n FROM hits WHERE type = 'view' AND path = '/arcade/' AND ts >= ?", since),
+    /* 5 by hour */  q("SELECT CAST(strftime('%H', ts / 1000 + ?, 'unixepoch') AS INTEGER) AS h, COUNT(*) AS plays FROM hits WHERE " + plays + " GROUP BY h ORDER BY h", tz * 60, since),
+  ]);
+  const rows = i => r[i].results;
+  return json(req, { days, now: Date.now(), games: rows(0), opened: rows(1), totals: rows(2)[0], daily: rows(3), home: rows(4)[0].n, hours: rows(5) });
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -176,6 +198,7 @@ export default {
       if (url.pathname === "/login" && req.method === "POST") return await login(req, env);
       if (url.pathname === "/data" && req.method === "GET") return await data(req, env, url);
       if (url.pathname === "/raw" && req.method === "GET") return await raw(req, env, url);
+      if (url.pathname === "/arcade" && req.method === "GET") return await arcade(req, env, url);
     } catch (e) {
       return json(req, { error: "Something went wrong: " + e.message }, 500);
     }

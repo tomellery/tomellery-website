@@ -178,6 +178,7 @@
   }
 
   function startGame() {
+    if (window.track) track('play:' + GAME_ID);
     demo = false;
     reset();
     setState('ready');

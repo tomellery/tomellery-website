@@ -289,6 +289,7 @@
   }
 
   function newGame() {
+    if (window.track) track('play:' + GAME_ID);
     demo = false;
     level = 1;
     score = 0;

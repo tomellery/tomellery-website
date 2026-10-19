@@ -126,6 +126,7 @@
   }
 
   function newGame() {
+    if (window.track) track('play:' + GAME_ID);
     resetGame();
     setState('playing');
     banner = { text: 'LEVEL 1', t: 0 };

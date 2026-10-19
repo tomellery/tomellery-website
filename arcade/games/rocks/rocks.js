@@ -145,6 +145,7 @@
   }
 
   function newGame() {
+    if (window.track) track('play:' + GAME_ID);
     demo = false;
     wave = 1;
     score = 0;

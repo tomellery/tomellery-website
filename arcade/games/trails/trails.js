@@ -151,6 +151,7 @@
   }
 
   function newGame() {
+    if (window.track) track('play:' + GAME_ID);
     demo = false;
     round = 1;
     score = 0;

@@ -280,6 +280,7 @@
   }
 
   function newGame() {
+    if (window.track) track('play:' + GAME_ID);
     round = 1;
     score = 0;
     lives = START_LIVES;
