@@ -184,12 +184,12 @@
         <div class="card c6"><h2>BUSIEST HOURS</h2><div id="aHours"></div></div>
 
         <div class="card c12"><h2>GAME BREAKDOWN</h2>
-          <div class="tablewrap"><table><thead><tr><th>Game</th><th>Played</th><th>Players</th><th>Opened</th><th>Play rate</th><th>Plays / player</th><th>Last played</th></tr></thead><tbody id="aTable"></tbody></table></div>
-          <div class="note" style="margin-top:8px">Played = a run started (not the demo). Opened = the game page was loaded. Play rate = played / opened.</div></div>
+          <div class="tablewrap"><table><thead><tr><th>Game</th><th>Played</th><th>Sessions</th><th>Players</th><th>Opened</th><th>Play rate</th><th>Plays / player</th><th>Last played</th></tr></thead><tbody id="aTable"></tbody></table></div>
+          <div class="note" style="margin-top:8px">Played = runs started (a retry after dying is a new run, the demo doesn't count). Sessions = visits that played at least once. Opened = the game page was loaded. Play rate = sessions / opened.</div></div>
 
         <div class="card c12"><h2>SECRET GAMES</h2>
-          <div class="tablewrap"><table><thead><tr><th>Game</th><th>Played</th><th>Players</th><th>Plays / player</th><th>Best score</th><th>Last played</th></tr></thead><tbody id="sTable"></tbody></table></div>
-          <div class="note" style="margin-top:8px">The two hidden games on the main site. Played = a run started. Best score is the shared record, live.</div></div>
+          <div class="tablewrap"><table><thead><tr><th>Game</th><th>Played</th><th>Sessions</th><th>Players</th><th>Plays / player</th><th>Best score</th><th>Last played</th></tr></thead><tbody id="sTable"></tbody></table></div>
+          <div class="note" style="margin-top:8px">The two hidden games on the main site. Played = runs started (retries count). Sessions = visits that played at least once. Best score is the shared record, live.</div></div>
 
         <div class="card c12"><h2>LEADERBOARDS</h2><div class="boards" id="aBoards"><div class="empty">Loading...</div></div>
           <div class="note" style="margin-top:10px">Real scores only (the made-up starting scores aren't included). Live from the arcade's shared tables.</div></div>
@@ -417,11 +417,11 @@
     if (!d.games.length) $("aRank").innerHTML = '<li class="empty">No games played yet. Plays count from when the new tracking went live.</li>';
 
     $("aTable").innerHTML = ids.map(id => {
-      const g = byGame[id] || { plays: 0, players: 0, last: null }, o = opened[id] || { n: 0 };
+      const g = byGame[id] || { plays: 0, players: 0, sessions: 0, last: null }, o = opened[id] || { n: 0 };
       return { id, g, o };
     }).sort((a, b) => b.g.plays - a.g.plays || b.o.n - a.o.n).map(({ id, g, o }) =>
-      "<tr><td>" + esc(gameName(id)) + "</td><td>" + fmt(g.plays) + "</td><td>" + fmt(g.players) + "</td><td>" + fmt(o.n) + "</td><td>" +
-      (o.n ? Math.min(100, Math.round(g.plays / o.n * 100)) + "%" : "-") + "</td><td>" + (g.players ? (g.plays / g.players).toFixed(1) : "-") + "</td><td>" +
+      "<tr><td>" + esc(gameName(id)) + "</td><td>" + fmt(g.plays) + "</td><td>" + fmt(g.sessions) + "</td><td>" + fmt(g.players) + "</td><td>" + fmt(o.n) + "</td><td>" +
+      (o.n ? Math.min(100, Math.round(g.sessions / o.n * 100)) + "%" : "-") + "</td><td>" + (g.players ? (g.plays / g.players).toFixed(1) : "-") + "</td><td>" +
       (g.last ? esc(ago(g.last)) : "never") + "</td></tr>").join("");
 
     const tz = -new Date().getTimezoneOffset(), dn = Math.min(aDays, 90), keys = dayList(dn, tz, d.now), byDay = {};
@@ -445,8 +445,8 @@
     const by = {}; secretRows.forEach(g => { by[g.game] = g; });
     const ids = Object.keys(SECRET).concat(secretRows.map(g => g.game)).filter((x, i, a) => a.indexOf(x) === i);
     $("sTable").innerHTML = ids.map(id => {
-      const g = by[id] || { plays: 0, players: 0, last: null };
-      return "<tr><td>" + esc(SECRET[id] || id) + "</td><td>" + fmt(g.plays) + "</td><td>" + fmt(g.players) + "</td><td>" + (g.players ? (g.plays / g.players).toFixed(1) : "-") + "</td><td>" +
+      const g = by[id] || { plays: 0, players: 0, sessions: 0, last: null };
+      return "<tr><td>" + esc(SECRET[id] || id) + "</td><td>" + fmt(g.plays) + "</td><td>" + fmt(g.sessions) + "</td><td>" + fmt(g.players) + "</td><td>" + (g.players ? (g.plays / g.players).toFixed(1) : "-") + "</td><td>" +
         (secretBest[id] != null ? fmt(secretBest[id]) : "-") + "</td><td>" + (g.last ? esc(ago(g.last)) : "never") + "</td></tr>";
     }).join("");
   }
