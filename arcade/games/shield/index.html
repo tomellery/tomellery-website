@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07060f">
+  <title>Sky Shield</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../shared/arcade.css">
+  <style>
+    /* You aim by tapping the sky, so phones only need a pause button and the screen gets the room. */
+    @media (pointer: coarse) { .cabinet.tap-only { --chrome: 170px; } }
+    .tap-hint { margin: 0; font-size: 8px; color: var(--dim); }
+    .screen canvas { cursor: crosshair; }
+  </style>
+<script defer src="/assets/stats.js"></script>
+</head>
+<body class="arcade">
+  <main class="cabinet tap-only" style="--ratio: 0.8">
+    <header class="marquee">
+      <a class="chip" href="../../index.html">&#9664; ARCADE</a>
+      <h1 class="neon">SKY SHIELD</h1>
+      <button class="chip" type="button" data-action="mute" data-mute-label>SOUND ON</button>
+    </header>
+
+    <div class="screen">
+      <canvas id="game" aria-label="Sky Shield game screen"></canvas>
+    </div>
+
+    <div class="touch-controls">
+      <p class="tap-hint">TAP THE SKY TO FIRE</p>
+      <button class="pad-btn round small" type="button" data-action="pause">PAUSE</button>
+    </div>
+
+    <p class="hint">MOUSE AIM + CLICK FIRE &nbsp; OR ARROWS + SPACE (Z X C PICK A BASE) &nbsp; P PAUSE &nbsp; M SOUND</p>
+  </main>
+
+  <script src="../../shared/arcade.js?v=8"></script>
+  <script src="shield.js"></script>
+</body>
+</html>

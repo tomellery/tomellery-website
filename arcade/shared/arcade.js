@@ -133,6 +133,10 @@
       thrust: () => tone(60 + Math.random() * 20, 0.12, { type: 'sawtooth', vol: 0.03 }),
       saucer: (small = 0) => tone(small ? 880 : 440, 0.12, { type: 'triangle', slide: small ? 220 : 110, vol: 0.04 }),
       warp: () => tone(200, 0.35, { type: 'sine', slide: 1400, vol: 0.07 }),
+      launch: () => tone(300, 0.18, { type: 'triangle', slide: 700, vol: 0.05 }),
+      alarm: () => [0, 1, 2, 3].forEach(i => tone(i % 2 ? 660 : 880, 0.14, { type: 'square', delay: i * 0.16, vol: 0.05 })),
+      crumble: () => { tone(120, 0.6, { type: 'sawtooth', slide: -80, vol: 0.1 }); tone(60, 0.7, { delay: 0.08, vol: 0.08 }); },
+      tick: () => tone(1200, 0.025, { vol: 0.04 }),
       derez: () => { tone(900, 0.6, { type: 'sawtooth', slide: -820, vol: 0.06 }); tone(1800, 0.2, { type: 'triangle', slide: -1200, vol: 0.04, delay: 0.05 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
@@ -303,7 +307,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -540,6 +544,56 @@
     // Do two round objects touch?
     hit: (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < (a.r || 0) + (b.r || 0),
   };
+
+  // ---------- Blast rings ----------
+  // Explosions that swell to full size, hold a moment, then shrink away. Anything inside one while it's
+  // alive can be destroyed, and whatever it destroys can set off a blast of its own: chain reactions.
+  //   const blasts = Arcade.createBlasts();
+  //   blasts.add(x, y, { radius, color, owner }) -> the blast (owner is anything you like, e.g. 'player')
+  //   blasts.update(dt); blasts.hit(x, y, pad) -> the blast covering that point, or null; blasts.draw(ctx)
+
+  function createBlasts() {
+    let list = [];
+    const radiusOf = b => {
+      if (b.t < b.grow) return b.max * (b.t / b.grow);
+      if (b.t < b.grow + b.hold) return b.max;
+      return b.max * Math.max(0, 1 - (b.t - b.grow - b.hold) / b.shrink);
+    };
+    return {
+      get list() { return list; },
+      add(x, y, { radius = 32, grow = 450, hold = 250, shrink = 500, color = COLORS.text, owner = null } = {}) {
+        const b = { x, y, max: radius, grow, hold, shrink, t: 0, r: 0, color, owner };
+        list.push(b);
+        return b;
+      },
+      update(dt) {
+        list.forEach(b => {
+          b.t += dt;
+          b.r = radiusOf(b);
+        });
+        list = list.filter(b => b.t < b.grow + b.hold + b.shrink);
+      },
+      hit(x, y, pad = 0) {
+        return list.find(b => b.r > 0 && Math.hypot(x - b.x, y - b.y) < b.r + pad) || null;
+      },
+      clear() { list = []; },
+      // Filled discs that flicker through colours like the old arcade explosions.
+      draw(ctx, colors = null, clock = 0) {
+        list.forEach((b, i) => {
+          if (b.r <= 0) return;
+          const color = colors ? colors[Math.floor(clock / 70 + i) % colors.length] : b.color;
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+      },
+    };
+  }
 
   // ---------- Isometric cubes ----------
   // A cube seen from above at an angle: its top face is a diamond centred on (x, y), w wide and w / 2
@@ -907,7 +961,7 @@
   window.Arcade = {
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
-    sound, createInput, scores, gridSearch, floodFill, createShell, vector,
+    sound, createInput, scores, gridSearch, floodFill, createShell, vector, createBlasts,
     text, roundRect, dim, triangle, drawCube, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
