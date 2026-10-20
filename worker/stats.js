@@ -11,7 +11,7 @@
 // Nothing here identifies a person: a visitor is a random id the browser makes up, and location comes from
 // Cloudflare's own country/city guess. The tables are made automatically the first time anything arrives.
 
-const VERSION = 6;// bump when the code changes, so it's easy to tell which copy Cloudflare is running
+const VERSION = 7;// bump when the code changes, so it's easy to tell which copy Cloudflare is running
 const ORIGINS = ["https://tomellery.com", "https://www.tomellery.com", "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:8080", "http://127.0.0.1:8080"];
 const TOKEN_DAYS = 60;
 const MAX_FAILS = 8, FAIL_WINDOW = 10 * 60 * 1000;   // wrong passcodes allowed per visitor address, per 10 minutes
@@ -214,19 +214,22 @@ async function players(req, env, url) {
     q("SELECT COUNT(DISTINCT vid) AS n FROM hits WHERE ts >= ? AND vid != ''", since),
   ]);
   const vids = list.results.map(r => r.vid);
-  let gamesBy = {}, refBy = {};
+  let gamesBy = {}, refBy = {}, initialsBy = {};
   if (vids.length) {
     const ph = vids.map(() => "?").join(",");
-    const [g, rf] = await env.DB.batch([
+    const [g, rf, ini] = await env.DB.batch([
       q(`SELECT vid, name, COUNT(*) AS n FROM hits WHERE ${played} AND ts >= ? AND vid IN (${ph}) GROUP BY vid, name`, since, ...vids),
       q(`SELECT vid, ref, COUNT(*) AS n FROM hits WHERE type = 'view' AND ref != '' AND ts >= ? AND vid IN (${ph}) GROUP BY vid, ref ORDER BY n DESC`, since, ...vids),
+      // the initials this browser typed for an arcade high score (any time, newest wins)
+      q(`SELECT vid, substr(name, 10) AS initials FROM hits WHERE type = 'event' AND name LIKE 'initials:%' AND vid IN (${ph}) ORDER BY ts DESC`, ...vids),
     ]);
+    ini.results.forEach(r => { if (!initialsBy[r.vid]) initialsBy[r.vid] = r.initials; });
     g.results.forEach(r => { (gamesBy[r.vid] = gamesBy[r.vid] || []).push([r.name.replace(/^(play|secret):/, ""), r.n]); });
     rf.results.forEach(r => { if (!refBy[r.vid]) refBy[r.vid] = r.ref; });
   }
   return json(req, {
     days, now: Date.now(), total: count.results[0].n,
-    players: list.results.map(r => ({ ...r, games: (gamesBy[r.vid] || []).sort((a, b) => b[1] - a[1]), ref: refBy[r.vid] || "" })),
+    players: list.results.map(r => ({ ...r, games: (gamesBy[r.vid] || []).sort((a, b) => b[1] - a[1]), ref: refBy[r.vid] || "", initials: initialsBy[r.vid] || "" })),
   });
 }
 

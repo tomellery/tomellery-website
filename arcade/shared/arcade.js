@@ -389,6 +389,7 @@
         getTicket();   // a fresh one for the next run
         pending.push(entry);
         store.set(PENDING, JSON.stringify(pending));
+        if (window.track && /^[A-Z0-9]{3}$/.test(name)) track('initials:' + name);   // labels this visitor's card on /stats/
         const rank = list(id).indexOf(entry);
         send(entry).catch(() => { /* sent again on the next visit */ });
         return rank;

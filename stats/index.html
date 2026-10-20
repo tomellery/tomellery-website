@@ -122,6 +122,8 @@
     .pavatar { width: 92px; height: 92px; margin: 12px auto 10px; border-radius: 12px; background: #07060f; border: 1px solid color-mix(in srgb, var(--rc) 50%, transparent); padding: 8px; }
     .pavatar svg { width: 100%; height: 100%; }
     .pname { text-align: center; font: 400 11px/1.4 "Press Start 2P", monospace; color: var(--text); }
+    .pname.ini { font-size: 22px; letter-spacing: 6px; text-indent: 6px; color: var(--rc); text-shadow: 0 0 12px color-mix(in srgb, var(--rc) 80%, transparent); }
+    .aka { text-align: center; font-size: 10px; color: var(--dim); margin-top: 4px; }
     .ptype { text-align: center; margin: 6px 0 10px; font-size: 11px; letter-spacing: 2px; color: var(--rc); text-shadow: 0 0 8px color-mix(in srgb, var(--rc) 70%, transparent); }
     .pwhere { text-align: center; font-size: 12px; color: var(--dim); margin-bottom: 10px; }
     .pstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
@@ -563,12 +565,13 @@
     $("pNote").textContent = fmt(d.total) + " visitors" + (d.total > d.players.length ? " (showing the " + d.players.length + " most recent)" : "") + " - " +
       RARITY.map(r => (counts[r[0]] || 0) + " " + r[0]).join(" · ");
     $("pCards").innerHTML = list.length ? list.map(({ p, r }) => {
-      const h = hash(p.vid), name = ADJ[h & 15] + " " + NOUN[(h >>> 4) & 15], id = "#" + ((h >>> 8) & 0xffff).toString(16).toUpperCase().padStart(4, "0");
+      const h = hash(p.vid), rand = ADJ[h & 15] + " " + NOUN[(h >>> 4) & 15], name = p.initials || rand, id = "#" + ((h >>> 8) & 0xffff).toString(16).toUpperCase().padStart(4, "0");
       const fav = p.games[0];
       return '<div class="pcard ' + r[0].toLowerCase() + '" style="--rc:' + r[2] + '">' +
         '<div class="ptop"><span>' + r[0].toUpperCase() + '</span><span class="pid">' + id + "</span></div>" +
         '<div class="pavatar">' + avatar(p.vid, r[2]) + "</div>" +
-        '<div class="pname">' + esc(name) + "</div>" +
+        '<div class="pname' + (p.initials ? " ini" : "") + '">' + esc(name) + "</div>" +
+        (p.initials ? '<div class="aka">a.k.a. ' + esc(rand) + "</div>" : "") +
         '<div class="ptype">' + archetype(p) + "</div>" +
         '<div class="pwhere">' + esc([p.country ? flag(p.country) + (p.city || p.country) : "", p.device, p.browser].filter(Boolean).join(" · ")) + "</div>" +
         '<div class="pstats"><div><b>' + fmt(p.visits) + "</b><span>VISITS</span></div><div><b>" + fmt(p.days) + "</b><span>DAYS</span></div><div><b>" + fmt(p.plays) + "</b><span>PLAYS</span></div><div><b>" + fmt(p.clicks) + "</b><span>CLICKS</span></div></div>" +
