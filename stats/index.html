@@ -107,6 +107,30 @@
     .board li span { flex: 1; letter-spacing: 2px; }
     .board li:first-child span, .board li:first-child b { color: var(--amber); text-shadow: 0 0 8px rgba(255,176,46,.6); }
     .board .none { color: var(--dim); font-size: 12px; }
+
+    /* visitor cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .pcard { --rc: #8d86b8; position: relative; border: 2px solid var(--rc); border-radius: 14px; padding: 12px; overflow: hidden;
+      background: linear-gradient(160deg, rgba(255,255,255,.05), transparent 40%), #0d0a1f; box-shadow: 0 0 14px color-mix(in srgb, var(--rc) 35%, transparent); transition: transform .15s; }
+    .pcard:hover { transform: translateY(-3px) rotate(-.4deg); box-shadow: 0 0 22px color-mix(in srgb, var(--rc) 65%, transparent); }
+    .pcard.legendary::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.18) 48%, transparent 66%); background-size: 250% 100%; animation: sheen 3.5s linear infinite; }
+    @keyframes sheen { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+    @media (prefers-reduced-motion: reduce) { .pcard.legendary::after { animation: none; } .pcard { transition: none; } }
+    .ptop { display: flex; justify-content: space-between; font: 400 8px/1 "Press Start 2P", monospace; color: var(--rc); letter-spacing: .5px; }
+    .pid { color: var(--dim); }
+    .pavatar { width: 92px; height: 92px; margin: 12px auto 10px; border-radius: 12px; background: #07060f; border: 1px solid color-mix(in srgb, var(--rc) 50%, transparent); padding: 8px; }
+    .pavatar svg { width: 100%; height: 100%; }
+    .pname { text-align: center; font: 400 11px/1.4 "Press Start 2P", monospace; color: var(--text); }
+    .ptype { text-align: center; margin: 6px 0 10px; font-size: 11px; letter-spacing: 2px; color: var(--rc); text-shadow: 0 0 8px color-mix(in srgb, var(--rc) 70%, transparent); }
+    .pwhere { text-align: center; font-size: 12px; color: var(--dim); margin-bottom: 10px; }
+    .pstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
+    .pstats div { background: rgba(255,255,255,.04); border-radius: 8px; padding: 6px 2px; text-align: center; }
+    .pstats b { display: block; font-size: 15px; color: var(--text); }
+    .pstats span { font-size: 8px; letter-spacing: .5px; color: var(--dim); }
+    .pline { font-size: 12px; color: var(--dim); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pline em { font-style: normal; color: var(--text); }
+    .pfoot { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 11px; color: var(--dim); display: flex; justify-content: space-between; gap: 8px; }
     footer { margin-top: 26px; color: var(--dim); font-size: 12px; text-align: center; }
     [hidden] { display: none !important; }
   </style>
@@ -129,7 +153,7 @@
       <h1 class="px">CONTROL <span>ROOM</span></h1>
       <div class="right"><span id="updated"></span><button class="ghost" id="logout">Log out</button></div>
     </header>
-    <div class="tabs views" id="viewTabs"><button data-v="overview" class="on">Overview</button><button data-v="arcade">Arcade</button><button data-v="raw">Raw data</button></div>
+    <div class="tabs views" id="viewTabs"><button data-v="overview" class="on">Overview</button><button data-v="arcade">Arcade</button><button data-v="players">Players</button><button data-v="raw">Raw data</button></div>
     <div id="overview">
     <div class="bar">
       <div class="tabs" id="tabs">
@@ -194,6 +218,17 @@
         <div class="card c12"><h2>LEADERBOARDS</h2><div class="boards" id="aBoards"><div class="empty">Loading...</div></div>
           <div class="note" style="margin-top:10px">Real scores only (the made-up starting scores aren't included). Live from the arcade's shared tables.</div></div>
       </div>
+    </div>
+
+    <div id="playersview" hidden>
+      <div class="rawbar">
+        <select id="pDays" aria-label="Time range"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option><option value="3650">All time</option></select>
+        <select id="pSort" aria-label="Sort"><option value="recent">Newest first</option><option value="active">Most active</option><option value="rare">Rarest</option></select>
+        <select id="pRar" aria-label="Rarity"><option value="">All rarities</option><option value="Legendary">Legendary</option><option value="Epic">Epic</option><option value="Rare">Rare</option><option value="Uncommon">Uncommon</option><option value="Common">Common</option></select>
+      </div>
+      <div class="note" id="pNote" style="margin-bottom:12px"></div>
+      <div class="cards" id="pCards"></div>
+      <div class="note" style="margin-top:16px">Cards are built from a random ID each browser makes up - no names, emails or IP addresses. The same person on a phone and a laptop is two cards, and clearing browser data makes a new one.</div>
     </div>
 
     <div id="rawview" hidden>
@@ -377,7 +412,7 @@
   // ===== Arcade tab =====
   const SCORES_API = "https://tomellery-scores.tomellery1818.workers.dev/arcade";
   const GAMES = { snake: "Neon Snake", bricks: "Brick Buster", hopper: "Road Hopper", swarm: "Swarm Strike", maze: "Maze Munch", driller: "Deep Driller", cube: "Cube Hopper", trails: "Neon Trails", rocks: "Rock Blaster" };
-  const gameName = id => GAMES[id] || id.toUpperCase();
+  const gameName = id => GAMES[id] || (id === "flapper" ? "Flapper" : id === "runner" ? "Runner" : id.toUpperCase());
   let aDays = 30;
 
   $("aTabs").addEventListener("click", e => {
@@ -471,6 +506,78 @@
     } catch (e) { $("aBoards").innerHTML = '<div class="empty">Couldn\'t load the leaderboards.</div>'; }
   }
 
+  // ===== Players tab: a trading card for each visitor (random browser id) =====
+  const RARITY = [["Legendary", 60, "#ffb02e"], ["Epic", 25, "#c07bff"], ["Rare", 10, "#25f4ee"], ["Uncommon", 4, "#b6ff3c"], ["Common", 0, "#8d86b8"]];
+  const ADJ = ["Turbo", "Neon", "Pixel", "Cosmic", "Laser", "Chrome", "Glitch", "Retro", "Vapor", "Atomic", "Rogue", "Static", "Hyper", "Lunar", "Solar", "Mega"];
+  const NOUN = ["Otter", "Falcon", "Comet", "Panda", "Viper", "Moth", "Raven", "Lynx", "Badger", "Gecko", "Orca", "Fox", "Mantis", "Yeti", "Koala", "Cobra"];
+  let playerData = null;
+
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  const score = p => p.days * 3 + p.visits * 2 + p.plays + p.clicks;
+  const rarityOf = p => RARITY.find(r => score(p) >= r[1]);
+  function archetype(p) {
+    if (p.plays >= 25) return "ARCADE LEGEND";
+    if (p.days >= 5) return "LOYAL REGULAR";
+    if (p.days >= 2 && p.plays >= 3) return "COMEBACK KID";
+    if (p.events >= 4 && p.night / p.events >= 0.6) return "NIGHT OWL";
+    if (p.plays >= 8 && p.visits <= 2) return "GRINDER";
+    if (p.clicks >= 3) return "EXPLORER";
+    if (p.plays >= 1) return "PLAYER";
+    if (p.views <= 1) return "DRIVE-BY";
+    return "BROWSER";
+  }
+  // A small symmetric pixel face made from the id, so every card looks different.
+  function avatar(vid, color) {
+    const bits = hash(vid + "face");
+    let cells = "";
+    for (let y = 0; y < 5; y++) for (let x = 0; x < 3; x++) {
+      if ((bits >> (y * 3 + x)) & 1 || (x === 2 && y === 2)) {
+        cells += '<rect x="' + x + '" y="' + y + '" width="1" height="1"/>';
+        if (x < 2) cells += '<rect x="' + (4 - x) + '" y="' + y + '" width="1" height="1"/>';
+      }
+    }
+    return '<svg viewBox="0 0 5 5" shape-rendering="crispEdges" fill="' + color + '" style="filter:drop-shadow(0 0 3px ' + color + ')">' + cells + "</svg>";
+  }
+
+  $("pDays").addEventListener("change", loadPlayers);
+  ["pSort", "pRar"].forEach(id => $(id).addEventListener("change", drawPlayers));
+
+  async function loadPlayers() {
+    try {
+      const r = await fetch(API + "/players?days=" + $("pDays").value + "&limit=90&tz=" + (-new Date().getTimezoneOffset()), { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
+      const d = await r.json();
+      if (r.status === 401) { token = null; try { localStorage.removeItem("statsToken"); } catch (e) {} show(false); return; }
+      if (!r.ok) { $("pNote").textContent = (d.error || "error") + " (the Worker may need the latest code)"; return; }
+      playerData = d; drawPlayers();
+    } catch (e) { $("pNote").textContent = "Couldn't reach the stats Worker."; }
+  }
+
+  function drawPlayers() {
+    if (!playerData) return;
+    const d = playerData, sort = $("pSort").value, want = $("pRar").value;
+    let list = d.players.map(p => ({ p, r: rarityOf(p) }));
+    const counts = {}; list.forEach(x => { counts[x.r[0]] = (counts[x.r[0]] || 0) + 1; });
+    if (want) list = list.filter(x => x.r[0] === want);
+    if (sort === "active") list.sort((a, b) => score(b.p) - score(a.p));
+    else if (sort === "rare") list.sort((a, b) => score(b.p) - score(a.p) || b.p.last - a.p.last);
+    $("pNote").textContent = fmt(d.total) + " visitors" + (d.total > d.players.length ? " (showing the " + d.players.length + " most recent)" : "") + " - " +
+      RARITY.map(r => (counts[r[0]] || 0) + " " + r[0]).join(" · ");
+    $("pCards").innerHTML = list.length ? list.map(({ p, r }) => {
+      const h = hash(p.vid), name = ADJ[h & 15] + " " + NOUN[(h >>> 4) & 15], id = "#" + ((h >>> 8) & 0xffff).toString(16).toUpperCase().padStart(4, "0");
+      const fav = p.games[0];
+      return '<div class="pcard ' + r[0].toLowerCase() + '" style="--rc:' + r[2] + '">' +
+        '<div class="ptop"><span>' + r[0].toUpperCase() + '</span><span class="pid">' + id + "</span></div>" +
+        '<div class="pavatar">' + avatar(p.vid, r[2]) + "</div>" +
+        '<div class="pname">' + esc(name) + "</div>" +
+        '<div class="ptype">' + archetype(p) + "</div>" +
+        '<div class="pwhere">' + esc([p.country ? flag(p.country) + (p.city || p.country) : "", p.device, p.browser].filter(Boolean).join(" · ")) + "</div>" +
+        '<div class="pstats"><div><b>' + fmt(p.visits) + "</b><span>VISITS</span></div><div><b>" + fmt(p.days) + "</b><span>DAYS</span></div><div><b>" + fmt(p.plays) + "</b><span>PLAYS</span></div><div><b>" + fmt(p.clicks) + "</b><span>CLICKS</span></div></div>" +
+        '<div class="pline">Favorite: <em>' + (fav ? esc(gameName(fav[0]) + " x" + fav[1]) : "no games yet") + "</em></div>" +
+        '<div class="pline">From: <em>' + esc(p.ref || "direct") + "</em></div>" +
+        '<div class="pfoot"><span>first ' + esc(new Date(p.first).toLocaleDateString([], { month: "short", day: "numeric" })) + "</span><span>seen " + esc(ago(p.last)) + "</span></div></div>";
+    }).join("") : '<div class="empty">No cards yet. They appear as people visit.</div>';
+  }
+
   // ===== Raw data tab =====
   const PAGE = 100;
   let rawRows = [], rawTotal = 0, rawTimer = null, rawBusy = false;
@@ -479,9 +586,10 @@
     const b = e.target.closest("button"); if (!b) return;
     document.querySelectorAll("#viewTabs button").forEach(x => x.classList.toggle("on", x === b));
     const v = b.dataset.v;
-    $("overview").hidden = v !== "overview"; $("arcadeview").hidden = v !== "arcade"; $("rawview").hidden = v !== "raw";
+    $("overview").hidden = v !== "overview"; $("arcadeview").hidden = v !== "arcade"; $("playersview").hidden = v !== "players"; $("rawview").hidden = v !== "raw";
     if (v === "raw") loadRaw(true);
     if (v === "arcade") loadArcade();
+    if (v === "players") loadPlayers();
   });
   ["rType", "rDays"].forEach(id => $(id).addEventListener("change", () => loadRaw(true)));
   $("rQ").addEventListener("input", () => { clearTimeout(rawTimer); rawTimer = setTimeout(() => loadRaw(true), 300); });

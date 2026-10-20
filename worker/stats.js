@@ -6,11 +6,12 @@
 //   GET  /data?days=7&tz=-420                      → every number the dashboard shows (needs "Authorization: Bearer <token>")
 //   GET  /raw?days=7&type=view&q=text&limit=100&offset=0   → the saved rows themselves, newest first (same login)
 //   GET  /arcade?days=30&tz=-420                   → plays per game, players, opens, plays per day (same login)
+//   GET  /players?days=30&tz=-420&limit=60         → one rolled-up record per visitor id, for the Players cards (same login)
 //
 // Nothing here identifies a person: a visitor is a random id the browser makes up, and location comes from
 // Cloudflare's own country/city guess. The tables are made automatically the first time anything arrives.
 
-const VERSION = 5;// bump when the code changes, so it's easy to tell which copy Cloudflare is running
+const VERSION = 6;// bump when the code changes, so it's easy to tell which copy Cloudflare is running
 const ORIGINS = ["https://tomellery.com", "https://www.tomellery.com", "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:8080", "http://127.0.0.1:8080"];
 const TOKEN_DAYS = 60;
 const MAX_FAILS = 8, FAIL_WINDOW = 10 * 60 * 1000;   // wrong passcodes allowed per visitor address, per 10 minutes
@@ -189,6 +190,46 @@ async function arcade(req, env, url) {
   return json(req, { days, now: Date.now(), games: rows(0), opened: rows(1), totals: rows(2)[0], daily: rows(3), home: rows(4)[0].n, hours: rows(5), secret: rows(6) });
 }
 
+// One rolled-up record per visitor (random browser id) for the Players tab's cards: how often and when they came,
+// what they played, where from. Nothing here is a name or an address - just the random id and the activity under it.
+async function players(req, env, url) {
+  if (!(await checkToken(env, req))) return json(req, { error: "login" }, 401);
+  await setup(env);
+  const p = url.searchParams;
+  const days = Math.min(3650, Math.max(1, parseInt(p.get("days"), 10) || 30));
+  const tz = Math.max(-840, Math.min(840, parseInt(p.get("tz"), 10) || 0));
+  const limit = Math.min(90, Math.max(1, parseInt(p.get("limit"), 10) || 60));
+  const since = Date.now() - days * 86400000;
+  const q = (sql, ...args) => env.DB.prepare(sql).bind(...args);
+  const played = "type = 'event' AND (name LIKE 'play:%' OR name LIKE 'secret:%')";
+
+  const [list, count] = await env.DB.batch([
+    q(`SELECT vid, MIN(ts) AS first, MAX(ts) AS last,
+         SUM(type = 'view') AS views, COUNT(DISTINCT sid) AS visits,
+         COUNT(DISTINCT strftime('%Y-%m-%d', ts / 1000 + ?, 'unixepoch')) AS days,
+         SUM(${played}) AS plays, SUM(type = 'click') AS clicks, COUNT(*) AS events,
+         SUM(CAST(strftime('%H', ts / 1000 + ?, 'unixepoch') AS INTEGER) IN (22,23,0,1,2,3,4)) AS night,
+         MAX(country) AS country, MAX(city) AS city, MAX(device) AS device, MAX(browser) AS browser, MAX(os) AS os
+       FROM hits WHERE ts >= ? AND vid != '' GROUP BY vid ORDER BY last DESC LIMIT ?`, tz * 60, tz * 60, since, limit),
+    q("SELECT COUNT(DISTINCT vid) AS n FROM hits WHERE ts >= ? AND vid != ''", since),
+  ]);
+  const vids = list.results.map(r => r.vid);
+  let gamesBy = {}, refBy = {};
+  if (vids.length) {
+    const ph = vids.map(() => "?").join(",");
+    const [g, rf] = await env.DB.batch([
+      q(`SELECT vid, name, COUNT(*) AS n FROM hits WHERE ${played} AND ts >= ? AND vid IN (${ph}) GROUP BY vid, name`, since, ...vids),
+      q(`SELECT vid, ref, COUNT(*) AS n FROM hits WHERE type = 'view' AND ref != '' AND ts >= ? AND vid IN (${ph}) GROUP BY vid, ref ORDER BY n DESC`, since, ...vids),
+    ]);
+    g.results.forEach(r => { (gamesBy[r.vid] = gamesBy[r.vid] || []).push([r.name.replace(/^(play|secret):/, ""), r.n]); });
+    rf.results.forEach(r => { if (!refBy[r.vid]) refBy[r.vid] = r.ref; });
+  }
+  return json(req, {
+    days, now: Date.now(), total: count.results[0].n,
+    players: list.results.map(r => ({ ...r, games: (gamesBy[r.vid] || []).sort((a, b) => b[1] - a[1]), ref: refBy[r.vid] || "" })),
+  });
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -200,6 +241,7 @@ export default {
       if (url.pathname === "/data" && req.method === "GET") return await data(req, env, url);
       if (url.pathname === "/raw" && req.method === "GET") return await raw(req, env, url);
       if (url.pathname === "/arcade" && req.method === "GET") return await arcade(req, env, url);
+      if (url.pathname === "/players" && req.method === "GET") return await players(req, env, url);
     } catch (e) {
       return json(req, { error: "Something went wrong: " + e.message }, 500);
     }
