@@ -45,6 +45,8 @@ this file, show him the exact wording, and only change it after he says yes.
 - Keyboard and touch: on-screen buttons via `data-action`, swipes where they make sense, auto-pause on blur.
 - Sounds from the engine's `SFX` (add new ones there, synthesized, no audio files); `sfx()` stays silent in attract
   mode.
+- Play stats: load `<script defer src="/assets/stats.js"></script>` in the page head and call
+  `if (window.track) track('play:' + GAME_ID);` at the start of `newGame()` (never in attract mode).
 - Scripted test of a full game (start, score, die, clear, game over) on the test bench, a long attract-mode run with
   no errors, a phone check at the mobile preset, and screenshots for Tom.
 

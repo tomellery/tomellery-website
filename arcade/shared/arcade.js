@@ -137,6 +137,11 @@
       alarm: () => [0, 1, 2, 3].forEach(i => tone(i % 2 ? 660 : 880, 0.14, { type: 'square', delay: i * 0.16, vol: 0.05 })),
       crumble: () => { tone(120, 0.6, { type: 'sawtooth', slide: -80, vol: 0.1 }); tone(60, 0.7, { delay: 0.08, vol: 0.08 }); },
       tick: () => tone(1200, 0.025, { vol: 0.04 }),
+      move: () => tone(300, 0.02, { vol: 0.03 }),
+      rotate: () => tone(620, 0.04, { type: 'triangle', vol: 0.05 }),
+      lock: () => tone(110, 0.08, { vol: 0.07 }),
+      clear: (rows = 1) => arpeggio([523, 659, 784, 1047].slice(0, rows + 1), 0.05, { type: 'triangle', vol: 0.09 }),
+      quad: () => arpeggio([523, 659, 784, 1047, 1319, 1568, 2093], 0.06, { vol: 0.08 }),
       derez: () => { tone(900, 0.6, { type: 'sawtooth', slide: -820, vol: 0.06 }); tone(1800, 0.2, { type: 'triangle', slide: -1200, vol: 0.04, delay: 0.05 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
@@ -188,7 +193,7 @@
 
   const TAP_PX = 12;
 
-  function createInput({ swipeTarget, pointerTarget, screen } = {}) {
+  function createInput({ swipeTarget, pointerTarget, screen, keyRepeat = true } = {}) {
     const handlers = [];
     const pointerHandlers = [];
     const held = new Set();
@@ -204,7 +209,9 @@
       if (!action) return;
       e.preventDefault();
       held.add(action);
-      if (e.repeat && (action === 'start' || action === 'pause' || action === 'mute')) return;
+      // The keyboard's own auto-repeat is ignored for start/pause/mute, and for everything when a game
+      // does its own repeating (keyRepeat: false, see createRepeater).
+      if (e.repeat && (!keyRepeat || action === 'start' || action === 'pause' || action === 'mute')) return;
       emit(action);
     });
     window.addEventListener('keyup', e => {
@@ -307,7 +314,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -438,6 +445,37 @@
           i = prev[i];
         }
         return path.reverse();
+      },
+    };
+  }
+
+  // ---------- Key auto-repeat ----------
+  // Held-key repeating with a proper feel: one step on the press, then (after a short pause) steady
+  // steps while it stays held. Handle the press itself from input.on; each tick ask how many repeats:
+  //   const slide = Arcade.createRepeater({ delay: 170, rate: 50 });
+  //   for (let n = slide.tick(input.isDown('left'), dt); n > 0; n--) moveLeft();
+
+  function createRepeater({ delay = 170, rate = 50 } = {}) {
+    let t = 0;
+    let held = false;
+    return {
+      tick(down, dt) {
+        if (!down) {
+          held = false;
+          return 0;
+        }
+        if (!held) {
+          held = true;
+          t = -delay;
+          return 0;
+        }
+        t += dt;
+        let n = 0;
+        while (t >= rate) {
+          t -= rate;
+          n++;
+        }
+        return n;
       },
     };
   }
@@ -961,7 +999,7 @@
   window.Arcade = {
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
-    sound, createInput, scores, gridSearch, floodFill, createShell, vector, createBlasts,
+    sound, createInput, createRepeater, scores, gridSearch, floodFill, createShell, vector, createBlasts,
     text, roundRect, dim, triangle, drawCube, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
