@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07060f">
+  <title>Line Grab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../shared/arcade.css">
+  <style>
+    /* D-pad plus two draw buttons side by side. */
+    .touch-controls .round:not(.small) { width: 66px; height: 66px; }
+    .draw-btns { display: flex; gap: 10px; }
+    .round.slow { font-size: 8px; border-color: var(--yellow); color: var(--yellow); }
+  </style>
+<script defer src="/assets/stats.js"></script>
+</head>
+<body class="arcade">
+  <main class="cabinet" style="--ratio: 0.8">
+    <header class="marquee">
+      <a class="chip" href="../../index.html">&#9664; ARCADE</a>
+      <h1 class="neon">LINE GRAB</h1>
+      <button class="chip" type="button" data-action="mute" data-mute-label>SOUND ON</button>
+    </header>
+
+    <div class="screen">
+      <canvas id="game" aria-label="Line Grab game screen"></canvas>
+    </div>
+
+    <div class="touch-controls">
+      <div class="dpad">
+        <button class="pad-btn" type="button" data-action="up" aria-label="Up">&#9650;</button>
+        <button class="pad-btn" type="button" data-action="left" aria-label="Left">&#9664;</button>
+        <button class="pad-btn" type="button" data-action="right" aria-label="Right">&#9654;</button>
+        <button class="pad-btn" type="button" data-action="down" aria-label="Down">&#9660;</button>
+      </div>
+      <div class="action-btns">
+        <div class="draw-btns">
+          <button class="pad-btn round slow" type="button" data-action="slow">SLOW</button>
+          <button class="pad-btn round start" type="button" data-action="start">DRAW</button>
+        </div>
+        <button class="pad-btn round small" type="button" data-action="pause">PAUSE</button>
+      </div>
+    </div>
+
+    <p class="hint">ARROWS MOVE &nbsp; HOLD SPACE TO DRAW (Z SLOW = 2X) &nbsp; P PAUSE &nbsp; M SOUND</p>
+  </main>
+
+  <script src="../../shared/arcade.js?v=10"></script>
+  <script src="grab.js"></script>
+</body>
+</html>
