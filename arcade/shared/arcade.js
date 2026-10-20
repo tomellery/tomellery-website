@@ -142,6 +142,11 @@
       lock: () => tone(110, 0.08, { vol: 0.07 }),
       clear: (rows = 1) => arpeggio([523, 659, 784, 1047].slice(0, rows + 1), 0.05, { type: 'triangle', vol: 0.09 }),
       quad: () => arpeggio([523, 659, 784, 1047, 1319, 1568, 2093], 0.06, { vol: 0.08 }),
+      jump: () => tone(330, 0.12, { type: 'square', slide: 330, vol: 0.05 }),
+      roll: () => tone(90, 0.05, { type: 'triangle', vol: 0.05 }),
+      bonk: () => { tone(200, 0.08, { type: 'square', slide: -120, vol: 0.08 }); tone(900, 0.05, { type: 'triangle', delay: 0.03, vol: 0.05 }); },
+      pop: () => tone(1400, 0.07, { type: 'triangle', slide: -600, vol: 0.07 }),
+      collapse: () => { tone(160, 1.2, { type: 'sawtooth', slide: -130, vol: 0.1 }); [0, 1, 2, 3].forEach(i => tone(80 + i * 10, 0.3, { delay: 0.2 + i * 0.22, vol: 0.08 })); },
       derez: () => { tone(900, 0.6, { type: 'sawtooth', slide: -820, vol: 0.06 }); tone(1800, 0.2, { type: 'triangle', slide: -1200, vol: 0.04, delay: 0.05 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
@@ -314,7 +319,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -479,6 +484,114 @@
         return n;
       },
     };
+  }
+
+  // ---------- Platform physics ----------
+  // Levels built from girders (flat or sloped segments you stand on) and ladders (vertical spans you
+  // climb), and bodies that walk, fall, jump in fixed arcs and climb, like the old climbing games.
+  //   const world = Arcade.createPlatforms({ girders: [{ x1, y1, x2, y2 }], ladders: [{ x, top, bottom }],
+  //     width, gravity, walk, climb, jump });
+  //   world.surface(g, x)            height of girder g at x
+  //   world.groundAt(x, y, reach)    the nearest girder surface at or just below (x, y): { g, y } or null
+  //   world.step(body, dt, { left, right, up, down, jump })   moves a body; returns 'jump', 'land' or null
+  // A body is { x, y (its feet), vx, vy, onGround, ladder, facing, fall } - fall is how far it last
+  // dropped when it lands (games use it for "fell too far"). Change girders at any time (e.g. pulling
+  // bolts out); call world.setGirders(list).
+
+  function createPlatforms({ girders = [], ladders = [], width = 480, gravity = 0.0018, walk = 0.075, climb = 0.055, jump = 0.29 } = {}) {
+    let list = girders;
+    const spans = (g, x) => x >= Math.min(g.x1, g.x2) && x <= Math.max(g.x1, g.x2);
+    const surface = (g, x) => g.y1 + ((x - g.x1) * (g.y2 - g.y1)) / ((g.x2 - g.x1) || 1);
+    const world = {
+      ladders,
+      get girders() { return list; },
+      setGirders(next) { list = next; },
+      surface,
+      groundAt(x, y, reach = 4) {
+        let best = null;
+        for (const g of list) {
+          if (!spans(g, x)) continue;
+          const sy = surface(g, x);
+          if (sy >= y - 3 && sy <= y + reach && (!best || sy < best.y)) best = { g, y: sy };
+        }
+        return best;
+      },
+      // A ladder within grabbing distance whose bottom (going up) or top (going down) is at the feet.
+      ladderAt(x, y, up) {
+        return ladders.find(l => !l.broken && Math.abs(l.x - x) < 7 && (up ? y <= l.bottom + 4 && y > l.top + 2 : y >= l.top - 4 && y < l.bottom - 2)) || null;
+      },
+      step(b, dt, ctl = {}) {
+        let event = null;
+        if (b.ladder) {
+          const l = b.ladder;
+          const dir = (ctl.down ? 1 : 0) - (ctl.up ? 1 : 0);
+          b.y = Math.max(l.top, Math.min(l.bottom, b.y + dir * climb * dt));
+          b.x = l.x;
+          b.climbing = dir !== 0;
+          // Step off at either end.
+          const atEnd = b.y <= l.top + 0.5 || b.y >= l.bottom - 0.5;
+          if (atEnd && (ctl.left || ctl.right || (b.y <= l.top + 0.5 && ctl.up) || (b.y >= l.bottom - 0.5 && ctl.down))) {
+            const ground = world.groundAt(b.x, b.y - 2, 6);
+            if (ground) {
+              b.ladder = null;
+              b.onGround = true;
+              b.y = ground.y;
+            }
+          }
+          return null;
+        }
+        if (b.onGround) {
+          if (ctl.up && world.ladderAt(b.x, b.y, true)) {
+            b.ladder = world.ladderAt(b.x, b.y, true);
+            b.onGround = false;
+            return null;
+          }
+          if (ctl.down && world.ladderAt(b.x, b.y, false)) {
+            b.ladder = world.ladderAt(b.x, b.y, false);
+            b.onGround = false;
+            return null;
+          }
+          const dir = (ctl.right ? 1 : 0) - (ctl.left ? 1 : 0);
+          if (dir) b.facing = dir;
+          if (ctl.jump) {
+            // Jumps are fixed arcs: you commit to the direction you were walking.
+            b.vx = dir * walk;
+            b.vy = -jump;
+            b.onGround = false;
+            b.fallFrom = b.y;
+            return 'jump';
+          }
+          b.vx = dir * walk;
+          b.x = Math.max(4, Math.min(width - 4, b.x + b.vx * dt));
+          const ground = world.groundAt(b.x, b.y - 4, 10);
+          if (ground) b.y = ground.y;
+          else {
+            b.onGround = false; // walked off the end
+            b.vy = 0;
+            b.fallFrom = b.y;
+          }
+          return null;
+        }
+        // In the air
+        const before = b.y;
+        b.vy += gravity * dt;
+        b.x = Math.max(4, Math.min(width - 4, b.x + b.vx * dt));
+        b.y += b.vy * dt;
+        if (b.vy > 0) {
+          const ground = world.groundAt(b.x, before, b.y - before + 1);
+          if (ground) {
+            b.y = ground.y;
+            b.vy = 0;
+            b.vx = 0;
+            b.onGround = true;
+            b.fall = b.y - (b.fallFrom !== undefined ? b.fallFrom : b.y);
+            event = 'land';
+          }
+        }
+        return event;
+      },
+    };
+    return world;
   }
 
   // ---------- Flood fill ----------
@@ -1000,7 +1113,7 @@
   window.Arcade = {
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
-    sound, createInput, createRepeater, scores, gridSearch, floodFill, createShell, vector, createBlasts,
+    sound, createInput, createRepeater, createPlatforms, scores, gridSearch, floodFill, createShell, vector, createBlasts,
     text, roundRect, dim, triangle, drawCube, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
