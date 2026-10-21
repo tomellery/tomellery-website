@@ -150,6 +150,9 @@
       squish: () => { tone(180, 0.18, { type: 'sawtooth', slide: -140, vol: 0.08 }); tone(90, 0.2, { delay: 0.05, vol: 0.06 }); },
       plop: () => tone(240, 0.09, { type: 'triangle', slide: -120, vol: 0.08 }),
       shake: () => [0, 1, 2].forEach(i => tone(2400 + Math.random() * 1200, 0.03, { type: 'square', delay: i * 0.04, vol: 0.025 })),
+      fuse: () => tone(1800 + Math.random() * 600, 0.02, { type: 'square', vol: 0.015 }),
+      kaboom: () => { tone(120, 0.5, { type: 'sawtooth', slide: -90, vol: 0.12 }); tone(60, 0.6, { delay: 0.03, vol: 0.1 }); tone(900, 0.1, { type: 'square', slide: -700, vol: 0.05 }); },
+      chime: () => arpeggio([880, 1175, 1568], 0.05, { type: 'triangle', vol: 0.09 }),
       derez: () => { tone(900, 0.6, { type: 'sawtooth', slide: -820, vol: 0.06 }); tone(1800, 0.2, { type: 'triangle', slide: -1200, vol: 0.04, delay: 0.05 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
@@ -198,6 +201,9 @@
     KeyM: 'mute',
   };
   const SWIPE_PX = 24;
+  // Two players can share one keyboard: arrows + Enter are player 1, WASD + Space are player 2.
+  // Games that don't care just ignore which player an action came from.
+  const KEY_PLAYER = { ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1, Enter: 1, KeyW: 2, KeyS: 2, KeyA: 2, KeyD: 2, Space: 2 };
 
   const TAP_PX = 12;
 
@@ -205,11 +211,12 @@
     const handlers = [];
     const pointerHandlers = [];
     const held = new Set();
+    const heldBy = { 1: new Set(), 2: new Set() };
     let pointerHeld = false;
-    const emit = action => {
+    const emit = (action, player = 1) => {
       sound.unlock();
       if (action === 'mute') { sound.toggle(); return; }
-      handlers.forEach(h => h(action));
+      handlers.forEach(h => h(action, player));
     };
 
     window.addEventListener('keydown', e => {
@@ -217,16 +224,24 @@
       if (!action) return;
       e.preventDefault();
       held.add(action);
+      if (KEY_PLAYER[e.code]) heldBy[KEY_PLAYER[e.code]].add(action);
       // The keyboard's own auto-repeat is ignored for start/pause/mute, and for everything when a game
       // does its own repeating (keyRepeat: false, see createRepeater).
       if (e.repeat && (!keyRepeat || action === 'start' || action === 'pause' || action === 'mute')) return;
-      emit(action);
+      emit(action, KEY_PLAYER[e.code] || 1);
     });
     window.addEventListener('keyup', e => {
       const action = KEYMAP[e.code];
-      if (action) held.delete(action);
+      if (!action) return;
+      if (KEY_PLAYER[e.code]) heldBy[KEY_PLAYER[e.code]].delete(action);
+      // Still held if the other player's key for the same action is down.
+      if (!heldBy[1].has(action) && !heldBy[2].has(action)) held.delete(action);
     });
-    window.addEventListener('blur', () => held.clear());
+    window.addEventListener('blur', () => {
+      held.clear();
+      heldBy[1].clear();
+      heldBy[2].clear();
+    });
 
     // Pointer: reports position in the game's own coordinates. Mice report on hover,
     // fingers while touching. A press that barely moves also counts as a 'tap'.
@@ -290,12 +305,14 @@
       const release = () => {
         btn.classList.remove('pressed');
         held.delete(btn.dataset.action);
+        heldBy[1].delete(btn.dataset.action);
       };
       btn.addEventListener('pointerdown', e => {
         e.preventDefault();
         btn.classList.add('pressed');
         held.add(btn.dataset.action);
-        emit(btn.dataset.action);
+        heldBy[1].add(btn.dataset.action); // on-screen buttons belong to player 1
+        emit(btn.dataset.action, 1);
       });
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointerleave', release);
@@ -307,6 +324,8 @@
       on(fn) { handlers.push(fn); },
       onPointer(fn) { pointerHandlers.push(fn); },
       isDown: action => held.has(action),
+      // Held by one player's side of the keyboard (1: arrows/Enter and the on-screen buttons, 2: WASD/Space).
+      isDownFor: (action, player) => heldBy[player].has(action),
       isPointerDown: () => pointerHeld,
     };
   }
@@ -322,7 +341,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25, stack: 25, bugs: 30 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25, stack: 25, bugs: 30, blast: 20 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -693,6 +712,94 @@
       },
     };
     return world;
+  }
+
+  // ---------- Grid bombs ----------
+  // Bombs on a grid that burn in a cross after a fuse, stop at solid walls, burn the first breakable
+  // block they reach, and set off any other bomb in their path: chain reactions.
+  //   const bombs = Arcade.createBombs({ cols, rows, solid(c, r), soft(c, r), onSoft(c, r), onExplode(bomb) });
+  //   bombs.place(c, r, { range, owner, fuse })  -> the bomb (or null if one's already there); fuse Infinity = remote
+  //   bombs.detonate(bomb); bombs.update(dt); bombs.flameAt(c, r); bombs.at(c, r); bombs.list; bombs.flames
+  //   bombs.blastCells(bomb) -> the cells it will burn (for AI that wants to stay out of the way)
+  // A bomb can be kicked: bomb.slide = { dx, dy }, and bombs.update moves it a cell at a time until
+  // blocked(c, r) (a function you pass) says stop.
+
+  function createBombs({ cols, rows, solid, soft, onSoft = () => {}, onExplode = () => {}, blocked = () => false, fuseMs = 2400, flameMs = 550, slideMs = 70 }) {
+    let list = [];
+    let flames = [];
+    const inside = (c, r) => c >= 0 && r >= 0 && c < cols && r < rows;
+    const at = (c, r) => list.find(b => b.c === c && b.r === r && !b.gone) || null;
+    const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    function blastCells(b) {
+      const cells = [{ c: b.c, r: b.r }];
+      for (const [dc, dr] of DIRS4) {
+        for (let k = 1; k <= b.range; k++) {
+          const c = b.c + dc * k;
+          const r = b.r + dr * k;
+          if (!inside(c, r) || solid(c, r)) break;
+          cells.push({ c, r, dc, dr, k, end: k === b.range });
+          if (soft(c, r) || at(c, r)) break;
+        }
+      }
+      return cells;
+    }
+
+    function detonate(b) {
+      if (b.gone) return;
+      b.gone = true;
+      const cells = blastCells(b);
+      for (const cell of cells) {
+        flames.push({ ...cell, t: 0, owner: b.owner });
+        if (soft(cell.c, cell.r)) onSoft(cell.c, cell.r, b);
+        const other = at(cell.c, cell.r);
+        if (other && other !== b) detonate(other); // chain reaction
+      }
+      onExplode(b, cells);
+    }
+
+    return {
+      get list() { return list; },
+      get flames() { return flames; },
+      at,
+      blastCells,
+      detonate,
+      place(c, r, { range = 1, owner = null, fuse = fuseMs } = {}) {
+        if (at(c, r)) return null;
+        const b = { c, r, range, owner, t: 0, fuse, slide: null, slideT: 0 };
+        list.push(b);
+        return b;
+      },
+      flameAt: (c, r) => flames.some(f => f.c === c && f.r === r),
+      update(dt) {
+        for (const f of flames) f.t += dt;
+        flames = flames.filter(f => f.t < flameMs);
+        for (const b of list) {
+          if (b.gone) continue;
+          // Standing in fire sets a bomb off too.
+          if (flames.some(f => f.c === b.c && f.r === b.r)) {
+            detonate(b);
+            continue;
+          }
+          if (b.slide && (b.slideT += dt) >= slideMs) {
+            b.slideT = 0;
+            const c = b.c + b.slide.dx;
+            const r = b.r + b.slide.dy;
+            if (!inside(c, r) || solid(c, r) || soft(c, r) || at(c, r) || blocked(c, r)) b.slide = null;
+            else {
+              b.c = c;
+              b.r = r;
+            }
+          }
+          if ((b.t += dt) >= b.fuse) detonate(b);
+        }
+        list = list.filter(b => !b.gone);
+      },
+      clear() {
+        list = [];
+        flames = [];
+      },
+    };
   }
 
   // ---------- Flood fill ----------
@@ -1243,7 +1350,7 @@
   window.Arcade = {
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
-    sound, createInput, createRepeater, createPlatforms, scores, gridSearch, floodFill, createShell, vector, createBlasts,
+    sound, createInput, createRepeater, createPlatforms, createBombs, scores, gridSearch, floodFill, createShell, vector, createBlasts,
     text, roundRect, dim, triangle, drawCube, makeSprite, crewSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
