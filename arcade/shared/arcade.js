@@ -153,6 +153,9 @@
       fuse: () => tone(1800 + Math.random() * 600, 0.02, { type: 'square', vol: 0.015 }),
       kaboom: () => { tone(120, 0.5, { type: 'sawtooth', slide: -90, vol: 0.12 }); tone(60, 0.6, { delay: 0.03, vol: 0.1 }); tone(900, 0.1, { type: 'square', slide: -700, vol: 0.05 }); },
       chime: () => arpeggio([880, 1175, 1568], 0.05, { type: 'triangle', vol: 0.09 }),
+      laser: () => tone(1500 + Math.random() * 300, 0.04, { type: 'square', slide: -900, vol: 0.025 }),
+      thud: () => tone(80, 0.08, { type: 'square', vol: 0.06 }),
+      rescue: (n = 1) => arpeggio([660, 880, 1100, 1320, 1760].slice(0, Math.min(5, n) + 1), 0.05, { type: 'triangle', vol: 0.09 }),
       derez: () => { tone(900, 0.6, { type: 'sawtooth', slide: -820, vol: 0.06 }); tone(1800, 0.2, { type: 'triangle', slide: -1200, vol: 0.04, delay: 0.05 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
@@ -255,7 +258,7 @@
       pointerTarget.addEventListener('pointerdown', e => {
         down = { x: e.clientX, y: e.clientY, id: e.pointerId };
         pointerHeld = true;
-        if (pointerTarget.setPointerCapture) pointerTarget.setPointerCapture(e.pointerId);
+        try { pointerTarget.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
         report(e);
       });
       pointerTarget.addEventListener('pointermove', e => {
@@ -279,7 +282,7 @@
       swipeTarget.addEventListener('pointerdown', e => {
         start = { x: e.clientX, y: e.clientY, id: e.pointerId };
         swiped = false;
-        if (swipeTarget.setPointerCapture) swipeTarget.setPointerCapture(e.pointerId);
+        try { swipeTarget.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
       });
       swipeTarget.addEventListener('pointermove', e => {
         if (!start || e.pointerId !== start.id) return;
@@ -330,6 +333,73 @@
     };
   }
 
+  // ---------- Twin-stick touch controls ----------
+  // Two virtual thumbsticks for touch screens: a thumb on the left half of the target is stick 0
+  // (usually move), on the right half stick 1 (usually aim). Each appears wherever the thumb lands.
+  //   const sticks = Arcade.createSticks({ target: canvas, screen: { width, height } });
+  //   sticks.get(0) -> { x, y } from -1 to 1 (0, 0 when not held), plus active and mag
+  //   sticks.draw(ctx) draws the rings and knobs. Mice are ignored (use pointer aiming for those).
+
+  function createSticks({ target, screen, radius = 46 }) {
+    const pads = [null, null];
+    const toGame = e => {
+      const r = target.getBoundingClientRect();
+      return { x: ((e.clientX - r.left) / r.width) * screen.width, y: ((e.clientY - r.top) / r.height) * screen.height, half: e.clientX - r.left < r.width / 2 ? 0 : 1 };
+    };
+    target.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse') return;
+      const p = toGame(e);
+      if (pads[p.half]) return;
+      pads[p.half] = { id: e.pointerId, ox: p.x, oy: p.y, x: p.x, y: p.y };
+      sound.unlock();
+    });
+    target.addEventListener('pointermove', e => {
+      const pad = pads.find(q => q && q.id === e.pointerId);
+      if (!pad) return;
+      const p = toGame(e);
+      pad.x = p.x;
+      pad.y = p.y;
+    });
+    const end = e => {
+      const i = pads.findIndex(q => q && q.id === e.pointerId);
+      if (i >= 0) pads[i] = null;
+    };
+    target.addEventListener('pointerup', end);
+    target.addEventListener('pointercancel', end);
+    return {
+      get(i) {
+        const pad = pads[i];
+        if (!pad) return { x: 0, y: 0, mag: 0, active: false };
+        const dx = (pad.x - pad.ox) / radius;
+        const dy = (pad.y - pad.oy) / radius;
+        const mag = Math.min(1, Math.hypot(dx, dy));
+        const len = Math.hypot(dx, dy) || 1;
+        return { x: (dx / len) * mag, y: (dy / len) * mag, mag, active: true };
+      },
+      draw(ctx) {
+        for (const pad of pads) {
+          if (!pad) continue;
+          const dx = pad.x - pad.ox;
+          const dy = pad.y - pad.oy;
+          const len = Math.hypot(dx, dy);
+          const k = len > radius ? radius / len : 1;
+          ctx.save();
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = COLORS.cyan;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(pad.ox, pad.oy, radius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = COLORS.cyan;
+          ctx.beginPath();
+          ctx.arc(pad.ox + dx * k, pad.oy + dy * k, 16, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      },
+    };
+  }
+
   // ---------- High scores (top 5 per game, shared by everyone via the site's Worker) ----------
   // A copy of the shared tables is kept in this browser so scores show instantly and the games work offline.
   // A score that couldn't be sent is kept as "pending" and sent again on the next visit.
@@ -341,7 +411,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25, stack: 25, bugs: 30, blast: 20 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25, stack: 25, bugs: 30, blast: 20, robo: 40 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -1350,7 +1420,7 @@
   window.Arcade = {
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
-    sound, createInput, createRepeater, createPlatforms, createBombs, scores, gridSearch, floodFill, createShell, vector, createBlasts,
+    sound, createInput, createRepeater, createSticks, createPlatforms, createBombs, scores, gridSearch, floodFill, createShell, vector, createBlasts,
     text, roundRect, dim, triangle, drawCube, makeSprite, crewSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
