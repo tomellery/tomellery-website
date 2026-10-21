@@ -501,6 +501,8 @@
   // dropped when it lands (games use it for "fell too far"). Change girders at any time (e.g. pulling
   // bolts out); call world.setGirders(list).
 
+  const LADDER_EXIT = 10; // px from a floor where you can still step off a ladder sideways
+
   function createPlatforms({ girders = [], ladders = [], width = 480, gravity = 0.0018, walk = 0.075, climb = 0.055, jump = 0.29 } = {}) {
     let list = girders;
     const spans = (g, x) => x >= Math.min(g.x1, g.x2) && x <= Math.max(g.x1, g.x2);
@@ -516,6 +518,16 @@
           if (!spans(g, x)) continue;
           const sy = surface(g, x);
           if (sy >= y - 3 && sy <= y + reach && (!best || sy < best.y)) best = { g, y: sy };
+        }
+        return best;
+      },
+      // The girder surface nearest to (x, y), above or below, within reach.
+      floorNear(x, y, reach) {
+        let best = null;
+        for (const g of list) {
+          if (!spans(g, x)) continue;
+          const sy = surface(g, x);
+          if (Math.abs(sy - y) <= reach && (!best || Math.abs(sy - y) < Math.abs(best.y - y))) best = { g, y: sy };
         }
         return best;
       },
@@ -553,14 +565,19 @@
           for (let i = 1; i < xs.length; i++) link(nodeAt(g, xs[i - 1]), nodeAt(g, xs[i]), xs[i] - xs[i - 1], 'right', 'left');
         }
         // Where each end stands: on a girder (any node on it, by walking) or on a ladder (its two ends).
+        const onFloor = (g, b, leaving) => nodes.map((n, i) => [n, i]).filter(([n]) => n.g === g)
+          .map(([n, i]) => ({ i, cost: Math.abs(n.x - b.x), move: Math.abs(n.x - b.x) < 3 ? null : n.x < b.x ? (leaving ? 'left' : 'right') : leaving ? 'right' : 'left' }));
         const entries = (b, leaving) => {
           if (b.ladder) {
             const ends = nodes.map((n, i) => [n, i]).filter(([n]) => Math.abs(n.x - b.ladder.x) < 1 && (Math.abs(n.y - b.ladder.top) < 4 || Math.abs(n.y - b.ladder.bottom) < 4));
-            return { g: null, list: ends.map(([n, i]) => ({ i, cost: Math.abs(n.y - b.y), move: n.y < b.y ? (leaving ? 'up' : 'down') : leaving ? 'down' : 'up' })) };
+            const list = ends.map(([n, i]) => ({ i, cost: Math.abs(n.y - b.y), move: Math.abs(n.y - b.y) < 3 ? null : n.y < b.y ? (leaving ? 'up' : 'down') : leaving ? 'down' : 'up' }));
+            // Right at a floor the ladder meets: as good as standing on that floor.
+            const at = ends.find(([n]) => Math.abs(n.y - b.y) < 3);
+            return at ? { g: at[0].g, list: list.concat(onFloor(at[0].g, b, leaving)) } : { g: null, list };
           }
           const ground = world.groundAt(b.x, b.y - 4, 10);
           if (!ground) return { g: null, list: [] };
-          return { g: ground.g, list: nodes.map((n, i) => [n, i]).filter(([n]) => n.g === ground.g).map(([n, i]) => ({ i, cost: Math.abs(n.x - b.x), move: Math.abs(n.x - b.x) < 3 ? null : n.x < b.x ? (leaving ? 'left' : 'right') : leaving ? 'right' : 'left' })) };
+          return { g: ground.g, list: onFloor(ground.g, b, leaving) };
         };
         const start = entries(from, true);
         const goal = entries(to, false);
@@ -602,9 +619,19 @@
           b.y = Math.max(l.top, Math.min(l.bottom, b.y + dir * climb * dt));
           b.x = l.x;
           b.climbing = dir !== 0;
-          // Step off at either end.
+          // Step off sideways onto any girder the ladder crosses, as long as you're close to it (ladders
+          // that look like they span several floors are stacks of one-floor pieces), or off either end.
+          if (ctl.left || ctl.right) {
+            const ground = world.floorNear(b.x, b.y, LADDER_EXIT);
+            if (ground) {
+              b.ladder = null;
+              b.onGround = true;
+              b.y = ground.y;
+              return null;
+            }
+          }
           const atEnd = b.y <= l.top + 0.5 || b.y >= l.bottom - 0.5;
-          if (atEnd && (ctl.left || ctl.right || (b.y <= l.top + 0.5 && ctl.up) || (b.y >= l.bottom - 0.5 && ctl.down))) {
+          if (atEnd && ((b.y <= l.top + 0.5 && ctl.up) || (b.y >= l.bottom - 0.5 && ctl.down))) {
             const ground = world.groundAt(b.x, b.y - 2, 6);
             if (ground) {
               b.ladder = null;
