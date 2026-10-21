@@ -147,6 +147,9 @@
       bonk: () => { tone(200, 0.08, { type: 'square', slide: -120, vol: 0.08 }); tone(900, 0.05, { type: 'triangle', delay: 0.03, vol: 0.05 }); },
       pop: () => tone(1400, 0.07, { type: 'triangle', slide: -600, vol: 0.07 }),
       collapse: () => { tone(160, 1.2, { type: 'sawtooth', slide: -130, vol: 0.1 }); [0, 1, 2, 3].forEach(i => tone(80 + i * 10, 0.3, { delay: 0.2 + i * 0.22, vol: 0.08 })); },
+      squish: () => { tone(180, 0.18, { type: 'sawtooth', slide: -140, vol: 0.08 }); tone(90, 0.2, { delay: 0.05, vol: 0.06 }); },
+      plop: () => tone(240, 0.09, { type: 'triangle', slide: -120, vol: 0.08 }),
+      shake: () => [0, 1, 2].forEach(i => tone(2400 + Math.random() * 1200, 0.03, { type: 'square', delay: i * 0.04, vol: 0.025 })),
       derez: () => { tone(900, 0.6, { type: 'sawtooth', slide: -820, vol: 0.06 }); tone(1800, 0.2, { type: 'triangle', slide: -1200, vol: 0.04, delay: 0.05 }); },
       home: () => arpeggio([523, 659, 784, 1047, 1319], 0.06, { type: 'triangle', vol: 0.12 }),
       start: () => arpeggio([523, 659, 784, 1047], 0.08),
@@ -319,7 +322,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25, stack: 25 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
@@ -519,6 +522,77 @@
       // A ladder within grabbing distance whose bottom (going up) or top (going down) is at the feet.
       ladderAt(x, y, up) {
         return ladders.find(l => !l.broken && Math.abs(l.x - x) < 7 && (up ? y <= l.bottom + 4 && y > l.top + 2 : y >= l.top - 4 && y < l.bottom - 2)) || null;
+      },
+      // The way to walk and climb from one spot to another across girders and ladders: returns the first
+      // move to make ('left', 'right', 'up', 'down'), or null when already there or there's no way.
+      // Chasers call it every so often to pick a direction.
+      route(from, to) {
+        const nodes = [];
+        const edges = [];
+        const nodeAt = (g, x) => {
+          let i = nodes.findIndex(n => n.g === g && Math.abs(n.x - x) < 1);
+          if (i < 0) {
+            i = nodes.push({ g, x, y: surface(g, x) }) - 1;
+            edges.push([]);
+          }
+          return i;
+        };
+        const link = (a, b, cost, ab, ba) => {
+          edges[a].push({ to: b, cost, move: ab });
+          edges[b].push({ to: a, cost, move: ba });
+        };
+        const onGirder = (g, l, end) => spans(g, l.x) && Math.abs(surface(g, l.x) - l[end]) < 4;
+        for (const l of ladders) {
+          if (l.broken) continue;
+          const top = list.find(g => onGirder(g, l, 'top'));
+          const bottom = list.find(g => onGirder(g, l, 'bottom'));
+          if (top && bottom) link(nodeAt(top, l.x), nodeAt(bottom, l.x), l.bottom - l.top, 'down', 'up');
+        }
+        for (const g of list) {
+          const xs = nodes.filter(n => n.g === g).map(n => n.x).sort((a, b) => a - b);
+          for (let i = 1; i < xs.length; i++) link(nodeAt(g, xs[i - 1]), nodeAt(g, xs[i]), xs[i] - xs[i - 1], 'right', 'left');
+        }
+        // Where each end stands: on a girder (any node on it, by walking) or on a ladder (its two ends).
+        const entries = (b, leaving) => {
+          if (b.ladder) {
+            const ends = nodes.map((n, i) => [n, i]).filter(([n]) => Math.abs(n.x - b.ladder.x) < 1 && (Math.abs(n.y - b.ladder.top) < 4 || Math.abs(n.y - b.ladder.bottom) < 4));
+            return { g: null, list: ends.map(([n, i]) => ({ i, cost: Math.abs(n.y - b.y), move: n.y < b.y ? (leaving ? 'up' : 'down') : leaving ? 'down' : 'up' })) };
+          }
+          const ground = world.groundAt(b.x, b.y - 4, 10);
+          if (!ground) return { g: null, list: [] };
+          return { g: ground.g, list: nodes.map((n, i) => [n, i]).filter(([n]) => n.g === ground.g).map(([n, i]) => ({ i, cost: Math.abs(n.x - b.x), move: Math.abs(n.x - b.x) < 3 ? null : n.x < b.x ? (leaving ? 'left' : 'right') : leaving ? 'right' : 'left' })) };
+        };
+        const start = entries(from, true);
+        const goal = entries(to, false);
+        if (start.g && start.g === goal.g) return Math.abs(to.x - from.x) < 2 ? null : to.x < from.x ? 'left' : 'right';
+        const dist = nodes.map(() => Infinity);
+        const first = nodes.map(() => null);
+        const done = nodes.map(() => false);
+        for (const e of start.list) {
+          if (e.cost < dist[e.i]) {
+            dist[e.i] = e.cost;
+            first[e.i] = e.move;
+          }
+        }
+        for (;;) {
+          let u = -1;
+          for (let i = 0; i < nodes.length; i++) if (!done[i] && dist[i] < Infinity && (u < 0 || dist[i] < dist[u])) u = i;
+          if (u < 0) break;
+          done[u] = true;
+          for (const e of edges[u]) {
+            const d = dist[u] + e.cost;
+            if (d < dist[e.to]) {
+              dist[e.to] = d;
+              first[e.to] = first[u] || e.move;
+            }
+          }
+        }
+        let best = null;
+        for (const e of goal.list) {
+          const total = dist[e.i] + e.cost;
+          if (total < Infinity && (!best || total < best.total)) best = { total, move: first[e.i] || e.move };
+        }
+        return best ? best.move : null;
       },
       step(b, dt, ctl = {}) {
         let event = null;
@@ -886,6 +960,35 @@
     ctx.restore();
   }
 
+  // A member of the arcade's construction crew (assets/crew.js, loaded by the page) as game sprites:
+  // { stand, walk1, walk2, lift (arms up: climbing, carrying), flail (falling) }, facing right.
+  // Returns null if the crew isn't loaded or there's no one by that name.
+  function crewSprite(name, px = 2) {
+    const crew = window.Crew && window.Crew.list.find(m => m.name === name);
+    if (!crew) return null;
+    const LEGS = {
+      stand: ['..LL.LL...', '..LL.LL...', '.XXX.XXX..'],
+      walk1: ['..LL.LL...', '.LL...LL..', '.XX...XX..'],
+      walk2: ['...LLL....', '...LLL....', '...XXX....'],
+    };
+    const set = (rows, list) => {
+      const g = rows.map(r => r.split(''));
+      list.forEach(([x, y, v]) => { g[y][x] = v; });
+      return g.map(r => r.join(''));
+    };
+    const legs = crew.legs || LEGS;
+    const stand = crew.rows.concat(legs.stand);
+    const arms = [[0, 7, '.'], [0, 8, '.'], [7, 7, '.'], [7, 8, '.'], [0, 6, 'A'], [0, 5, 'A'], [7, 6, 'A'], [7, 5, 'A']];
+    const pal = { E: '#0a0a0a', ...crew.c, X: crew.legsK || crew.c.K };
+    return {
+      stand: makeSprite(stand, pal, px),
+      walk1: makeSprite(crew.rows.concat(legs.walk1), pal, px),
+      walk2: makeSprite(crew.rows.concat(legs.walk2), pal, px),
+      lift: makeSprite(set(stand, arms), pal, px),
+      flail: makeSprite(set(crew.rows.concat(legs.walk1), arms), pal, px),
+    };
+  }
+
   function triangle(ctx, x, y, size, up, color) {
     const s = up ? -1 : 1;
     ctx.save();
@@ -1114,7 +1217,7 @@
     COLORS, FONT, isTouch, store, pad,
     createScreen, startLoop, onBlur,
     sound, createInput, createRepeater, createPlatforms, scores, gridSearch, floodFill, createShell, vector, createBlasts,
-    text, roundRect, dim, triangle, drawCube, makeSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
+    text, roundRect, dim, triangle, drawCube, makeSprite, crewSprite, drawSprite, drawScoreTable, InitialsEntry, createEffects,
     waitForFont,
   };
 })();
