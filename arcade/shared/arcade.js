@@ -152,6 +152,7 @@
       shake: () => [0, 1, 2].forEach(i => tone(2400 + Math.random() * 1200, 0.03, { type: 'square', delay: i * 0.04, vol: 0.025 })),
       fuse: () => tone(1800 + Math.random() * 600, 0.02, { type: 'square', vol: 0.015 }),
       kaboom: () => { tone(120, 0.5, { type: 'sawtooth', slide: -90, vol: 0.12 }); tone(60, 0.6, { delay: 0.03, vol: 0.1 }); tone(900, 0.1, { type: 'square', slide: -700, vol: 0.05 }); },
+      flap: () => tone(220 + Math.random() * 40, 0.06, { type: 'triangle', slide: 140, vol: 0.05 }),
       chime: () => arpeggio([880, 1175, 1568], 0.05, { type: 'triangle', vol: 0.09 }),
       laser: () => tone(1500 + Math.random() * 300, 0.04, { type: 'square', slide: -900, vol: 0.025 }),
       thud: () => tone(80, 0.08, { type: 'square', vol: 0.06 }),
@@ -411,7 +412,7 @@
     const SIZE = 5;
     const SEED = [['NEO', 500], ['PIX', 400], ['ARC', 300], ['BIT', 200], ['CPU', 100]];
     // Games that score bigger numbers get a proportionally harder starting table.
-    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25, stack: 25, bugs: 30, blast: 20, robo: 40 };
+    const SEED_SCALE = { bricks: 20, hopper: 10, swarm: 40, driller: 30, maze: 15, cube: 30, trails: 20, rocks: 20, shield: 20, blocks: 30, grab: 40, climb: 25, stack: 25, bugs: 30, blast: 20, robo: 40, knights: 25 };
     const SHARED = 'arcade:shared', PENDING = 'arcade:pending';
     const listeners = [];
 
