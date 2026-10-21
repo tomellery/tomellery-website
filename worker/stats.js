@@ -11,7 +11,7 @@
 // Nothing here identifies a person: a visitor is a random id the browser makes up, and location comes from
 // Cloudflare's own country/city guess. The tables are made automatically the first time anything arrives.
 
-const VERSION = 7;// bump when the code changes, so it's easy to tell which copy Cloudflare is running
+const VERSION = 8;// bump when the code changes, so it's easy to tell which copy Cloudflare is running
 const ORIGINS = ["https://tomellery.com", "https://www.tomellery.com", "http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:8080", "http://127.0.0.1:8080"];
 const TOKEN_DAYS = 60;
 const MAX_FAILS = 8, FAIL_WINDOW = 10 * 60 * 1000;   // wrong passcodes allowed per visitor address, per 10 minutes
@@ -25,6 +25,7 @@ async function setup(env) {
   await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS hits (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, type TEXT NOT NULL, path TEXT, ref TEXT, vid TEXT, sid TEXT, country TEXT, city TEXT, device TEXT, browser TEXT, os TEXT, name TEXT)"),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS hits_ts ON hits (ts)"),
+    env.DB.prepare("CREATE INDEX IF NOT EXISTS hits_type_ts ON hits (type, ts)"),
     env.DB.prepare("CREATE TABLE IF NOT EXISTS fails (ts INTEGER NOT NULL, ip TEXT NOT NULL)"),
   ]);
   ready = true;
@@ -233,6 +234,24 @@ async function players(req, env, url) {
   });
 }
 
+// The dashboard numbers barely change second to second, so a finished answer is kept for CACHE_SECONDS and handed
+// back to any tab that asks again - D1 bills by rows scanned, and every fresh answer scans the table many times over.
+// The login is checked first, so a cached answer is never given to someone who isn't signed in.
+const CACHE_SECONDS = 90;
+async function cached(req, env, url, fn) {
+  if (!(await checkToken(env, req))) return json(req, { error: "login" }, 401);
+  const params = [...url.searchParams].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const key = new Request("https://stats-cache.invalid" + url.pathname + "?" + new URLSearchParams(params));
+  const cache = caches.default;
+  const hit = await cache.match(key);
+  if (hit) return json(req, await hit.json());
+  const res = await fn(req, env, url);
+  if (res.status === 200) {
+    await cache.put(key, new Response(await res.clone().text(), { headers: { "Content-Type": "application/json", "Cache-Control": "max-age=" + CACHE_SECONDS } }));
+  }
+  return res;
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -241,10 +260,10 @@ export default {
       if (url.pathname === "/version") return json(req, { version: VERSION });
       if (url.pathname === "/hit" && req.method === "POST") return await hit(req, env);
       if (url.pathname === "/login" && req.method === "POST") return await login(req, env);
-      if (url.pathname === "/data" && req.method === "GET") return await data(req, env, url);
+      if (url.pathname === "/data" && req.method === "GET") return await cached(req, env, url, data);
       if (url.pathname === "/raw" && req.method === "GET") return await raw(req, env, url);
-      if (url.pathname === "/arcade" && req.method === "GET") return await arcade(req, env, url);
-      if (url.pathname === "/players" && req.method === "GET") return await players(req, env, url);
+      if (url.pathname === "/arcade" && req.method === "GET") return await cached(req, env, url, arcade);
+      if (url.pathname === "/players" && req.method === "GET") return await cached(req, env, url, players);
     } catch (e) {
       return json(req, { error: "Something went wrong: " + e.message }, 500);
     }

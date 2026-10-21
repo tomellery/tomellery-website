@@ -300,7 +300,12 @@
     draw(d);
   }
 
-  function start() { show(true); load(); clearInterval(timer); timer = setInterval(() => { load(); if (!$("arcadeview").hidden) loadArcade(); }, 30000); }
+  // Every refresh costs the database a pile of row reads, so only refresh while this tab is actually on screen,
+  // every 3 minutes, and catch up once when the tab comes back after a while.
+  let lastLoad = 0;
+  function refresh() { if (document.hidden) return; lastLoad = Date.now(); load(); if (!$("arcadeview").hidden) loadArcade(); }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && token && Date.now() - lastLoad > 60000) refresh(); });
+  function start() { show(true); lastLoad = Date.now(); load(); clearInterval(timer); timer = setInterval(refresh, 180000); }
 
   // ===== drawing =====
   const names = (() => { try { return new Intl.DisplayNames(undefined, { type: "region" }); } catch (e) { return null; } })();
